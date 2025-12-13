@@ -3855,24 +3855,33 @@
               <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
               <p>Set up your guess and watch the videos!</p>
               <div style="margin: 1rem 0;">
-                <label>Time Duration (seconds): <input type="number" id="pf-timer" value="30" min="10" max="120" style="width: 80px;"></label>
+                <label>Time Duration (seconds): <input type="number" id="pf-timer" value="30" min="10" max="120" style="width: 80px; pointer-events: auto;"></label>
               </div>
               <div style="margin: 1rem 0;">
-                <label>Video Change Interval (seconds): <input type="number" id="pf-interval" value="5" min="1" max="30" style="width: 80px;"></label>
+                <label>Video Change Interval (seconds): <input type="number" id="pf-interval" value="5" min="1" max="30" style="width: 80px; pointer-events: auto;"></label>
               </div>
               <div style="margin: 1rem 0;">
                 <label>Your guess emoji: </label>
                 <span class="pf-emoji-cycler text-2xl cursor-pointer" style="display: inline-block; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 5px;">🍆</span>
               </div>
               <div style="margin: 1rem 0;">
-                <label>Your guess count: <input type="number" id="pf-guess-count" value="5" min="0" max="100" style="width: 80px;"></label>
+                <label>Your guess count: <input type="number" id="pf-guess-count" value="5" min="0" max="100" style="width: 80px; pointer-events: auto;"></label>
               </div>
               <button id="start-pf-btn" class="modal-action-btn">Start Game</button>
             `;
             
-            const guessEmojis = ['🍆', '🍑', '🧍'];
+            const guessEmojis = ['🍆', '🍑', '🧍', '👄'];
             const emojiCycler = taskModalBody.querySelector('.pf-emoji-cycler');
             parseEmojis(emojiCycler);
+            
+            // Ensure inputs are focusable
+            const inputs = taskModalBody.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+              input.style.pointerEvents = 'auto';
+              input.addEventListener('focus', (e) => {
+                e.stopPropagation();
+              });
+            });
             
             emojiCycler.addEventListener('click', () => {
               let currentEmojiIndex = guessEmojis.indexOf(emojiCycler.textContent.trim());
