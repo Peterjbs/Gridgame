@@ -4306,7 +4306,7 @@
                   
                   gameOverlay.remove();
                   taskModalOverlay.style.pointerEvents = 'all';
-                  taskModalBody.innerHTML = '<div style="text-align: center; padding: 2rem;"><h2>⏰ Time\'s Up!</h2><p>Not enough targets found.</p></div>';
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Not enough targets found.</p></div>`;
                   setTimeout(() => closeTaskModal(), 2000);
                 }
               }, 1000);
