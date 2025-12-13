@@ -1855,9 +1855,8 @@
           }
 
           function decodeHTMLEntities(text) {
-            const textarea = document.createElement('textarea');
-            textarea.innerHTML = text;
-            return textarea.value;
+            const doc = new DOMParser().parseFromString(text, 'text/html');
+            return doc.documentElement.textContent;
           }
 
           // --- Utility Functions ---
@@ -3105,7 +3104,11 @@
                 document.getElementById('submit-trivia3').onclick = () => {
                   const userInput = document.getElementById('typed-answer-input').value.trim().toLowerCase();
                   const correctAnswer = q.answer.toLowerCase();
-                  if (userInput === correctAnswer || userInput.includes(correctAnswer) || correctAnswer.includes(userInput)) {
+                  // More strict matching: exact match or allow for minor variations in casing/spacing
+                  const isCorrect = userInput === correctAnswer || 
+                                   userInput.replace(/\s+/g, '') === correctAnswer.replace(/\s+/g, '');
+                  
+                  if (isCorrect) {
                     updateMainScore(1000);
                     correctAnswers++;
                     currentQ++;
