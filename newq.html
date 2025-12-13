@@ -3430,13 +3430,22 @@
                     <div class="sequencer-clips-pool">
                          ${shuffledSequence.map(index => `
                             <div class="sequencer-draggable-clip" draggable="true" data-video-index="${index}">
-                                <video src="${URL.createObjectURL(videoFiles[index])}#t=1" preload="metadata"></video>
+                                <video src="${URL.createObjectURL(videoFiles[index])}#t=0.5" preload="metadata" muted playsinline></video>
                             </div>
                          `).join('')}
                     </div>
                     <button id="check-sequence-btn" class="modal-action-btn mt-4" style="max-width: 200px;">Check Sequence</button>
                 </div>
             `;
+
+            // Force video thumbnails to load
+            const videoElements = taskModalBody.querySelectorAll('.sequencer-draggable-clip video');
+            videoElements.forEach(video => {
+              video.load();
+              video.addEventListener('loadedmetadata', () => {
+                video.currentTime = 0.5; // Seek to 0.5 seconds to show a frame
+              });
+            });
 
             const draggables = document.querySelectorAll('.sequencer-draggable-clip');
             const dropZones = document.querySelectorAll('.sequencer-drop-zone');
