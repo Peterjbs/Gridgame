@@ -458,6 +458,7 @@
     let scores = { p1: 0, p2: 0 };
     const GRID_SIZE = 16; // 4x4 grid
     const NUM_BLOCKED_TILES = 3;
+    const MIN_VIDEOS_REQUIRED = 8;
 
     // Color and word combinations
     const COLORS = ['RED', 'BLUE', 'GREEN', 'YELLOW', 'PURPLE', 'ORANGE'];
@@ -477,7 +478,7 @@
       const count = files.length;
       document.getElementById('fileCount').textContent = 
         count > 0 ? `${count} video${count !== 1 ? 's' : ''} selected` : 'No videos selected';
-      document.getElementById('startGameBtn').disabled = count < 8;
+      document.getElementById('startGameBtn').disabled = count < MIN_VIDEOS_REQUIRED;
     });
 
     document.getElementById('startGameBtn').addEventListener('click', () => {
@@ -547,13 +548,11 @@
       const videoFile = videoFiles[Math.floor(Math.random() * videoFiles.length)];
       const videoURL = URL.createObjectURL(videoFile);
 
-      // Generate word and color
+      // Generate word and color - 50% chance of matching
       const displayWord = COLORS[Math.floor(Math.random() * COLORS.length)];
-      const wordColor = COLORS[Math.floor(Math.random() * COLORS.length)];
-      
-      // Determine if it's correct (50% chance)
-      const isCorrect = Math.random() < 0.5;
-      const actualCorrect = isCorrect ? (displayWord === wordColor) : (displayWord !== wordColor);
+      const shouldMatch = Math.random() < 0.5;
+      const wordColor = shouldMatch ? displayWord : COLORS.filter(c => c !== displayWord)[Math.floor(Math.random() * (COLORS.length - 1))];
+      const actuallyCorrect = (displayWord === wordColor);
 
       const overlay = document.getElementById('overlay');
       const content = document.getElementById('overlayContent');
@@ -572,16 +571,20 @@
           Is this word + color combination CORRECT or INCORRECT?
         </h3>
         <div class="button-group">
-          <button class="btn btn-success" onclick="checkAnswer(${tileIndex}, true, ${actualCorrect})">
+          <button id="btnCorrect" class="btn btn-success">
             ✓ CORRECT
           </button>
-          <button class="btn btn-danger" onclick="checkAnswer(${tileIndex}, false, ${actualCorrect})">
+          <button id="btnIncorrect" class="btn btn-danger">
             ✗ INCORRECT
           </button>
         </div>
       `;
 
       overlay.classList.add('active');
+
+      // Attach event listeners
+      document.getElementById('btnCorrect').addEventListener('click', () => checkAnswer(tileIndex, true, actuallyCorrect));
+      document.getElementById('btnIncorrect').addEventListener('click', () => checkAnswer(tileIndex, false, actuallyCorrect));
     }
 
     function checkAnswer(tileIndex, userSaidCorrect, actuallyCorrect) {
@@ -600,7 +603,7 @@
             ✓ CORRECT!
           </div>
           <p style="font-size: 1.3rem;">Player ${currentPlayer} wins this tile!</p>
-          <button class="btn btn-primary" onclick="closeOverlayAndContinue()">Continue</button>
+          <button id="btnContinue" class="btn btn-primary">Continue</button>
         `;
       } else {
         // Player loses, other player gets a chance (simplified: just continue)
@@ -609,9 +612,12 @@
             ✗ INCORRECT!
           </div>
           <p style="font-size: 1.3rem;">Better luck next time!</p>
-          <button class="btn btn-secondary" onclick="closeOverlayAndContinue()">Continue</button>
+          <button id="btnContinue" class="btn btn-secondary">Continue</button>
         `;
       }
+
+      // Attach event listener
+      document.getElementById('btnContinue').addEventListener('click', closeOverlayAndContinue);
     }
 
     function showBlockChallenge(tileIndex) {
@@ -645,10 +651,10 @@
             Host: Did Player ${currentPlayer} succeed?
           </p>
           <div class="host-controls">
-            <div class="host-btn host-btn-tick" onclick="resolveBlockChallenge(${tileIndex}, true)">
+            <div id="btnTick" class="host-btn host-btn-tick">
               ✓
             </div>
-            <div class="host-btn host-btn-cross" onclick="resolveBlockChallenge(${tileIndex}, false)">
+            <div id="btnCross" class="host-btn host-btn-cross">
               ✗
             </div>
           </div>
@@ -656,6 +662,10 @@
       `;
 
       overlay.classList.add('active');
+
+      // Attach event listeners
+      document.getElementById('btnTick').addEventListener('click', () => resolveBlockChallenge(tileIndex, true));
+      document.getElementById('btnCross').addEventListener('click', () => resolveBlockChallenge(tileIndex, false));
     }
 
     function resolveBlockChallenge(tileIndex, success) {
@@ -671,7 +681,7 @@
             ✓ CHALLENGE PASSED!
           </div>
           <p style="font-size: 1.3rem;">Player ${currentPlayer} wins this tile!</p>
-          <button class="btn btn-primary" onclick="closeOverlayAndContinue()">Continue</button>
+          <button id="btnContinue" class="btn btn-primary">Continue</button>
         `;
       } else {
         content.innerHTML = `
@@ -679,9 +689,12 @@
             ✗ CHALLENGE FAILED!
           </div>
           <p style="font-size: 1.3rem;">Better luck next time!</p>
-          <button class="btn btn-secondary" onclick="closeOverlayAndContinue()">Continue</button>
+          <button id="btnContinue" class="btn btn-secondary">Continue</button>
         `;
       }
+
+      // Attach event listener
+      document.getElementById('btnContinue').addEventListener('click', closeOverlayAndContinue);
     }
 
     function closeOverlayAndContinue() {
@@ -774,18 +787,16 @@
           Player 1: ${scores.p1} tiles<br>
           Player 2: ${scores.p2} tiles
         </p>
-        <button class="btn btn-primary" onclick="location.reload()">
+        <button id="btnPlayAgain" class="btn btn-primary">
           Play Again
         </button>
       `;
 
       overlay.classList.add('active');
-    }
 
-    // Make functions available globally
-    window.checkAnswer = checkAnswer;
-    window.resolveBlockChallenge = resolveBlockChallenge;
-    window.closeOverlayAndContinue = closeOverlayAndContinue;
+      // Attach event listener
+      document.getElementById('btnPlayAgain').addEventListener('click', () => location.reload());
+    }
   </script>
 </body>
 </html>
