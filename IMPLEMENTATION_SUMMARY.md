@@ -14,8 +14,8 @@
 - `newg.html` (line 1269-1281)
 - `newq.html` (line 1116-1128)
 
-### 2. Emoji Replacement with PNG Images (✓ Implemented)
-**Issue**: Emojis needed to be replaced with PNG images for cross-platform consistency
+### 2. Emoji Replacement with Images (✓ Implemented)
+**Issue**: Emojis needed to be replaced with images for cross-platform consistency
 **Solution**:
 - Added Twemoji library (Twitter's emoji library) via CDN
 - Emojis automatically converted to SVG images on page load
@@ -31,7 +31,7 @@
 
 **Implementation Details**:
 - Library: `https://cdn.jsdelivr.net/npm/twemoji@latest/dist/twemoji.min.js`
-- Format: SVG (better scalability than PNG)
+- Format: SVG (better scalability and smaller file size than PNG)
 - Initialization: On DOMContentLoaded event
 - Dynamic content: Called after innerHTML updates
 
