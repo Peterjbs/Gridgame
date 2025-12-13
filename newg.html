@@ -1,0 +1,3793 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cloud 9 Video Player - The Forecast is Fun</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@700&family=Impact&family=Trajan+Pro:wght@400&display=swap"
+    rel="stylesheet">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background: linear-gradient(-45deg, #1a1a1a, #2a2a2a, #3a3a3a, #2a2a2a, #1a1a1a);
+      background-size: 600% 600%;
+      animation: gradientBG 30s ease infinite;
+      color: #e2e8f0;
+      margin: 0;
+      overflow: hidden;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    @keyframes gradientBG {
+      0% {
+        background-position: 0% 50%;
+      }
+
+      50% {
+        background-position: 100% 50%;
+      }
+
+      100% {
+        background-position: 0% 50%;
+      }
+    }
+
+    @keyframes strobe {
+
+      0%,
+      100% {
+        filter: brightness(1);
+      }
+
+      50% {
+        filter: brightness(2.5);
+      }
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(-50%, 0px); }
+      50% { transform: translate(-50%, -8px); }
+    }
+
+    .video-full-screen {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 10;
+      background-color: #000;
+    }
+
+    .video-full-screen video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: filter 0.2s, transform 0.2s;
+    }
+
+    .video-strobe {
+      animation: strobe 0.2s infinite;
+    }
+
+    .video-bw {
+      filter: grayscale(1);
+    }
+
+    .video-sepia {
+      filter: sepia(1);
+    }
+
+    .video-invert {
+      filter: invert(1);
+    }
+
+    .video-reversed {
+      transform: scaleX(-1);
+    }
+
+    /* Panel Toggle Bars */
+    .panel-toggle-bar {
+      position: fixed;
+      top: 1rem;
+      z-index: 205;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      padding: 8px;
+    }
+
+    .right-bar {
+      right: 0;
+      transition: right 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .left-bar {
+      left: 0;
+      transition: left 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+
+    .panel-toggle-button {
+      background-color: rgba(50, 50, 50, 0.7);
+      color: white;
+      width: 48px;
+      height: 48px;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+      font-size: 1.75rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: none;
+    }
+
+    button {
+      touch-action: manipulation;
+    }
+
+    .panel-toggle-button:hover:not(.active) {
+      transform: scale(1.1);
+    }
+
+    @media (pointer: coarse) {
+      .panel-toggle-button {
+        width: 64px;
+        height: 64px;
+        font-size: 2.25rem;
+      }
+
+      button,
+      input,
+      select {
+        min-height: 52px;
+        font-size: 1.1rem;
+      }
+    }
+
+    /* Panel System */
+    .panel {
+      position: fixed;
+      top: 0;
+      height: 100vh;
+      width: 300px;
+      background-color: rgba(20, 20, 20, 0.85);
+      z-index: 200;
+      transition: transform 0.35s cubic-bezier(0.25, 1, 0.5, 1);
+      padding: 1.5rem;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .right-panel {
+      right: 0;
+      transform: translateX(100%);
+    }
+
+    .left-panel {
+      left: 0;
+      transform: translateX(-100%);
+    }
+
+    .panel.active {
+      transform: translateX(0);
+    }
+
+    body.right-panel-active .right-bar {
+      right: 300px;
+    }
+
+    body.left-panel-active .left-bar {
+      left: 300px;
+    }
+
+    @media (max-width: 1024px) {
+      .panel {
+        width: min(90vw, 360px);
+      }
+
+      body.right-panel-active .right-bar {
+        right: min(90vw, 360px);
+      }
+
+      body.left-panel-active .left-bar {
+        left: min(90vw, 360px);
+      }
+
+      #media-controls-container {
+        padding-bottom: env(safe-area-inset-bottom, 16px);
+      }
+    }
+
+    .panel-header h2 {
+      font-size: 1.25rem;
+      margin: 0 0 1rem 0;
+      font-weight: 600;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+      padding-bottom: 0.5rem;
+      transition: color 0.3s;
+    }
+
+    /* Rainbow Highlighting */
+    .highlight-red,
+    .panel-toggle-button[data-color="red"]:hover:not(.active) {
+      background-color: #e74c3c !important;
+    }
+
+    .title-red {
+      color: #e74c3c !important;
+    }
+
+    .highlight-orange,
+    .panel-toggle-button[data-color="orange"]:hover:not(.active) {
+      background-color: #e67e22 !important;
+    }
+
+    .title-orange {
+      color: #e67e22 !important;
+    }
+
+    .highlight-yellow,
+    .panel-toggle-button[data-color="yellow"]:hover:not(.active) {
+      background-color: #f1c40f !important;
+    }
+
+    .title-yellow {
+      color: #f1c40f !important;
+    }
+
+    .highlight-green,
+    .panel-toggle-button[data-color="green"]:hover:not(.active) {
+      background-color: #2ecc71 !important;
+    }
+
+    .title-green {
+      color: #2ecc71 !important;
+    }
+
+    .highlight-blue,
+    .panel-toggle-button[data-color="blue"]:hover:not(.active) {
+      background-color: #3498db !important;
+    }
+
+    .title-blue {
+      color: #3498db !important;
+    }
+
+    .highlight-indigo,
+    .panel-toggle-button[data-color="indigo"]:hover:not(.active) {
+      background-color: #8e44ad !important;
+    }
+
+    .title-indigo {
+      color: #8e44ad !important;
+    }
+
+    .highlight-violet,
+    .panel-toggle-button[data-color="violet"]:hover:not(.active) {
+      background-color: #9b59b6 !important;
+    }
+
+    .title-violet {
+      color: #9b59b6 !important;
+    }
+
+    /* Overlays */
+    .overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      font-weight: bold;
+      color: white;
+      text-shadow: 3px 3px 6px rgba(0, 0, 0, 0.8);
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.5s ease-in-out, background-color 0.5s ease-in-out;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    .overlay.visible {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .countdown-overlay {
+      font-size: 10rem;
+    }
+
+    .completion-overlay {
+      font-size: 5rem;
+      background-color: rgba(0, 0, 0, 0.7);
+      pointer-events: all;
+    }
+
+    /* Guessing Game Tally Overlay */
+    #on-screen-tally-container {
+      position: fixed;
+      inset: 0;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      gap: clamp(1.5rem, 5vw, 3.5rem);
+      padding: clamp(1.5rem, 6vw, 5rem);
+      background: rgba(0, 0, 0, 0.55);
+      backdrop-filter: blur(6px);
+      z-index: 155;
+      transition: opacity 0.25s ease;
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    #on-screen-tally-container.visible {
+      display: flex;
+      opacity: 1;
+      pointer-events: all;
+    }
+
+    .on-screen-tally-emoji {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      width: clamp(160px, 28vw, 260px);
+      height: clamp(160px, 28vw, 260px);
+      border-radius: 28px;
+      background: rgba(18, 18, 18, 0.78);
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
+      cursor: pointer;
+      user-select: none;
+      touch-action: manipulation;
+      transition: transform 0.15s ease, background 0.2s ease;
+    }
+
+    .on-screen-tally-emoji:active {
+      transform: scale(0.95);
+      background: rgba(40, 40, 40, 0.88);
+    }
+
+    .on-screen-tally-icon {
+      font-size: clamp(4rem, 14vw, 8.5rem);
+      line-height: 1;
+    }
+
+    .on-screen-tally-count {
+      margin-top: clamp(0.5rem, 2vw, 1.5rem);
+      font-size: clamp(2.5rem, 8vw, 4.25rem);
+      font-weight: 700;
+      color: #fbbf24;
+      text-shadow: 0 4px 18px rgba(0, 0, 0, 0.6);
+    }
+
+    /* Breathing Overlay Specifics */
+    #breathingOverlay .overlay-timer {
+      font-size: 12rem;
+    }
+
+    #breathingOverlay .overlay-text {
+      font-size: 4rem;
+      text-transform: uppercase;
+    }
+
+    .overlay-inhale {
+      background-color: rgba(52, 152, 219, 0.7);
+    }
+
+    .overlay-hold {
+      background-color: rgba(127, 140, 141, 0.7);
+    }
+
+    .overlay-exhale {
+      background-color: rgba(230, 126, 34, 0.7);
+    }
+
+
+    /* Media Controls */
+    #media-controls-container {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      width: 100%;
+      z-index: 104;
+    }
+
+    .media-controls-overlay {
+      background-color: rgba(0, 0, 0, 0.6);
+      padding: 1rem;
+      transition: transform 0.3s ease-in-out;
+      transform: translateY(0);
+    }
+
+    .media-controls-overlay.hidden {
+      transform: translateY(100%);
+    }
+
+    .media-controls-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0.75rem;
+    }
+
+    .media-controls-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 1rem;
+    }
+
+    .media-controls-buttons button {
+      background-color: #4a4a4a;
+      color: white;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      border: none;
+    }
+
+    .progress-volume-row {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .time-display {
+      font-size: 0.9rem;
+      min-width: 50px;
+      text-align: center;
+    }
+
+    input[type="range"] {
+      flex-grow: 1;
+    }
+
+    #minimize-controls-toggle {
+      position: absolute;
+      bottom: 100%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(0, 0, 0, 0.6);
+      border: none;
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.25rem 1rem;
+      border-radius: 10px 10px 0 0;
+    }
+
+    /* Story Maker */
+    #story-maker-container {
+      position: fixed;
+      inset: 0;
+      z-index: 150;
+      display: none;
+      justify-content: center;
+      align-items: center;
+      pointer-events: all;
+    }
+
+    #story-maker-grid {
+      display: grid;
+      grid-template-columns: 350px 1fr;
+      gap: 2rem;
+      width: 90%;
+      max-width: 1200px;
+    }
+
+    #story-maker-left-panel {
+      background-color: rgba(30, 30, 30, 0.7);
+      padding: 1rem;
+      border-radius: 1rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    .story-maker-dropzone {
+      width: 100%;
+      aspect-ratio: 16/9;
+      background: #333;
+      border: 3px dashed #666;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2.5rem;
+      position: relative;
+    }
+
+    .story-maker-dropzone video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 6px;
+    }
+
+    #story-maker-effects {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 10px;
+    }
+
+    .effect-btn {
+      background-color: #4a4a4a;
+      border: 2px solid transparent;
+    }
+
+    .effect-btn.active {
+      border-color: #3498db;
+    }
+
+    #story-maker-clip-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    #story-maker-clue {
+      background-color: rgba(0, 0, 0, 0.3);
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.5rem;
+      font-style: italic;
+      color: black;
+    }
+
+    #story-maker-clip-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .story-maker-clip-cell {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16/9;
+    }
+
+    .story-maker-clip-cell video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border: 2px solid #555;
+      border-radius: 8px;
+      cursor: grab;
+    }
+
+    .clip-arrow {
+      position: absolute;
+      background: rgba(0, 0, 0, 0.5);
+      border: none;
+      color: white;
+      font-size: 1rem;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      cursor: pointer;
+    }
+
+    .clip-arrow-left {
+      left: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    .clip-arrow-right {
+      right: 5px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+
+    #movie-playback-overlay {
+      pointer-events: none;
+      background: linear-gradient(to top, rgba(0, 0, 0, 0.7), transparent, transparent, rgba(0, 0, 0, 0.7));
+    }
+
+    .movie-sentence-display {
+      position: absolute;
+      font-size: 2.5rem;
+      text-align: center;
+      padding: 2rem;
+      text-shadow: 2px 2px 8px black;
+      transition: opacity 0.5s;
+      opacity: 0;
+    }
+
+    #story-maker-bg {
+      position: fixed;
+      inset: 0;
+      z-index: 149;
+      background-color: white;
+      display: none;
+      transition: background-color 0.5s;
+    }
+
+    #story-maker-progress {
+      position: absolute;
+      top: 0;
+      left: 0;
+      height: 100%;
+      width: 100%;
+      background-color: black;
+      transform-origin: left;
+      transform: scaleX(0);
+      transition: transform 180s linear;
+    }
+
+    #scene-timer-display {
+      font-size: 2rem;
+      font-weight: bold;
+      color: black;
+    }
+
+    /* Scoreboard */
+    #scoreboard-container {
+      position: fixed;
+      top: 1rem;
+      left: 1rem;
+      z-index: 150;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 0.5rem;
+      border-radius: 1rem;
+      transition: opacity 0.3s;
+      cursor: move;
+    }
+
+    #scoreboard-header {
+      display: flex;
+      justify-content: flex-end;
+    }
+
+    #scoreboard-close-btn {
+      background: none;
+      border: none;
+      color: #aaa;
+      cursor: pointer;
+      padding: 0 5px;
+    }
+
+    #scores-wrapper {
+      display: flex;
+      gap: 1rem;
+      padding: 0 0.5rem 0.5rem 0.5rem;
+    }
+
+    .score-widget {
+      position: relative;
+      padding: 0.5rem;
+      border-radius: 0.5rem;
+      min-width: 80px;
+      text-align: center;
+    }
+
+    .score-display {
+      font-size: 2rem;
+      font-weight: bold;
+    }
+
+    .score-controls button {
+      position: absolute;
+      background: none;
+      border: none;
+      color: white;
+      cursor: pointer;
+      font-size: 0.8rem;
+      opacity: 0.5;
+      transition: opacity 0.2s;
+    }
+
+    .score-widget:hover .score-controls button {
+      opacity: 1;
+    }
+
+    .score-plus {
+      top: 2px;
+      right: 2px;
+    }
+
+    .score-minus {
+      bottom: 2px;
+      right: 2px;
+    }
+
+    .score-hide {
+      top: 2px;
+      left: 2px;
+    }
+
+    .score-reset {
+      bottom: 2px;
+      left: 2px;
+    }
+
+    /* Trivia Game */
+    #trivia-overlay {
+      background-color: rgba(0, 0, 0, 0.8);
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 800px;
+      pointer-events: all;
+    }
+
+    #trivia-question {
+      font-size: 2rem;
+      margin-bottom: 2rem;
+      text-align: center;
+    }
+
+    #trivia-answers {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    .trivia-answer-btn {
+      background-color: #4a4a4a;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+
+    .trivia-answer-btn:hover {
+      background-color: #6a6a6a;
+    }
+
+    #trivia-player-indicator {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      font-size: 1.5rem;
+    }
+
+    /* Draggable/Resizable Bingo Game */
+    .bingo-card-widget {
+      position: fixed;
+      z-index: 160;
+      background: rgba(20, 20, 20, 0.85);
+      border-radius: 10px;
+      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+      width: 280px;
+      min-width: 200px;
+      min-height: 200px;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      resize: both;
+    }
+
+    .bingo-card-header {
+      padding: 5px 10px;
+      background: rgba(0, 0, 0, 0.5);
+      cursor: move;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      color: white;
+      font-weight: bold;
+    }
+
+    .bingo-card-close-btn {
+      cursor: pointer;
+      font-size: 1.2rem;
+      padding: 0 5px;
+      background: none;
+      border: none;
+      color: #aaa;
+    }
+
+    .bingo-card-close-btn:hover {
+      color: white;
+    }
+
+    .bingo-grid-container {
+      padding: 10px;
+      flex-grow: 1;
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+    }
+
+    .bingo-grid-container .cell {
+      background: #444;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      transition: background-color 0.2s;
+      overflow: hidden;
+      word-break: break-word;
+    }
+
+    .bingo-grid-container .cell.marked {
+      border: 3px solid white;
+    }
+
+    /* General Panel Styles */
+    .panel h3 {
+      font-size: 1.1rem;
+      margin-top: 1rem;
+      margin-bottom: 0.5rem;
+    }
+
+    .panel label {
+      display: block;
+      margin-bottom: 0.5rem;
+      font-size: 0.9rem;
+      color: #ccc;
+    }
+
+    .panel input[type="checkbox"] {
+      margin-right: 8px;
+    }
+
+    .panel select,
+    .panel input[type="number"],
+    .panel input[type="text"],
+    .panel textarea {
+      width: 100%;
+      background-color: #3a3a3a;
+      border: 1px solid #5a5a5a;
+      color: #e2e8f0;
+      border-radius: 0.25rem;
+      padding: 0.5rem;
+    }
+
+    .panel button,
+    .modal-action-btn {
+      background-color: #5a5a5a;
+      color: white;
+      padding: 0.75rem 1rem;
+      border-radius: 0.5rem;
+      transition: background-color 0.2s;
+      width: 100%;
+      margin-top: 0.5rem;
+      border: none;
+      font-weight: bold;
+    }
+
+    .panel button:disabled,
+    .modal-action-btn:disabled {
+      background-color: #444;
+      color: #888;
+      cursor: not-allowed;
+    }
+
+    .panel button:hover:not(:disabled),
+    .modal-action-btn:hover:not(:disabled) {
+      background-color: #7a7a7a;
+    }
+
+    /* Challenge Grid & Modal */
+    #challenge-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      grid-auto-rows: minmax(0, 1fr);
+      gap: 10px;
+      flex-grow: 1;
+    }
+
+    .challenge-square {
+      aspect-ratio: 1 / 1;
+      background-color: #3a3a3a;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.2s, background-color 0.2s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .challenge-square .status-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      opacity: 0;
+      visibility: hidden;
+      transition: opacity 0.3s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      color: white;
+    }
+
+    .challenge-square.completed .status-overlay {
+      background-color: rgba(46, 204, 113, 0.7);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .challenge-square.failed .status-overlay {
+      background-color: rgba(231, 76, 60, 0.7);
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .challenge-square.completed,
+    .challenge-square.failed {
+      cursor: not-allowed;
+    }
+
+    #task-modal-overlay {
+      z-index: 300;
+      background-color: rgba(0, 0, 0, 0.9);
+    }
+
+    #task-modal-content {
+      background-color: #1f1f1f;
+      padding: 2rem;
+      border-radius: 1rem;
+      width: 90%;
+      max-width: 800px;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      max-height: 90vh;
+      position: relative;
+      transition: background-color 0.3s;
+    }
+
+    #task-modal-body {
+      overflow-y: auto;
+      padding-right: 1rem;
+      text-align: center;
+    }
+
+    #task-modal-title {
+      font-size: 1.75rem;
+      border-bottom: 1px solid #444;
+      padding-bottom: 0.5rem;
+      margin: 0;
+      text-align: center;
+    }
+
+    #task-modal-close {
+      position: absolute;
+      top: 1rem;
+      right: 1rem;
+      background: none;
+      border: none;
+      color: #aaa;
+      font-size: 2rem;
+      cursor: pointer;
+      line-height: 1;
+      transition: color 0.2s;
+    }
+
+    #task-modal-close:hover {
+      color: white;
+    }
+
+    .task-option-btn {
+      background-color: #4a4a4a;
+      padding: 1rem;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: background-color 0.2s;
+      text-align: left;
+      width: 100%;
+      border: none;
+      color: white;
+      font-size: 1rem;
+    }
+
+    .task-option-btn:hover:not(:disabled) {
+      background-color: #6a6a6a;
+    }
+
+    .task-option-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .task-option-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    #start-challenge-btn {
+      max-width: 200px;
+      margin: 1rem auto 0 auto;
+    }
+
+    .task-input-field {
+      color: black;
+      font-size: 1.1rem;
+    }
+
+    #task-modal-timer {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin-bottom: 1rem;
+    }
+
+    /* Match Pairs Game */
+    .emoji-grid {
+      display: grid;
+      gap: 5px;
+      max-width: 400px;
+      margin: auto;
+    }
+
+    .emoji-grid.grid-cols-4 {
+      grid-template-columns: repeat(4, 1fr);
+    }
+
+    .emoji-grid.grid-cols-5 {
+      grid-template-columns: repeat(5, 1fr);
+    }
+
+    .emoji-cell {
+      aspect-ratio: 1/1;
+      background: #444;
+      border-radius: 8px;
+      font-size: 2rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: background-color 0.2s, transform 0.2s;
+      transform-style: preserve-3d;
+    }
+
+    .emoji-cell .emoji-content {
+      backface-visibility: hidden;
+      transition: opacity 0.2s;
+      opacity: 0;
+    }
+
+    .emoji-cell.flipped {
+      transform: rotateY(180deg);
+      background-color: #666;
+    }
+
+    .emoji-cell.flipped .emoji-content {
+      opacity: 1;
+      transform: rotateY(180deg);
+    }
+
+    .emoji-cell.matched {
+      background-color: #27ae60;
+      opacity: 0.5;
+      cursor: default;
+    }
+
+    /* Bingo Builder */
+    #bingo-builder-master-list {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+      gap: 5px;
+      max-height: 40vh;
+      overflow-y: auto;
+      padding: 5px;
+      background: #111;
+      border-radius: 5px;
+      margin-bottom: 1rem;
+    }
+
+    #bingo-builder-master-list .bingo-item {
+      background: #333;
+      padding: 8px;
+      font-size: 0.7rem;
+      border-radius: 3px;
+      cursor: pointer;
+      text-align: center;
+    }
+
+    #bingo-builder-master-list .bingo-item.selected {
+      background: #3498db;
+    }
+
+    #my-bingo-card-preview {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 5px;
+      margin-top: 1rem;
+    }
+
+    #my-bingo-card-preview .cell {
+      background: #444;
+      border-radius: 5px;
+      aspect-ratio: 3/2;
+      font-size: 0.7rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      word-break: break-word;
+    }
+
+    /* Memory Game */
+    #memory-video-player-container {
+      width: 100%;
+      max-width: 500px;
+      margin: 0 auto 1rem auto;
+      aspect-ratio: 16/9;
+      background: #000;
+    }
+
+    #memory-video-player-container video {
+      width: 100%;
+      height: 100%;
+    }
+
+    .memory-clip-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+      gap: 0.5rem;
+      max-width: 600px;
+      margin: auto;
+    }
+
+    .memory-clip-thumbnail {
+      aspect-ratio: 16/9;
+      position: relative;
+      cursor: pointer;
+    }
+
+    .memory-clip-thumbnail video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 2px solid transparent;
+      pointer-events: none;
+    }
+
+    .memory-clip-thumbnail:hover video {
+      border-color: #3498db;
+    }
+
+    .memory-clip-thumbnail.disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    /* NEW: Clip Sequencer */
+    .sequencer-container {
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+      align-items: center;
+    }
+
+    .sequencer-drop-zones {
+      display: flex;
+      gap: 0.5rem;
+      padding: 0.5rem;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+    }
+
+    .sequencer-drop-zone {
+      width: 120px;
+      height: 67.5px;
+      border: 2px dashed #666;
+      border-radius: 5px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #888;
+    }
+
+    .sequencer-drop-zone.over {
+      border-color: #fff;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .sequencer-clips-pool {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      min-height: 80px;
+    }
+
+    .sequencer-draggable-clip {
+      width: 120px;
+      height: 67.5px;
+      cursor: grab;
+    }
+
+    .sequencer-draggable-clip video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 5px;
+      pointer-events: none;
+    }
+
+    /* NEW: Reflex Test */
+    .reflex-test-container {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      margin: auto;
+      aspect-ratio: 16/9;
+    }
+
+    .reflex-test-video {
+      width: 100%;
+      height: 100%;
+    }
+
+    .reflex-test-symbol {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 8rem;
+      text-shadow: 0 0 20px black;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+
+    .reflex-test-symbol.visible {
+      opacity: 1;
+    }
+
+    /* Main Score Display */
+    #main-score-container {
+      position: fixed;
+      top: 1rem;
+      left: 50%;
+      z-index: 155;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 0.5rem 1rem;
+      border-radius: 1rem;
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #3498db;
+      border: 2px solid #3498db;
+      display: flex;
+      gap: 1rem;
+      align-items: center;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    #gemini-key-container {
+      position: fixed;
+      top: 1rem;
+      right: 1rem;
+      z-index: 210;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: rgba(0, 0, 0, 0.7);
+      padding: 0.5rem 0.75rem;
+      border-radius: 0.75rem;
+      border: 1px solid #3498db;
+    }
+
+    #gemini-key-container label {
+      font-size: 0.9rem;
+      color: #9ca3af;
+    }
+
+    #gemini-api-key {
+      width: 180px;
+      background: #1f2937;
+      border: 1px solid #4b5563;
+      border-radius: 0.5rem;
+      padding: 0.35rem 0.5rem;
+      color: #e2e8f0;
+    }
+
+    #gemini-key-save {
+      background: #2563eb;
+      border: none;
+      color: white;
+      border-radius: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    #gemini-key-save:hover {
+      background: #1d4ed8;
+    }
+
+    #gemini-key-status {
+      font-size: 0.75rem;
+      color: #fbbf24;
+    }
+
+    #challenge-status-bar {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      margin-bottom: 1rem;
+    }
+
+    #challenge-turn-indicator {
+      border: 2px solid #3498db;
+      border-radius: 0.75rem;
+      padding: 0.4rem 0.75rem;
+      text-align: center;
+      font-weight: 600;
+      font-size: 1rem;
+      color: #3498db;
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    #challenge-player-list {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    .challenge-player-card {
+      border: 2px solid transparent;
+      border-radius: 0.75rem;
+      padding: 0.5rem 0.75rem;
+      background: rgba(17, 24, 39, 0.7);
+      min-width: 120px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .challenge-player-card.active {
+      transform: translateY(-4px);
+      box-shadow: 0 0 12px rgba(52, 152, 219, 0.4);
+    }
+
+    .challenge-player-card .player-label {
+      font-weight: 600;
+    }
+
+    .challenge-player-card .player-score {
+      font-size: 1.25rem;
+      font-weight: 700;
+    }
+
+    .challenge-square[data-owner="0"] {
+      border: 3px solid #3498db;
+      box-shadow: 0 0 15px rgba(52, 152, 219, 0.4);
+    }
+
+    .challenge-square[data-owner="1"] {
+      border: 3px solid #e74c3c;
+      box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="video-full-screen"><video id="mainVideo" muted playsinline></video></div>
+  <div id="story-maker-bg">
+    <div id="story-maker-progress"></div>
+  </div>
+  <div id="breathingOverlay" class="overlay">
+    <div class="overlay-timer"></div>
+    <div class="overlay-text"></div>
+  </div>
+  <div id="countdownOverlay" class="overlay countdown-overlay"></div>
+  <div id="completionOverlay" class="overlay completion-overlay">Complete!</div>
+  <div id="on-screen-tally-container"></div>
+  <div id="bingo-cards-overlay-container"></div>
+  <div id="trivia-game-overlay" class="overlay"></div>
+  <div id="scoreboard-container" class="hidden"></div>
+  <div id="gemini-key-container">
+    <label for="gemini-api-key">Gemini Key</label>
+    <input type="password" id="gemini-api-key" placeholder="Paste key" autocomplete="off">
+    <button id="gemini-key-save">Save</button>
+    <span id="gemini-key-status"></span>
+  </div>
+  <div id="story-maker-container"></div>
+  <div id="movie-playback-overlay" class="overlay"></div>
+
+  <div id="task-modal-overlay" class="overlay">
+    <div id="task-modal-content">
+      <button id="task-modal-close">&times;</button>
+      <h2 id="task-modal-title">Task Title</h2>
+      <div id="task-modal-body"></div>
+    </div>
+  </div>
+
+  <div id="main-score-container">
+    <span>Score: <span id="main-score-value">0</span></span>
+    <span>Multiplier: <span id="main-score-multiplier">1.0</span>x</span>
+  </div>
+
+  <div id="media-controls-container">
+    <button id="minimize-controls-toggle" title="Toggle Controls">🔽</button>
+    <div id="mediaControlsOverlay" class="media-controls-overlay">
+      <div class="media-controls-content">
+        <div class="progress-volume-row">
+          <span id="currentTime" class="time-display">0:00</span>
+          <input type="range" id="progressBar" value="0" min="0" max="100" step="0.1">
+          <span id="durationTime" class="time-display">0:00</span>
+        </div>
+        <div class="media-controls-buttons">
+          <button id="prevButton" title="Previous Video">⏮️</button>
+          <button id="skipBack10s" title="Back 10s">⏪</button>
+          <button id="playPauseButton" title="Play/Pause">▶️</button>
+          <button id="skipFwd10s" title="Forward 10s">⏩</button>
+          <button id="nextButton" title="Next Video">⏭️</button>
+          <input type="range" id="volumeSlider" value="0" min="0" max="100" title="Volume" style="max-width: 100px;">
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div id="challenge-panel" class="panel left-panel">
+    <div class="panel-header">
+      <h2 id="title-challenge" class="title-yellow">The Forecast</h2>
+    </div>
+    <div id="challenge-status-bar">
+      <div id="challenge-turn-indicator"></div>
+      <div id="challenge-player-list"></div>
+    </div>
+    <div id="challenge-grid"></div>
+  </div>
+
+  <div id="panel-playback-settings" class="panel right-panel">
+    <div class="panel-header">
+      <h2 id="title-playback">Atmosphere Control</h2>
+    </div>
+    <h3>Upload from Local Drive</h3>
+    <input type="file" id="videoInput" multiple webkitdirectory directory
+      class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-500 file:text-white hover:file:bg-gray-600 cursor-pointer mb-4">
+    <h3>Stream Change</h3>
+    <div class="grid grid-cols-2 gap-2 text-sm">
+      <label>Every <input type="number" id="intervalSeconds" value="30" class="w-full mt-1"> seconds</label>
+      <label>Every <input type="number" id="intervalMinutes" value="" class="w-full mt-1"> minutes</label>
+    </div>
+    <button id="startIntervalChange">Start Streaming</button>
+    <div class="mt-4 border-t border-gray-700 pt-4">
+      <label><input type="checkbox" id="playRandomStart" checked>Play videos from random start</label>
+      <label><input type="checkbox" id="shuffleOnLoad" checked>Shuffle playlist on load</label>
+    </div>
+  </div>
+  <div id="panel-random-selector" class="panel right-panel">
+    <div class="panel-header">
+      <h2 id="title-selector">Cloud Seeding</h2>
+    </div>
+    <div id="random-video-grid" class="grid-cols-2 grid gap-2"></div>
+    <button id="refresh-random-grid" class="mt-4">Reseed</button>
+  </div>
+  <div id="panel-breathing" class="panel right-panel">
+    <div class="panel-header">
+      <h2 id="title-breathing">Vapor Control</h2>
+    </div>
+    <div class="grid grid-cols-2 gap-4 mb-4">
+      <div><label for="inhale">Inhale</label><input type="number" id="inhale" value="8" min="1"></div>
+      <div><label for="hold">Hold</label><input type="number" id="hold" value="5" min="0"></div>
+      <div><label for="exhale">Exhale</label><input type="number" id="exhale" value="5" min="1"></div>
+      <div><label for="breaths">Breaths</label><input type="number" id="breaths" value="5" min="1"></div>
+    </div>
+    <div class="flex flex-col gap-2 text-sm mb-4">
+      <label><input type="checkbox" id="changePerBreath">Change video per breath</label>
+      <label><input type="checkbox" id="changePerPhase">Change video per phase</label>
+    </div>
+    <button id="startBreathingGuideButton">Start Breathing</button>
+  </div>
+  <div id="panel-countdown" class="panel right-panel">
+    <div class="panel-header">
+      <h2 id="title-countdown">Time Lapse</h2>
+    </div>
+    <label for="countdownTimerSeconds">Timer Duration (s)</label>
+    <input type="number" id="countdownTimerSeconds" value="30" min="1" class="mb-2">
+    <label for="countdownVideoChangeSeconds">Change Video Every (s)</label>
+    <input type="number" id="countdownVideoChangeSeconds" value="" placeholder="Disabled" class="mb-4">
+    <button id="startCountdownButton">Start Countdown</button>
+  </div>
+  <div id="panel-trivia" class="panel right-panel">
+    <div class="panel-header">
+      <h2 id="title-trivia">Brain Storm</h2>
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="text" id="trivia-theme" placeholder="Enter a theme..." class="flex-grow">
+      <button id="random-trivia-theme-btn" title="Random Theme">✨</button>
+    </div>
+    <label for="trivia-difficulty-slider" class="mt-4">Difficulty: <span id="difficulty-label">Fairly Well
+        Known</span></label>
+    <input type="range" id="trivia-difficulty-slider" min="1" max="10" value="5" class="w-full mb-2">
+    <label><input type="checkbox" id="trivia-progressive"> Questions get harder</label>
+    <label for="trivia-players" class="mt-4">Players:</label>
+    <input type="number" id="trivia-players" value="1" min="1" max="4" class="mb-2">
+    <label for="trivia-questions">Number of Questions:</label>
+    <input type="number" id="trivia-questions" value="5" min="1" max="20" class="mb-2">
+    <label for="trivia-speed-round">Speed Round (seconds, 0=off):</label>
+    <input type="number" id="trivia-speed-round" value="0" min="0" class="mb-4">
+    <button id="start-trivia-btn">Start the Brain Storm</button>
+  </div>
+  <div id="panel-guessing" class="panel right-panel">
+    <div class="panel-header">
+      <h2 id="title-guessing">Pressure Front</h2>
+    </div>
+    <div id="guessing-inputs-container">
+      </div>
+    <label for="guessTimerDuration">Round Duration (s):</label>
+    <input type="number" id="guessTimerDuration" value="30" min="5" class="mb-2">
+    <label for="guessVideoChangeSeconds">Change Video Every (s):</label>
+    <input type="number" id="guessVideoChangeSeconds" value="5" min="1" class="mb-4">
+    <button id="startGuessGameButton">Start Round</button>
+  </div>
+  <div id="panel-bingo" class="panel right-panel">
+    <div class="panel-header">
+      <h2 id="title-bingo">Atmospheric Bingo</h2>
+    </div>
+    <div id="bingo-setup">
+      <label for="playerCount">Players:</label>
+      <select id="playerCount" class="mb-2">
+        <option value="1">1</option>
+        <option value="2" selected>2</option>
+        <option value="3">3</option>
+        <option value="4">4</option>
+      </select>
+      <button id="setupBingoButton">New Game</button>
+    </div>
+    <div id="bingo-selection-active" class="hidden mt-2">
+      <div id="bingo-turn-indicator" class="text-center font-bold mb-2"></div>
+      <div id="bingo-master-list"></div>
+      <button id="generateBingoCardsButton" class="mt-4" disabled>Generate Cards</button>
+    </div>
+  </div>
+  <div id="panel-story-maker" class="panel right-panel">
+    <div class="panel-header">
+      <h2 id="title-story-maker">Dream Factory</h2>
+    </div>
+    <div class="flex items-center gap-2">
+      <input type="text" id="story-maker-title" placeholder="e.g., The Cloudburst" class="flex-grow">
+      <button id="generate-title-btn" title="Generate Title">✨</button>
+    </div>
+    <label for="story-maker-scenes" class="mt-2">Number of Scenes (4-8):</label>
+    <input type="number" id="story-maker-scenes" value="6" min="4" max="8" class="mb-2">
+    <label for="story-maker-voice">Voice:</label>
+    <div class="flex items-center gap-2">
+      <select id="story-maker-voice" class="flex-grow"></select>
+      <button id="preview-voice-btn" class="panel-toggle-button"
+        style="width: 40px; height: 40px; font-size: 1.2rem;">🔊</button>
+    </div>
+    <label for="story-maker-font" class="mt-2">Font:</label>
+    <select id="story-maker-font" class="mb-4">
+      <option value="'Trajan Pro', serif">Trajan Pro</option>
+      <option value="'Impact', sans-serif">Impact</option>
+      <option value="'Cinzel', serif">Cinzel</option>
+      <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
+    </select>
+    <button id="generate-script-btn">Generate Dream Script</button>
+  </div>
+
+  <div class="panel-toggle-bar left-bar">
+    <button class="panel-toggle-button" data-panel="challenge-panel" data-color="yellow" title="The Forecast">🏆</button>
+  </div>
+  <div class="panel-toggle-bar right-bar">
+    <button class="panel-toggle-button" data-panel="panel-playback-settings" data-color="red"
+      title="Atmosphere Control">🔄</button>
+    <button class="panel-toggle-button" id="selector-toggle-btn" data-panel="panel-random-selector"
+      data-color="orange" title="Cloud Seeding">🎞️</button>
+    <button class="panel-toggle-button" data-panel="panel-breathing" data-color="yellow" title="Vapor Control">💨</button>
+    <button class="panel-toggle-button" data-panel="panel-countdown" data-color="green" title="Time Lapse">⏱️</button>
+    <button class="panel-toggle-button" data-panel="panel-trivia" data-color="blue" title="Brain Storm">🧠</button>
+    <button class="panel-toggle-button" data-panel="panel-guessing" data-color="indigo" title="Pressure Front">🍆</button>
+    <button class="panel-toggle-button" data-panel="panel-bingo" data-color="violet"
+      title="Atmospheric Bingo">🎲</button>
+    <button class="panel-toggle-button" data-panel="panel-story-maker" data-color="red"
+      title="Dream Factory">🎬</button>
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+          // --- CODE FIX & THEME REFORMAT COMPLETE ---
+          // 1. Fixed a missing comma in the `configs` array in `setupMatchPairsTask`.
+          // 2. Replaced broken image links in the challenge grid with challenge icons.
+          // 3. Updated text and prompts throughout the UI for a "Cloud" theme.
+          // 4. Cleaned up the emoji list for the Match Pairs game.
+
+          // --- DOM Elements ---
+          const mainVideo = document.getElementById('mainVideo');
+          const videoInput = document.getElementById('videoInput');
+          const panelToggles = document.querySelectorAll('.panel-toggle-button');
+          const panels = document.querySelectorAll('.panel');
+          const onScreenTallyContainer = document.getElementById('on-screen-tally-container');
+          const body = document.body;
+          const bingoCardsOverlayContainer = document.getElementById('bingo-cards-overlay-container');
+          const triviaGameOverlay = document.getElementById('trivia-game-overlay');
+          const scoreboardContainer = document.getElementById('scoreboard-container');
+          const selectorToggleBtn = document.getElementById('selector-toggle-btn');
+          const storyMakerContainer = document.getElementById('story-maker-container');
+          const storyMakerVoiceSelect = document.getElementById('story-maker-voice');
+          const geminiKeyInput = document.getElementById('gemini-api-key');
+          const geminiKeySaveBtn = document.getElementById('gemini-key-save');
+          const geminiKeyStatus = document.getElementById('gemini-key-status');
+          const challengeTurnIndicator = document.getElementById('challenge-turn-indicator');
+          const challengePlayerList = document.getElementById('challenge-player-list');
+
+          // --- Challenge Grid Elements & State ---
+          const challengeGrid = document.getElementById('challenge-grid');
+          const taskModalOverlay = document.getElementById('task-modal-overlay');
+          const taskModalContent = document.getElementById('task-modal-content');
+          const taskModalTitle = document.getElementById('task-modal-title');
+          const taskModalBody = document.getElementById('task-modal-body');
+          const taskModalCloseBtn = document.getElementById('task-modal-close');
+          let activeTaskElement = null;
+          let modalTimer = null;
+          let isTaskCompleted = false;
+
+          // --- Scoring Elements & State ---
+          const mainScoreValue = document.getElementById('main-score-value');
+          const mainScoreMultiplier = document.getElementById('main-score-multiplier');
+          let totalScore = 0;
+          let scoreMultiplier = 1.0;
+          let scoreDecayInterval = null;
+
+          // --- THEME UPDATE: Cloud-themed categories ---
+          const challengeCategories = [
+           ["Cinematic Classics 🎬", "Underground Eats 🍔", "Mythical Realms 🐉", "Bytes & Beeps 💾", "Wild Kingdom 🐾", "Watery Wonders 🌊", "Cosmic Conundrums 🌌", "Artful Aesthetics 🖼️", "The Great Outdoors 🏕️", "Ancient History 🏺"],
+           ["Pop Culture Puns 😂", "Kitchen Chemistry 🧪", "Literary Giants ✍️", "Global Gastronomy 🌎", "Techno Trends 🤖", "Iconic Albums 💿", "Historical Figures 👑", "Scientific Scandals 🔬", "Futuristic Flicks 🚀", "Architectural Marvels 🏛️"],
+           ["Sporting Legends 🏅", "Gourmet Grinds ☕", "Fashion Flashbacks 👗", "Digital Doodles 🎨", "Spicy Spells 🌶️", "Symphonic Stories 🎻", "Cryptic Clues 🕵️", "Urban Legends 👻", "Board Game Bonanza 🎲", "Global Grooves 🎶"],
+           ["Geographic Gems 🗺️", "Prehistoric Pals 🦕", "Famous Feuds 🥊", "Mythology Mayhem 🏺", "Viral Videos 🎥", "Word Wizards 🧙‍♂️", "Gassy Giants 💨", "Vintage Vibes 📻", "Food Fights 🍎", "Sci-Fi Sagas 👽"],
+           ["Mystical Monuments 🏯", "Elemental Power 🔥", "Classic Cartoons 📺", "Crime Scene Clues 🔎", "Oceanic Odysseys 🐳", "Jungle Jive 🐒", "Rhythmic Rhymes 🎤", "Cloud Computing ☁️", "Culinary Concoctions 🍲", "Wacky World Records 🏆"]
+         ];
+
+          const challengeTypes = [{
+              type: 'trivia1',
+              name: 'Trivia',
+              icon: '?'
+            },
+            {
+              type: 'scavengerHunt',
+              name: 'Scavenger Hunt',
+              icon: '?'
+            },
+            {
+              type: 'matchPairs',
+              name: 'Match Pairs',
+              icon: '?'
+            },
+            {
+              type: 'clipSequencer',
+              name: 'Clip Sequencer',
+              icon: '?'
+            },
+            {
+              type: 'reflexTest',
+              name: 'Reflex Test',
+              icon: '?'
+            },
+            {
+              type: 'trivia2',
+              name: 'Select All',
+              icon: '?'
+            },
+            {
+              type: 'blowback',
+              name: 'Blowback',
+              icon: '?'
+            },
+            {
+              type: 'audioAnagram',
+              name: 'Say What?',
+              icon: '?'
+            },
+            {
+              type: 'trivia3',
+              name: 'Type It In',
+              icon: '?'
+            },
+            {
+              type: 'memory',
+              name: 'Memory',
+              icon: '?'
+            },
+            {
+              type: 'bingo',
+              name: 'Bingo',
+              icon: '?'
+            },
+            {
+              type: 'aiChallenge',
+              name: 'AI Dare',
+              icon: '?'
+            },
+          ];
+          const challenges = Array.from({
+            length: 21
+          }, (_, i) => challengeTypes[i % challengeTypes.length]);
+
+          const challengeUIColors = {
+            trivia1: 'rgba(52, 152, 219, 0.5)',
+            trivia2: 'rgba(26, 188, 156, 0.5)',
+            trivia3: 'rgba(155, 89, 182, 0.5)',
+            matchPairs: 'rgba(241, 196, 15, 0.5)',
+            blowback: 'rgba(149, 165, 166, 0.5)',
+            memory: 'rgba(230, 126, 34, 0.5)',
+            bingo: 'rgba(231, 76, 60, 0.5)',
+            aiChallenge: 'rgba(52, 73, 94, 0.5)',
+            scavengerHunt: 'rgba(39, 174, 96, 0.5)',
+            clipSequencer: 'rgba(211, 84, 0, 0.5)',
+            audioAnagram: 'rgba(142, 68, 173, 0.5)',
+            reflexTest: 'rgba(41, 128, 185, 0.5)',
+          };
+
+          const challengePlayers = [{
+              name: 'Player 1',
+              color: '#3498db',
+              badge: 'P1'
+            },
+            {
+              name: 'Player 2',
+              color: '#e74c3c',
+              badge: 'P2'
+            }
+          ];
+          let challengeScores = challengePlayers.map(() => 0);
+          let currentChallengePlayerIndex = 0;
+
+          const GEMINI_STORAGE_KEY = 'gridgameGeminiKey';
+          let geminiApiKey = '';
+
+          function updateGeminiStatus(message, tone = 'info') {
+            if (!geminiKeyStatus) return;
+            const palette = {
+              info: '#fbbf24',
+              ok: '#2ecc71',
+              error: '#f87171'
+            };
+            geminiKeyStatus.textContent = message;
+            geminiKeyStatus.style.color = palette[tone] || palette.info;
+          }
+
+          function loadGeminiKey() {
+            if (!geminiKeyInput) {
+              return;
+            }
+            try {
+              const stored = localStorage.getItem(GEMINI_STORAGE_KEY);
+              if (stored) {
+                geminiApiKey = stored;
+                geminiKeyInput.value = geminiApiKey;
+                updateGeminiStatus('Key ready', 'ok');
+              } else {
+                geminiApiKey = '';
+                geminiKeyInput.value = '';
+                updateGeminiStatus('Paste key to enable AI tasks', 'info');
+              }
+            } catch (error) {
+              geminiApiKey = '';
+              updateGeminiStatus('Storage unavailable', 'error');
+            }
+          }
+
+          function persistGeminiKey(value) {
+            geminiApiKey = (value || '').trim();
+            if (geminiKeyInput) {
+              geminiKeyInput.value = geminiApiKey;
+            }
+            try {
+              if (geminiApiKey) {
+                localStorage.setItem(GEMINI_STORAGE_KEY, geminiApiKey);
+                updateGeminiStatus('Key saved', 'ok');
+              } else {
+                localStorage.removeItem(GEMINI_STORAGE_KEY);
+                updateGeminiStatus('Key cleared', 'info');
+              }
+            } catch (error) {
+              updateGeminiStatus('Storage unavailable', 'error');
+            }
+          }
+
+          function renderChallengeHud() {
+            if (challengeTurnIndicator && challengePlayers[currentChallengePlayerIndex]) {
+              const activePlayer = challengePlayers[currentChallengePlayerIndex];
+              challengeTurnIndicator.textContent = `${activePlayer.name}'s turn`;
+              challengeTurnIndicator.style.borderColor = activePlayer.color;
+              challengeTurnIndicator.style.color = activePlayer.color;
+            }
+            if (challengePlayerList) {
+              const fragment = document.createDocumentFragment();
+              challengePlayers.forEach((player, index) => {
+                const card = document.createElement('div');
+                card.className = 'challenge-player-card';
+                if (index === currentChallengePlayerIndex) {
+                  card.classList.add('active');
+                }
+                card.style.borderColor = player.color;
+                card.style.boxShadow = index === currentChallengePlayerIndex ? `0 0 12px ${player.color}66` : 'none';
+                card.innerHTML = `<span class="player-label">${player.name}</span><span class="player-score">${challengeScores[index]}</span>`;
+                fragment.appendChild(card);
+              });
+              challengePlayerList.innerHTML = '';
+              challengePlayerList.appendChild(fragment);
+            }
+          }
+
+          function resetChallengeGameState() {
+            challengeScores = challengePlayers.map(() => 0);
+            currentChallengePlayerIndex = 0;
+            renderChallengeHud();
+          }
+
+          function advanceChallengeTurn() {
+            currentChallengePlayerIndex = (currentChallengePlayerIndex + 1) % challengePlayers.length;
+            renderChallengeHud();
+          }
+
+          if (geminiKeySaveBtn) {
+            geminiKeySaveBtn.addEventListener('click', () => {
+              persistGeminiKey(geminiKeyInput ? geminiKeyInput.value : '');
+            });
+          }
+          if (geminiKeyInput) {
+            geminiKeyInput.addEventListener('keydown', (event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault();
+                persistGeminiKey(geminiKeyInput.value);
+              }
+            });
+          }
+          loadGeminiKey();
+          renderChallengeHud();
+
+
+          // --- State ---
+          let videoFiles = [];
+          let currentVideoIndex = -1;
+          let currentTimers = [];
+          let videoChangeInterval = null;
+          let intervalCountdownInterval = null;
+          let panelInactivityTimer = null;
+          const playerColors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c'];
+          // --- THEME UPDATE: Cloud-themed bingo prompts ---
+          const bingoPrompts = ["Someone blows smoke/vapor", "Four or more people", "Outside location", "Upside down position", "Costume or uniform", "Mirror reflection", "Someone wearing socks", "Body oil or shine", "Someone gets slapped",
+            "Close-up of feet", "Whole body shot", "Overhead camera angle", "Tattoo visible", "Jewelry worn", "Someone is shaved", "Someone is hairy", "Bodybuilder type", "Twink type", "Beard or mustache", "Shaved head", "Long hair",
+            "Finger in mouth", "Tongue visible", "Crotch grab", "Back arch", "Flexed biceps", "Abs in focus", "Hand gripping sheets", "White fluffy clouds (sheets)", "Black underwear", "Shoe left on", "Legs in the air", "Hands behind head",
+            "Eye contact with camera", "Laugh or chuckle", "Someone spits", "Someone licks", "Someone winks", "Someone bites lip", "Slow stroke or touch", "Fast movement", "Eye roll", "Sunglasses", "Hat remains on", "Phone in frame",
+            "Tripod or light visible", "Someone adjusts position", "Slap on thigh", "Bum close-up", "Back muscles in frame", "Chest close-up", "Open mouth with no sound", "Dirty talk subtitle", "Popper bottle visible", "Flickering like lightning",
+            "Towel on bed", "Shoes visible on floor", "Muscle flex", "Shadow of cameraman", "Tattooed arm", "Long camera pan", "A heavy downpour", "Camera shakes", "Someone wipes sweat", "Someone grabs neck", "Head tilted back", "Someone whispers",
+            "Audio cuts out", "Water bottle visible", "Colored LED light", "Music plays", "Scene fades in", "Scene fades out", "Video loops", "cumshot", "daddy", "struggleface", "parallel fucking", "deepthroating",
+            "bottom more hung than top", "competative bottoms"
+          ];
+          let scores = [];
+          let isVideoLoading = false;
+          let storyMakerState = {
+            script: [],
+            timelineClips: []
+          };
+
+          // --- Gemini API ---
+          async function callGemini(prompt, schema = null) {
+            const keyInUse = geminiApiKey && geminiApiKey.trim();
+            if (!keyInUse) {
+              updateGeminiStatus('Add your Gemini key to run AI tasks', 'info');
+              if (taskModalOverlay && taskModalOverlay.classList.contains('visible') && taskModalBody) {
+                taskModalBody.innerHTML = `<p style="color: #fbbf24; text-align: center; font-size: 1.1rem;">Add your Gemini API key (top right) to unlock this challenge.</p>`;
+              }
+              return null;
+            }
+
+            const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${encodeURIComponent(keyInUse)}`;
+
+            const payload = {
+              contents: [{
+                role: 'user',
+                parts: [{
+                  text: prompt
+                }]
+              }]
+            };
+
+            if (schema) {
+              payload.generationConfig = {
+                responseMimeType: 'application/json',
+                responseSchema: schema
+              };
+            }
+
+            let retries = 3;
+            let delay = 1000;
+
+            while (retries > 0) {
+              try {
+                const response = await fetch(apiUrl, {
+                  method: 'POST',
+                  headers: {
+                    'Content-Type': 'application/json'
+                  },
+                  body: JSON.stringify(payload)
+                });
+
+                if (response.ok) {
+                  updateGeminiStatus('AI ready', 'ok');
+                  const result = await response.json();
+                  const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+                  if (text) {
+                    return text;
+                  }
+                  console.error('Invalid response structure from API:', result);
+                  throw new Error('Invalid response structure from API.');
+                }
+
+                if (response.status === 401 || response.status === 403) {
+                  updateGeminiStatus('Invalid or unauthorized key', 'error');
+                  return null;
+                }
+
+                if (response.status === 429) {
+                  updateGeminiStatus('Rate limited, retrying...', 'info');
+                  await new Promise(res => setTimeout(res, delay));
+                  delay *= 2;
+                  retries--;
+                  continue;
+                }
+
+                updateGeminiStatus(`API error ${response.status}`, 'error');
+                throw new Error(`API call failed with status: ${response.status}`);
+              } catch (error) {
+                console.error('Gemini API Error:', error);
+                retries--;
+                if (retries <= 0) {
+                  updateGeminiStatus('Gemini request failed', 'error');
+                  if (taskModalOverlay && taskModalOverlay.classList.contains('visible') && taskModalBody) {
+                    taskModalBody.innerHTML = `<p style="color: #e74c3c; text-align: center;">An error occurred with the AI. Please try another task.</p>`;
+                  }
+                  return null;
+                }
+                await new Promise(res => setTimeout(res, delay));
+                delay *= 2;
+              }
+            }
+            return null;
+          }
+
+          // --- Utility Functions ---
+          const clearAllTimers = () => {
+            currentTimers.forEach(timer => {
+              clearInterval(timer);
+              clearTimeout(timer);
+            });
+            currentTimers = [];
+            document.querySelectorAll('.overlay:not(#task-modal-overlay)').forEach(o => o.classList.remove('visible'));
+            if (onScreenTallyContainer) {
+              onScreenTallyContainer.classList.remove('visible');
+            }
+            if (videoChangeInterval) clearInterval(videoChangeInterval);
+            if (intervalCountdownInterval) clearInterval(intervalCountdownInterval);
+            videoChangeInterval = null;
+            intervalCountdownInterval = null;
+            selectorToggleBtn.innerHTML = '🎞️';
+          };
+          const formatTime = (seconds) => {
+            if (isNaN(seconds)) return "0:00";
+            const min = Math.floor(seconds / 60);
+            const sec = Math.floor(seconds % 60).toString().padStart(2, '0');
+            return `${min}:${sec}`;
+          };
+
+          // --- Scoring Functions ---
+          function updateMainScore(points) {
+            totalScore += Math.floor(points * scoreMultiplier);
+            mainScoreValue.textContent = totalScore;
+          }
+
+          function startScoreDecay() {
+            if (scoreDecayInterval) clearInterval(scoreDecayInterval);
+            scoreDecayInterval = setInterval(() => {
+              totalScore = Math.max(0, totalScore - 1); // Prevent score from going below 0
+              mainScoreValue.textContent = totalScore;
+            }, 100);
+          }
+
+          function stopScoreDecay() {
+            if (scoreDecayInterval) clearInterval(scoreDecayInterval);
+            scoreDecayInterval = null;
+          }
+
+          // --- Panel Logic ---
+          function resetPanelInactivityTimer() {
+            if (panelInactivityTimer) clearTimeout(panelInactivityTimer);
+            panelInactivityTimer = setTimeout(() => {
+              closeAllPanels();
+            }, 15000);
+          }
+
+          const closeAllPanels = () => {
+            panels.forEach(p => p.classList.remove('active'));
+            panelToggles.forEach(t => {
+              t.classList.remove('active');
+              const color = t.dataset.color;
+              if (color) t.classList.remove(`highlight-${color}`);
+            });
+            body.classList.remove('right-panel-active', 'left-panel-active');
+            if (panelInactivityTimer) clearTimeout(panelInactivityTimer);
+          };
+
+          panelToggles.forEach(toggle => {
+            toggle.addEventListener('click', () => {
+              const targetPanelId = toggle.dataset.panel;
+              const targetPanel = document.getElementById(targetPanelId);
+              const isAlreadyActive = targetPanel.classList.contains('active');
+              const color = toggle.dataset.color;
+              const isLeftPanel = targetPanel.classList.contains('left-panel');
+
+              closeAllPanels();
+
+              if (!isAlreadyActive) {
+                targetPanel.classList.add('active');
+                toggle.classList.add('active');
+                if (color) {
+                  toggle.classList.add(`highlight-${color}`);
+                  const title = targetPanel.querySelector('.panel-header h2');
+                  if (title) {
+                    title.className = ""; // reset
+                    title.classList.add(`title-${color}`);
+                  }
+                }
+                if (isLeftPanel) body.classList.add('left-panel-active');
+                else body.classList.add('right-panel-active');
+                resetPanelInactivityTimer();
+              }
+            });
+          });
+          panels.forEach(panel => {
+            panel.addEventListener('mousemove', resetPanelInactivityTimer);
+            panel.addEventListener('click', resetPanelInactivityTimer);
+          });
+
+          // --- Video & Playback Logic ---
+          const advanceVideo = (direction) => {
+            if (videoFiles.length === 0) return;
+            currentVideoIndex = (currentVideoIndex + direction + videoFiles.length) % videoFiles.length;
+            playVideoByIndex(currentVideoIndex);
+          };
+          const playVideoByIndex = (index, startTime = -1) => {
+            if (index < 0 || index >= videoFiles.length || isVideoLoading) return;
+
+            isVideoLoading = true;
+            mainVideo.pause();
+
+            const playRandomStart = document.getElementById('playRandomStart').checked;
+            const videoFile = videoFiles[index];
+
+            const onMetadataLoaded = () => {
+              mainVideo.removeEventListener('loadedmetadata', onMetadataLoaded);
+              if (startTime !== -1) {
+                mainVideo.currentTime = startTime;
+              } else if (playRandomStart && isFinite(mainVideo.duration)) {
+                mainVideo.currentTime = Math.random() * mainVideo.duration * 0.9;
+              }
+              const playPromise = mainVideo.play();
+              if (playPromise !== undefined) {
+                playPromise.then(() => {
+                  isVideoLoading = false;
+                }).catch(error => {
+                  if (error.name !== 'AbortError') {
+                    console.error("Autoplay failed:", error);
+                  }
+                  isVideoLoading = false;
+                });
+              } else {
+                isVideoLoading = false;
+              }
+            };
+
+            mainVideo.addEventListener('loadedmetadata', onMetadataLoaded);
+            mainVideo.src = URL.createObjectURL(videoFile);
+            currentVideoIndex = index;
+          };
+
+          videoInput.addEventListener('change', async (event) => {
+            videoFiles = Array.from(event.target.files).filter(file => file.type.startsWith('video/'));
+            if (videoFiles.length > 0) {
+              if (document.getElementById('shuffleOnLoad').checked) {
+                videoFiles.sort(() => Math.random() - 0.5);
+              }
+              playVideoByIndex(0);
+              populateRandomVideoSelector();
+            } else {
+              alert("No video files found.");
+            }
+          });
+          mainVideo.onended = () => advanceVideo(1);
+
+          // --- Media Controls ---
+          const mediaControlsOverlay = document.getElementById('mediaControlsOverlay');
+          const minimizeControlsToggle = document.getElementById('minimize-controls-toggle');
+          minimizeControlsToggle.addEventListener('click', () => {
+            mediaControlsOverlay.classList.toggle('hidden');
+            minimizeControlsToggle.innerHTML = mediaControlsOverlay.classList.contains('hidden') ? '🔼' : '🔽';
+          });
+          const playPauseButton = document.getElementById('playPauseButton');
+          playPauseButton.addEventListener('click', () => {
+            if (!mainVideo.currentSrc) {
+              alert("Please select a video folder first using the 'Atmosphere Control' panel.");
+              document.querySelector('[data-panel="panel-playback-settings"]').click();
+              return;
+            }
+            mainVideo.paused ? mainVideo.play() : mainVideo.pause();
+          });
+          mainVideo.onplay = () => playPauseButton.innerHTML = '⏸️';
+          mainVideo.onpause = () => playPauseButton.innerHTML = '▶️';
+          document.getElementById('nextButton').addEventListener('click', () => advanceVideo(1));
+          document.getElementById('prevButton').addEventListener('click', () => advanceVideo(-1));
+          document.getElementById('skipFwd10s').addEventListener('click', () => mainVideo.currentTime += 10);
+          document.getElementById('skipBack10s').addEventListener('click', () => mainVideo.currentTime -= 10);
+          const volumeSlider = document.getElementById('volumeSlider');
+          volumeSlider.addEventListener('input', (e) => {
+            mainVideo.muted = false;
+            mainVideo.volume = e.target.value / 100;
+          });
+          mainVideo.onvolumechange = () => {
+            volumeSlider.value = mainVideo.muted ? 0 : mainVideo.volume * 100;
+          };
+          const progressBar = document.getElementById('progressBar');
+          mainVideo.ontimeupdate = () => {
+            document.getElementById('currentTime').textContent = formatTime(mainVideo.currentTime);
+            document.getElementById('durationTime').textContent = formatTime(mainVideo.duration);
+            progressBar.value = (mainVideo.currentTime / mainVideo.duration) * 100 || 0;
+          };
+          progressBar.addEventListener('input', (e) => mainVideo.currentTime = (e.target.value / 100) * mainVideo.duration);
+
+          // --- Random Selector Panel ---
+          const randomVideoGrid = document.getElementById('random-video-grid');
+          const populateRandomVideoSelector = () => {
+            if (videoFiles.length === 0) return;
+            randomVideoGrid.innerHTML = '';
+            let indices = new Set();
+            while (indices.size < 8 && indices.size < videoFiles.length) {
+              indices.add(Math.floor(Math.random() * videoFiles.length));
+            }
+            indices.forEach(index => {
+              const vid = document.createElement('video');
+              vid.src = URL.createObjectURL(videoFiles[index]);
+              vid.muted = true;
+              vid.loop = true;
+              vid.playsInline = true;
+              vid.onloadedmetadata = () => {
+                if (isFinite(vid.duration)) {
+                  vid.currentTime = Math.random() * vid.duration;
+                }
+                const playPromise = vid.play();
+                if (playPromise !== undefined) {
+                  playPromise.catch(() => {});
+                }
+              };
+              vid.addEventListener('click', () => playVideoByIndex(index, vid.currentTime));
+              randomVideoGrid.appendChild(vid);
+            });
+          };
+          document.getElementById('refresh-random-grid').addEventListener('click', populateRandomVideoSelector);
+
+          // --- Right Panel Features (Original Logic) ---
+          document.getElementById('startIntervalChange').addEventListener('click', () => {
+            clearAllTimers();
+            const seconds = parseInt(document.getElementById('intervalSeconds').value) || 0;
+            const minutes = parseInt(document.getElementById('intervalMinutes').value) || 0;
+            const totalSeconds = seconds + (minutes * 60);
+            if (totalSeconds > 0) {
+              let countdown = totalSeconds;
+              selectorToggleBtn.innerHTML = `<span style="font-size: 1.5rem; font-weight: bold;">${countdown}</span>`;
+              videoChangeInterval = setInterval(() => {
+                advanceVideo(1);
+                countdown = totalSeconds + 1;
+              }, totalSeconds * 1000);
+              intervalCountdownInterval = setInterval(() => {
+                countdown--;
+                selectorToggleBtn.innerHTML = `<span style="font-size: 1.5rem; font-weight: bold;">${countdown}</span>`;
+              }, 1000);
+              currentTimers.push(videoChangeInterval, intervalCountdownInterval);
+              closeAllPanels();
+            }
+          });
+          document.getElementById('startBreathingGuideButton').addEventListener('click', () => {
+            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            closeAllPanels();
+            clearAllTimers();
+            let breaths = parseInt(document.getElementById('breaths').value);
+            const changePerPhase = document.getElementById('changePerPhase').checked;
+            const changePerBreath = document.getElementById('changePerBreath').checked;
+            const breathingOverlay = document.getElementById('breathingOverlay');
+            const overlayTimer = breathingOverlay.querySelector('.overlay-timer');
+            const overlayText = breathingOverlay.querySelector('.overlay-text');
+            const scoreInterval = setInterval(() => updateMainScore(200), 1000);
+            currentTimers.push(scoreInterval);
+
+            const runStage = (name, duration, nextFn, colorClass) => {
+              if (breaths <= 0 && name === 'Inhale') {
+                clearAllTimers();
+                breathingOverlay.className = 'overlay';
+                document.getElementById('completionOverlay').classList.add('visible');
+                currentTimers.push(setTimeout(() => document.getElementById('completionOverlay').classList.remove('visible'), 3000));
+                return;
+              }
+              if (changePerPhase) advanceVideo(1);
+              breathingOverlay.className = `overlay visible ${colorClass}`;
+              overlayText.textContent = name;
+              let count = duration;
+              overlayTimer.textContent = count;
+              const interval = setInterval(() => {
+                count--;
+                overlayTimer.textContent = count;
+                if (count < 0) {
+                  clearInterval(interval);
+                  if (name === 'Exhale') {
+                    breaths--;
+                    if (changePerBreath) advanceVideo(1);
+                  }
+                  nextFn();
+                }
+              }, 1000);
+              currentTimers.push(interval);
+            };
+            const exhale = () => runStage('Exhale', parseInt(document.getElementById('exhale').value), inhale, 'overlay-exhale');
+            const hold = () => runStage('Hold', parseInt(document.getElementById('hold').value), exhale, 'overlay-hold');
+            const inhale = () => runStage('Inhale', parseInt(document.getElementById('inhale').value), hold, 'overlay-inhale');
+            inhale();
+          });
+          document.getElementById('startCountdownButton').addEventListener('click', () => {
+            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            closeAllPanels();
+            clearAllTimers();
+            const countdownOverlay = document.getElementById('countdownOverlay');
+            countdownOverlay.classList.add('visible');
+            let seconds = parseInt(document.getElementById('countdownTimerSeconds').value);
+            countdownOverlay.textContent = seconds;
+            const changeInterval = parseInt(document.getElementById('countdownVideoChangeSeconds').value);
+            if (changeInterval > 0) {
+              videoChangeInterval = setInterval(() => advanceVideo(1), changeInterval * 1000);
+              currentTimers.push(videoChangeInterval);
+            }
+            const interval = setInterval(() => {
+              seconds--;
+              countdownOverlay.textContent = seconds;
+              if (seconds < 0) {
+                clearAllTimers();
+                document.getElementById('completionOverlay').classList.add('visible');
+                currentTimers.push(setTimeout(() => document.getElementById('completionOverlay').classList.remove('visible'), 3000));
+              }
+            }, 1000);
+            currentTimers.push(interval);
+          });
+          const guessEmojis = ['🍆', '🍑', '🧍'];
+          const guessingInputsContainer = document.getElementById('guessing-inputs-container');
+          for (let i = 1; i <= 4; i++) {
+            const group = document.createElement('div');
+            group.className = 'guess-input-group flex items-center gap-2 mb-2';
+            group.innerHTML = `<input type="text" id="player${i}Guess" placeholder="Player ${i} Guess..."><span class="guess-emoji-cycler text-2xl cursor-pointer" data-player="${i}">${guessEmojis[0]}</span>`;
+            guessingInputsContainer.appendChild(group);
+          }
+          guessingInputsContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('guess-emoji-cycler')) {
+              let currentEmojiIndex = guessEmojis.indexOf(e.target.textContent);
+              currentEmojiIndex = (currentEmojiIndex + 1) % guessEmojis.length;
+              e.target.textContent = guessEmojis[currentEmojiIndex];
+            }
+          });
+          document.getElementById('startGuessGameButton').addEventListener('click', () => {
+            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            closeAllPanels();
+            clearAllTimers();
+            advanceVideo(1);
+            onScreenTallyContainer.innerHTML = '';
+            onScreenTallyContainer.className = '';
+            guessEmojis.forEach(emoji => {
+              const tallyDiv = document.createElement('div');
+              tallyDiv.className = 'on-screen-tally-emoji';
+              tallyDiv.setAttribute('role', 'button');
+              tallyDiv.setAttribute('tabindex', '0');
+              tallyDiv.innerHTML = `<span class="on-screen-tally-icon">${emoji}</span><span class="on-screen-tally-count">0</span>`;
+              const incrementCount = () => {
+                const countSpan = tallyDiv.querySelector('.on-screen-tally-count');
+                countSpan.textContent = parseInt(countSpan.textContent, 10) + 1;
+              };
+              tallyDiv.addEventListener('pointerdown', (event) => {
+                event.preventDefault();
+                incrementCount();
+              });
+              tallyDiv.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  incrementCount();
+                }
+              });
+              onScreenTallyContainer.appendChild(tallyDiv);
+            });
+            onScreenTallyContainer.classList.add('visible');
+            let seconds = parseInt(document.getElementById('guessTimerDuration').value);
+            const changeInterval = parseInt(document.getElementById('guessVideoChangeSeconds').value);
+            if (changeInterval > 0) {
+              videoChangeInterval = setInterval(() => advanceVideo(1), changeInterval * 1000);
+              currentTimers.push(videoChangeInterval);
+            }
+            const countdownOverlay = document.getElementById('countdownOverlay');
+            countdownOverlay.classList.add('visible');
+            countdownOverlay.textContent = seconds;
+            const interval = setInterval(() => {
+              seconds--;
+              countdownOverlay.textContent = seconds;
+              if (seconds < 0) {
+                clearAllTimers();
+                onScreenTallyContainer.classList.remove('visible');
+                document.getElementById('completionOverlay').classList.add('visible');
+                currentTimers.push(setTimeout(() => document.getElementById('completionOverlay').classList.remove('visible'), 3000));
+              }
+            }, 1000);
+            currentTimers.push(interval);
+          });
+          let bingoSelections = [];
+          let bingoCurrentPlayer = 0;
+          const setupBingoBtn = document.getElementById('setupBingoButton');
+          const bingoSelectionActive = document.getElementById('bingo-selection-active');
+          const generateBingoCardsBtn = document.getElementById('generateBingoCardsButton');
+          setupBingoBtn.addEventListener('click', () => {
+            bingoCardsOverlayContainer.innerHTML = '';
+            const playerCount = parseInt(document.getElementById('playerCount').value);
+            setupScores(playerCount);
+            bingoSelections = Array(playerCount).fill(0).map(() => []);
+            bingoCurrentPlayer = 0;
+            document.getElementById('bingo-setup').classList.add('hidden');
+            bingoSelectionActive.classList.remove('hidden');
+            generateBingoCardsBtn.disabled = true;
+            const masterList = document.getElementById('bingo-master-list');
+            const turnIndicator = document.getElementById('bingo-turn-indicator');
+            masterList.innerHTML = '';
+            masterList.className = 'grid grid-cols-2 gap-2 max-h-96 overflow-y-auto';
+            const updateTurnIndicator = () => {
+              const picksLeft = 9 - bingoSelections[bingoCurrentPlayer].length;
+              turnIndicator.textContent = `Player ${bingoCurrentPlayer + 1}'s Turn (${picksLeft} left)`;
+              turnIndicator.style.color = playerColors[bingoCurrentPlayer];
+            };
+            bingoPrompts.forEach(prompt => {
+              const item = document.createElement('div');
+              item.className = 'bingo-item p-2 bg-gray-700 rounded cursor-pointer text-xs';
+              item.textContent = prompt;
+              item.dataset.owner = -1;
+              item.addEventListener('click', () => {
+                const currentOwner = parseInt(item.dataset.owner);
+                if (bingoSelections[bingoCurrentPlayer].length < 9 || currentOwner === bingoCurrentPlayer) {
+                  if (currentOwner !== -1 && currentOwner !== bingoCurrentPlayer) {
+                    const oldOwnerList = bingoSelections[currentOwner];
+                    const indexToRemove = oldOwnerList.indexOf(prompt);
+                    if (indexToRemove > -1) oldOwnerList.splice(indexToRemove, 1);
+                  }
+                  if (currentOwner !== bingoCurrentPlayer) {
+                    bingoSelections[bingoCurrentPlayer].push(prompt);
+                    item.dataset.owner = bingoCurrentPlayer;
+                    item.style.backgroundColor = playerColors[bingoCurrentPlayer];
+                  } else {
+                    const indexToRemove = bingoSelections[bingoCurrentPlayer].indexOf(prompt);
+                    if (indexToRemove > -1) bingoSelections[bingoCurrentPlayer].splice(indexToRemove, 1);
+                    item.dataset.owner = -1;
+                    item.style.backgroundColor = '#333';
+                  }
+                }
+                const allDone = bingoSelections.every(p => p.length === 9);
+                generateBingoCardsBtn.disabled = !allDone;
+                if (allDone) {
+                  turnIndicator.textContent = "Ready! Generate Cards.";
+                } else {
+                  bingoCurrentPlayer = (bingoCurrentPlayer + 1) % playerCount;
+                  updateTurnIndicator();
+                }
+              });
+              masterList.appendChild(item);
+            });
+            updateTurnIndicator();
+          });
+          generateBingoCardsBtn.addEventListener('click', () => {
+            closeAllPanels();
+            bingoCardsOverlayContainer.innerHTML = '';
+            bingoSelections.forEach((playerPrompts, i) => {
+              const card = document.createElement('div');
+              card.className = 'bingo-card-widget';
+              card.style.top = `${20 + i * 20}px`;
+              card.style.left = `${20 + i * 20}px`;
+              card.innerHTML = `<div class="bingo-card-header" style="background-color:${playerColors[i]}"><span>Player ${i+1}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+              const gridContainer = card.querySelector('.bingo-grid-container');
+              playerPrompts.forEach(prompt => {
+                const cell = document.createElement('div');
+                cell.className = 'cell';
+                cell.textContent = prompt;
+                cell.addEventListener('click', () => {
+                  const isMarked = cell.classList.toggle('marked');
+                  updateScore(i, isMarked ? 1 : -1);
+                });
+                gridContainer.appendChild(cell);
+              });
+              bingoCardsOverlayContainer.appendChild(card);
+              makeDraggable(card);
+            });
+          });
+
+          function makeDraggable(elmnt) {
+            let pos1 = 0,
+              pos2 = 0,
+              pos3 = 0,
+              pos4 = 0;
+            const header = elmnt.querySelector('.bingo-card-header, #scoreboard-header') || elmnt;
+            if (header) {
+              header.onmousedown = dragMouseDown;
+            }
+
+            function dragMouseDown(e) {
+              e.preventDefault();
+              pos3 = e.clientX;
+              pos4 = e.clientY;
+              document.onmouseup = closeDragElement;
+              document.onmousemove = elementDrag;
+            }
+
+            function elementDrag(e) {
+              e.preventDefault();
+              pos1 = pos3 - e.clientX;
+              pos2 = pos4 - e.clientY;
+              pos3 = e.clientX;
+              pos4 = e.clientY;
+              elmnt.style.top = (elmnt.offsetTop - pos2) + "px";
+              elmnt.style.left = (elmnt.offsetLeft - pos1) + "px";
+            }
+
+            function closeDragElement() {
+              document.onmouseup = null;
+              document.onmousemove = null;
+            }
+          }
+          bingoCardsOverlayContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('bingo-card-close-btn')) {
+              e.target.closest('.bingo-card-widget').remove();
+            }
+          });
+          const startTriviaBtn = document.getElementById('start-trivia-btn');
+          const randomTriviaThemeBtn = document.getElementById('random-trivia-theme-btn');
+          const triviaQuestionsInput = document.getElementById('trivia-questions');
+          const triviaSpeedRoundInput = document.getElementById('trivia-speed-round');
+          const difficultySlider = document.getElementById('trivia-difficulty-slider');
+          const difficultyLabel = document.getElementById('difficulty-label');
+          let triviaState = {};
+          const difficultyMap = {
+            1: "very easy",
+            2: "easy",
+            3: "beginner",
+            4: "simple",
+            5: "fairly well known",
+            6: "medium",
+            7: "hard",
+            8: "very hard",
+            9: "expert",
+            10: "ridiculously hard for experts"
+          };
+          difficultySlider.addEventListener('input', () => {
+            difficultyLabel.textContent = difficultyMap[difficultySlider.value];
+          });
+          triviaQuestionsInput.addEventListener('input', () => {
+            if (parseInt(triviaQuestionsInput.value) > 0) {
+              triviaSpeedRoundInput.value = 0;
+              triviaSpeedRoundInput.disabled = true;
+            } else {
+              triviaSpeedRoundInput.disabled = false;
+            }
+          });
+          triviaSpeedRoundInput.addEventListener('input', () => {
+            if (parseInt(triviaSpeedRoundInput.value) > 0) {
+              triviaQuestionsInput.value = 0;
+              triviaQuestionsInput.disabled = true;
+            } else {
+              triviaQuestionsInput.disabled = false;
+            }
+          });
+          randomTriviaThemeBtn.addEventListener('click', async (e) => {
+            const btn = e.target;
+            const themeInput = document.getElementById('trivia-theme');
+            btn.disabled = true;
+            themeInput.value = 'Generating...';
+            const prompt = "Generate a single, fun, SFW trivia category or theme. For example: '80s Music', 'World Capitals', 'Famous Inventions'.";
+            const result = await callGemini(prompt);
+            if (result) {
+              themeInput.value = result.replace(/"/g, '');
+            } else {
+              themeInput.value = 'Error! Try again.';
+            }
+            btn.disabled = false;
+          });
+          startTriviaBtn.addEventListener('click', async (e) => {
+            const btn = e.target;
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+            const theme = document.getElementById('trivia-theme').value || 'general knowledge';
+            const numPlayers = parseInt(document.getElementById('trivia-players').value);
+            let numQuestions = parseInt(document.getElementById('trivia-questions').value);
+            const speedRoundSecs = parseInt(document.getElementById('trivia-speed-round').value);
+            const difficulty = difficultyMap[difficultySlider.value];
+            const progressive = document.getElementById('trivia-progressive').checked ? 'The questions should get progressively harder.' : '';
+            if (speedRoundSecs > 0) numQuestions = 20;
+            const prompt =
+              `Create a JSON array of ${numQuestions} trivia questions on the theme of "${theme}". The difficulty should be ${difficulty}. ${progressive} Each object in the array must have three properties: "question" (string), "options" (an array of exactly 4 strings), and "correctAnswerIndex" (a number from 0 to 3 indicating the correct option).`;
+            const schema = {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  "question": {
+                    "type": "STRING"
+                  },
+                  "options": {
+                    "type": "ARRAY",
+                    "items": {
+                      "type": "STRING"
+                    }
+                  },
+                  "correctAnswerIndex": {
+                    "type": "INTEGER"
+                  }
+                },
+                required: ["question", "options", "correctAnswerIndex"]
+              }
+            };
+            const result = await callGemini(prompt, schema);
+            btn.disabled = false;
+            btn.textContent = 'Start Trivia';
+            if (!result) {
+              alert('Failed to generate trivia questions. Please try again.');
+              return;
+            }
+            try {
+              const questions = JSON.parse(result);
+              if (!Array.isArray(questions) || questions.length === 0) throw new Error("Invalid question format");
+              triviaState = {
+                questions,
+                numPlayers,
+                speedRoundSecs,
+                scores: Array(numPlayers).fill(0),
+                currentPlayer: 0,
+                playerQuestionIndex: Array(numPlayers).fill(0),
+                timer: null
+              };
+              setupScores(numPlayers);
+              closeAllPanels();
+              startPlayerTurn(0);
+            } catch (e) {
+              alert('The AI generated invalid data. Please try again.');
+              console.error("Failed to parse trivia JSON:", result, e);
+            }
+          });
+
+          function speak(text, voiceURI) {
+            if ('speechSynthesis' in window) {
+              window.speechSynthesis.cancel();
+              const utterance = new SpeechSynthesisUtterance(text);
+              if (voiceURI) {
+                const voice = speechSynthesis.getVoices().find(v => v.voiceURI === voiceURI);
+                if (voice) utterance.voice = voice;
+              }
+              window.speechSynthesis.speak(utterance);
+            }
+          }
+
+          function startPlayerTurn(playerIndex) {
+            if (playerIndex >= triviaState.numPlayers) {
+              endTriviaGame();
+              return;
+            }
+            triviaState.currentPlayer = playerIndex;
+            triviaGameOverlay.innerHTML = `<div style="font-size: 3rem;">Player ${playerIndex + 1}, Get Ready!</div>`;
+            triviaGameOverlay.classList.add('visible');
+            setTimeout(() => {
+              displayTriviaQuestion();
+            }, 3000);
+          }
+
+          function displayTriviaQuestion() {
+            const questionsPerPlayer = Math.ceil(triviaState.questions.length / triviaState.numPlayers);
+            if (triviaState.playerQuestionIndex[triviaState.currentPlayer] >= questionsPerPlayer) {
+              startPlayerTurn(triviaState.currentPlayer + 1);
+              return;
+            }
+            const questionIndex = triviaState.currentPlayer * questionsPerPlayer + triviaState.playerQuestionIndex[triviaState.currentPlayer];
+            if (questionIndex >= triviaState.questions.length) {
+              endTriviaGame();
+              return;
+            }
+            const q = triviaState.questions[questionIndex];
+            speak(q.question);
+            let answersHTML = q.options.map((opt, i) => `<button class="trivia-answer-btn" data-index="${i}">${opt}</button>`).join('');
+            triviaGameOverlay.innerHTML = `<div id="trivia-overlay"><div id="trivia-player-indicator">Player ${triviaState.currentPlayer + 1}</div><div id="trivia-question">${q.question}</div><div id="trivia-answers">${answersHTML}</div></div>`;
+            triviaGameOverlay.classList.add('visible');
+          }
+          triviaGameOverlay.addEventListener('click', (e) => {
+            if (e.target.classList.contains('trivia-answer-btn')) {
+              const questionsPerPlayer = Math.ceil(triviaState.questions.length / triviaState.numPlayers);
+              const questionIndex = triviaState.currentPlayer * questionsPerPlayer + triviaState.playerQuestionIndex[triviaState.currentPlayer];
+              const correctAnswer = triviaState.questions[questionIndex].correctAnswerIndex;
+              const playerAnswer = parseInt(e.target.dataset.index);
+              if (playerAnswer === correctAnswer) {
+                updateScore(triviaState.currentPlayer, 1);
+                e.target.style.backgroundColor = '#27ae60';
+              } else {
+                updateScore(triviaState.currentPlayer, -1);
+                e.target.style.backgroundColor = '#c0392b';
+                triviaGameOverlay.querySelector(`[data-index="${correctAnswer}"]`).style.backgroundColor = '#27ae60';
+              }
+              setTimeout(() => {
+                triviaState.playerQuestionIndex[triviaState.currentPlayer]++;
+                displayTriviaQuestion();
+              }, 2000);
+            }
+          });
+
+          function endTriviaGame() {
+            clearAllTimers();
+            let scoreText = '<h2>Final Scores</h2>';
+            scores.forEach((score, i) => {
+              scoreText += `<div>Player ${i+1}: ${score}</div>`;
+            });
+            triviaGameOverlay.innerHTML = `<div id="trivia-overlay">${scoreText}</div>`;
+            setTimeout(() => {
+              triviaGameOverlay.classList.remove('visible');
+            }, 10000);
+          }
+
+          function setupScores(numPlayers) {
+            scores = Array(numPlayers).fill(0);
+            renderScores();
+            scoreboardContainer.classList.remove('hidden');
+          }
+
+          function updateScore(playerIndex, amount) {
+            if (scores[playerIndex] !== undefined) {
+              scores[playerIndex] += amount;
+              renderScores();
+            }
+          }
+
+          function renderScores() {
+            scoreboardContainer.innerHTML = `<div id="scoreboard-header"><button id="scoreboard-close-btn">&times;</button></div><div id="scores-wrapper"></div>`;
+            const scoresWrapper = document.getElementById('scores-wrapper');
+            scores.forEach((score, i) => {
+              const widget = document.createElement('div');
+              widget.className = 'score-widget';
+              widget.style.backgroundColor = playerColors[i];
+              widget.innerHTML =
+                `<div class="score-display">${score}</div><div class="score-controls"><button class="score-plus" data-player="${i}">+</button><button class="score-minus" data-player="${i}">-</button><button class="score-hide" data-player="${i}">👁️</button><button class="score-reset" data-player="${i}">🔄</button></div>`;
+              scoresWrapper.appendChild(widget);
+            });
+            makeDraggable(scoreboardContainer);
+          }
+          scoreboardContainer.addEventListener('click', (e) => {
+            const target = e.target;
+            if (target.id === 'scoreboard-close-btn') {
+              scoreboardContainer.classList.add('hidden');
+              scores = [];
+              return;
+            }
+            const playerIndex = parseInt(target.dataset.player);
+            if (isNaN(playerIndex)) return;
+            if (target.classList.contains('score-plus')) updateScore(playerIndex, 1);
+            if (target.classList.contains('score-minus')) updateScore(playerIndex, -1);
+            if (target.classList.contains('score-reset')) {
+              scores[playerIndex] = 0;
+              renderScores();
+            }
+            if (target.classList.contains('score-hide')) {
+              scoreboardContainer.style.opacity = scoreboardContainer.style.opacity === '0' ? '1' : '0';
+            }
+          });
+          const generateScriptBtn = document.getElementById('generate-script-btn');
+          const generateTitleBtn = document.getElementById('generate-title-btn');
+          generateTitleBtn.addEventListener('click', async (e) => {
+            const btn = e.target;
+            const titleInput = document.getElementById('story-maker-title');
+            btn.disabled = true;
+            titleInput.value = 'Generating...';
+            const prompt = "Generate a short, punny, innuendo-filled, cloud-themed movie title suitable for a gay-themed trailer.";
+            const result = await callGemini(prompt);
+            if (result) {
+              titleInput.value = result.replace(/"/g, '');
+            } else {
+              titleInput.value = 'Error! Try again.';
+            }
+            btn.disabled = false;
+          });
+          generateScriptBtn.addEventListener('click', async (e) => {
+            const btn = e.target;
+            const title = document.getElementById('story-maker-title').value || 'a generic movie';
+            const numScenes = document.getElementById('story-maker-scenes').value;
+            btn.disabled = true;
+            btn.textContent = 'Generating...';
+            const prompt =
+              `Generate a JSON array for a movie trailer script about "${title}". The array should contain exactly ${numScenes} objects. Each object must have three properties: "sentence" (a punny, innuendo-filled, cloud-themed voiceover line about gay sex acts or rendezvous), "clue" (a 2-3 word summary of the sentence), and "duration" (a number between 5 and 10 representing how many seconds the clip should play). The sentences must form a cohesive, dramatic trailer arc.`;
+            const schema = {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  "sentence": {
+                    "type": "STRING"
+                  },
+                  "clue": {
+                    "type": "STRING"
+                  },
+                  "duration": {
+                    "type": "INTEGER"
+                  }
+                },
+                required: ["sentence", "clue", "duration"]
+              }
+            };
+            const result = await callGemini(prompt, schema);
+            btn.disabled = false;
+            btn.textContent = '✨ Generate Dream Script';
+            if (result) {
+              try {
+                const script = JSON.parse(result);
+                if (!Array.isArray(script)) throw new Error();
+                storyMakerState.script = script;
+                storyMakerState.timelineClips = Array(script.length).fill(null);
+                startStoryMakerGame();
+                closeAllPanels();
+              } catch (e) {
+                alert('AI generated invalid data. Please try again.');
+              }
+            } else {
+              alert('Failed to generate script. Please try again.');
+            }
+          });
+
+          function startStoryMakerGame() {
+            const storyMakerBG = document.getElementById('story-maker-bg');
+            storyMakerContainer.style.display = 'flex';
+            storyMakerBG.style.display = 'block';
+            mainVideo.pause();
+            mediaControlsOverlay.classList.add('hidden');
+            minimizeControlsToggle.innerHTML = '🔼';
+            storyMakerState.currentScene = 0;
+            loadStoryMakerScene(0);
+          }
+
+          function loadStoryMakerScene(sceneIndex) {
+            clearAllTimers();
+            if (sceneIndex >= storyMakerState.script.length) {
+              finalizeMovie();
+              return;
+            }
+            const scene = storyMakerState.script[sceneIndex];
+            storyMakerContainer.innerHTML =
+              `<div id="story-maker-grid"><div id="story-maker-left-panel"><div class="story-maker-dropzone">DROP CLIP HERE</div><div id="story-maker-clue">${scene.clue}</div><div id="story-maker-effects"><button class="effect-btn" data-effect="bw">B&W</button><button class="effect-btn" data-effect="sepia">Sepia</button><button class="effect-btn" data-effect="invert">Invert</button><button class="effect-btn" data-effect="strobe">Strobe</button></div></div><div id="story-maker-clip-area"><div id="scene-timer-display">30</div><div id="story-maker-clip-grid"></div><div class="flex gap-4 mt-4"><button id="shuffle-clips-btn" class="panel-toggle-button" style="width: auto; padding: 0 1rem;">Shuffle</button><button id="finish-scene-btn" class="panel-toggle-button" style="width: auto; padding: 0 1rem;">Finish Scene</button></div></div></div>`;
+            populateStoryMakerClipGrid();
+            let sceneTimeLeft = 30;
+            const sceneTimer = setInterval(() => {
+              sceneTimeLeft--;
+              const timerDisplay = document.getElementById('scene-timer-display');
+              if (timerDisplay) timerDisplay.textContent = sceneTimeLeft;
+              if (sceneTimeLeft <= 0) {
+                finishScene();
+              }
+            }, 1000);
+            currentTimers.push(sceneTimer);
+            document.getElementById('finish-scene-btn').onclick = () => {
+              finishScene();
+            };
+            document.getElementById('shuffle-clips-btn').onclick = populateStoryMakerClipGrid;
+          }
+
+          function finishScene() {
+            clearAllTimers();
+            storyMakerState.currentScene++;
+            loadStoryMakerScene(storyMakerState.currentScene);
+          }
+
+          function populateStoryMakerClipGrid() {
+            const grid = document.getElementById('story-maker-clip-grid');
+            if (!grid) return;
+            grid.innerHTML = '';
+            let indices = new Set();
+            while (indices.size < 4 && indices.size < videoFiles.length) {
+              indices.add(Math.floor(Math.random() * videoFiles.length));
+            }
+            indices.forEach(index => {
+              const cell = document.createElement('div');
+              cell.className = 'story-maker-clip-cell';
+              const vid = document.createElement('video');
+              vid.src = URL.createObjectURL(videoFiles[index]);
+              vid.muted = true;
+              vid.loop = true;
+              vid.playsInline = true;
+              vid.draggable = true;
+              vid.dataset.videoIndex = index;
+              vid.onloadedmetadata = () => {
+                vid.currentTime = Math.random() * vid.duration;
+                vid.dataset.startTime = vid.currentTime;
+                vid.play().catch(() => {});
+              };
+              vid.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', JSON.stringify({
+                  videoIndex: vid.dataset.videoIndex,
+                  startTime: vid.dataset.startTime
+                }));
+              });
+              cell.innerHTML = `<button class="clip-arrow clip-arrow-left">◀️</button><button class="clip-arrow clip-arrow-right">▶️</button>`;
+              cell.prepend(vid);
+              grid.appendChild(cell);
+            });
+          }
+          storyMakerContainer.addEventListener('click', (e) => {
+            if (e.target.classList.contains('clip-arrow')) {
+              const cell = e.target.closest('.story-maker-clip-cell');
+              const video = cell.querySelector('video');
+              const direction = e.target.classList.contains('clip-arrow-left') ? -10 : 10;
+              video.currentTime += direction;
+              video.dataset.startTime = video.currentTime;
+            } else if (e.target.classList.contains('effect-btn')) {
+              const effect = e.target.dataset.effect;
+              const currentClip = storyMakerState.timelineClips[storyMakerState.currentScene];
+              const dropzoneVideo = document.querySelector('.story-maker-dropzone video');
+              if (currentClip && dropzoneVideo) {
+                if (currentClip.effect === effect) {
+                  currentClip.effect = 'none';
+                  e.target.classList.remove('active');
+                } else {
+                  currentClip.effect = effect;
+                  document.querySelectorAll('#story-maker-effects .effect-btn').forEach(btn => btn.classList.remove('active'));
+                  e.target.classList.add('active');
+                }
+                dropzoneVideo.className = '';
+                if (currentClip.effect !== 'none') {
+                  dropzoneVideo.classList.add(`video-${currentClip.effect}`);
+                }
+              }
+            }
+          });
+          storyMakerContainer.addEventListener('dragover', (e) => {
+            if (e.target.classList.contains('story-maker-dropzone')) {
+              e.preventDefault();
+            }
+          });
+          storyMakerContainer.addEventListener('drop', (e) => {
+            const dropzone = e.target.closest('.story-maker-dropzone');
+            if (dropzone) {
+              e.preventDefault();
+              const data = JSON.parse(e.dataTransfer.getData('text/plain'));
+              storyMakerState.timelineClips[storyMakerState.currentScene] = {
+                videoIndex: data.videoIndex,
+                startTime: data.startTime,
+                effect: 'none'
+              };
+              const vid = document.createElement('video');
+              vid.src = URL.createObjectURL(videoFiles[data.videoIndex]);
+              vid.muted = true;
+              vid.loop = true;
+              vid.playsInline = true;
+              vid.onloadedmetadata = () => {
+                vid.currentTime = data.startTime;
+                vid.play().catch(() => {});
+              };
+              dropzone.innerHTML = '';
+              dropzone.appendChild(vid);
+              document.querySelectorAll('#story-maker-effects .effect-btn').forEach(btn => btn.classList.remove('active'));
+            }
+          });
+
+          function finalizeMovie() {
+            storyMakerContainer.style.display = 'none';
+            document.getElementById('story-maker-bg').style.display = 'none';
+            const completionOverlay = document.getElementById('completionOverlay');
+            completionOverlay.innerHTML = 'Preparing your video...';
+            completionOverlay.classList.add('visible');
+            setTimeout(() => {
+              completionOverlay.innerHTML = '<button id="final-play-btn" style="font-size: 5rem; background: none; border: none; color: white; cursor: pointer;">▶️</button>';
+            }, 2000);
+          }
+          document.addEventListener('click', e => {
+            if (e.target && e.target.id === 'final-play-btn') {
+              playFinalMovie();
+            } else if (e.target && e.target.id === 'replay-movie-btn') {
+              playFinalMovie();
+            }
+          });
+          async function playFinalMovie() {
+            document.getElementById('completionOverlay').classList.remove('visible');
+            const movieOverlay = document.getElementById('movie-playback-overlay');
+            movieOverlay.innerHTML = '';
+            movieOverlay.classList.add('visible');
+            for (let i = 0; i < storyMakerState.timelineClips.length; i++) {
+              const clip = storyMakerState.timelineClips[i];
+              if (!clip) continue;
+              const line = storyMakerState.script[i];
+              const sentenceDisplay = document.createElement('div');
+              sentenceDisplay.className = 'movie-sentence-display';
+              sentenceDisplay.textContent = line.sentence;
+              sentenceDisplay.style.fontFamily = document.getElementById('story-maker-font').value;
+              movieOverlay.appendChild(sentenceDisplay);
+              mainVideo.className = '';
+              mainVideo.playbackRate = 1;
+              if (clip.effect !== 'none') {
+                mainVideo.classList.add(`video-${clip.effect}`);
+              }
+              speak(line.sentence, document.getElementById('story-maker-voice').value);
+              setTimeout(() => {
+                sentenceDisplay.style.opacity = 1;
+              }, 100);
+              await new Promise(resolve => {
+                playVideoByIndex(clip.videoIndex, clip.startTime);
+                const onCanPlay = () => {
+                  mainVideo.removeEventListener('canplay', onCanPlay);
+                  setTimeout(() => {
+                    sentenceDisplay.style.opacity = 0;
+                    setTimeout(() => sentenceDisplay.remove(), 500);
+                    resolve();
+                  }, line.duration * 1000);
+                };
+                mainVideo.addEventListener('canplay', onCanPlay, {
+                  once: true
+                });
+              });
+            }
+            movieOverlay.classList.remove('visible');
+            mainVideo.pause();
+            mainVideo.className = '';
+            mainVideo.playbackRate = 1;
+            const completionOverlay = document.getElementById('completionOverlay');
+            completionOverlay.innerHTML = '<button id="replay-movie-btn" style="font-size: 5rem; background: none; border: none; color: white; cursor: pointer;">🔄</button>';
+            completionOverlay.classList.add('visible');
+          }
+
+          // --- Challenge Logic ---
+          function initChallengeGrid() {
+            challengeGrid.innerHTML = '';
+            resetChallengeGameState();
+            challenges.forEach((challenge, index) => {
+              const square = document.createElement('div');
+              square.className = 'challenge-square';
+              square.dataset.challengeIndex = index;
+              square.dataset.owner = '';
+              // FIX: Use icon instead of broken image link
+              square.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center text-4xl" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">${challenge.icon}</div>
+                    <div class="status-overlay"></div>
+                `;
+              square.addEventListener('click', () => {
+                if (!square.classList.contains('completed') && !square.classList.contains('failed')) {
+                  openTask(index);
+                }
+              });
+              challengeGrid.appendChild(square);
+            });
+          }
+
+          async function openTask(index) {
+            const challenge = challenges[index];
+            activeTaskElement = document.querySelector(`.challenge-square[data-challenge-index='${index}']`);
+            isTaskCompleted = false;
+            stopScoreDecay();
+            taskModalOverlay.style.pointerEvents = 'all'; // Reset pointer events
+
+            taskModalBody.innerHTML = `<div class="text-center p-8"><h3 class="text-2xl mb-2">Preparing Challenge...</h3><p class="text-gray-400">Please wait a moment.</p></div>`;
+            taskModalOverlay.classList.add('visible');
+
+            if (Array.isArray(challenge)) {
+              taskModalTitle.textContent = "Choose Your Challenge!";
+              taskModalBody.innerHTML = `<div class="task-option-grid">${challenge.map(c => `<button class="task-option-btn" data-challenge-type="${c.type}">${c.icon} ${c.name}</button>`).join('')}</div>`;
+              taskModalBody.querySelectorAll('.task-option-btn').forEach(btn => {
+                btn.onclick = () => startConcreteTask(btn.dataset.challengeType);
+              });
+            } else {
+              startConcreteTask(challenge.type);
+            }
+          }
+
+          function startConcreteTask(type, options = {}) {
+            taskModalContent.style.backgroundColor = challengeUIColors[type] || 'rgba(31, 31, 31, 0.5)';
+            switch (type) {
+              case 'trivia1':
+                setupTrivia1Task(options.category);
+                break;
+              case 'trivia3':
+                setupTrivia3Task();
+                break;
+              case 'matchPairs':
+                setupMatchPairsTask();
+                break;
+              case 'blowback':
+                setupBlowbackTask();
+                break;
+              case 'memory':
+                setupMemoryGameTask();
+                break;
+              case 'bingo':
+                setupBingoBuilderTask();
+                break;
+              case 'aiChallenge':
+                setupAiChallengeTask();
+                break;
+              case 'scavengerHunt':
+                setupScavengerHuntTask();
+                break;
+              case 'clipSequencer':
+                setupClipSequencerTask();
+                break;
+              case 'audioAnagram':
+                setupAudioAnagramTask();
+                break;
+              case 'reflexTest':
+                setupReflexTestTask();
+                break;
+            }
+          }
+
+          function closeTaskModal() {
+            if (!isTaskCompleted && activeTaskElement) {
+              markTaskFailed();
+            }
+            taskModalOverlay.classList.remove('visible');
+            taskModalBody.innerHTML = '';
+            if (modalTimer) {
+              clearInterval(modalTimer);
+              modalTimer = null;
+            }
+            taskModalOverlay.style.pointerEvents = 'all';
+            activeTaskElement = null;
+            isTaskCompleted = false;
+            startScoreDecay();
+          }
+
+          function markTaskComplete() {
+            isTaskCompleted = true;
+            if (activeTaskElement) {
+              const ownerIndex = currentChallengePlayerIndex;
+              activeTaskElement.dataset.owner = String(ownerIndex);
+              activeTaskElement.classList.add('completed');
+              const overlay = activeTaskElement.querySelector('.status-overlay');
+              if (overlay) {
+                overlay.textContent = challengePlayers[ownerIndex].badge;
+              }
+              if (typeof challengeScores[ownerIndex] === 'number') {
+                challengeScores[ownerIndex] += 1;
+                renderChallengeHud();
+              }
+            }
+            scoreMultiplier = parseFloat((scoreMultiplier + 0.25).toFixed(2));
+            mainScoreMultiplier.textContent = scoreMultiplier.toFixed(2);
+            const completionSound = new Tone.Synth().toDestination();
+            completionSound.triggerAttackRelease("C5", "8n");
+            advanceChallengeTurn();
+            setTimeout(closeTaskModal, 500);
+          }
+
+          function markTaskFailed() {
+            if (activeTaskElement) {
+              activeTaskElement.classList.add('failed');
+              activeTaskElement.dataset.owner = '';
+              const overlay = activeTaskElement.querySelector('.status-overlay');
+              if (overlay) {
+                overlay.textContent = '✖';
+              }
+              const originalIndex = activeTaskElement.dataset.challengeIndex;
+              setTimeout(() => {
+                const currentSquare = document.querySelector(`.challenge-square[data-challenge-index='${originalIndex}']`);
+                if (currentSquare) {
+                  currentSquare.classList.remove('failed');
+                  currentSquare.dataset.owner = '';
+                  const statusOverlay = currentSquare.querySelector('.status-overlay');
+                  if (statusOverlay) {
+                    statusOverlay.textContent = '';
+                  }
+                }
+              }, 60000); // 1 minute
+            }
+            const failSound = new Tone.Synth().toDestination();
+            failSound.triggerAttackRelease("C3", "8n");
+            advanceChallengeTurn();
+          }
+
+          taskModalCloseBtn.addEventListener('click', closeTaskModal);
+
+          // --- Task Setup Functions ---
+          async function setupTrivia1Task(predefinedCategory = null) {
+            taskModalTitle.textContent = "Brain Storm!";
+            const category = predefinedCategory || challengeCategories[Math.floor(Math.random() * challengeCategories.length)][Math.floor(Math.random() * challengeCategories[0].length)];
+
+            const prompt =
+              `Create a JSON array of 5 trivia questions on the theme of "${category}" . Questions must have one single, definitive correct answer. Avoid subjective, opinion-based, or riddle-style questions. Each object must have "question" (string), "options" (an array of 4 strings where only one is correct), and "correctAnswerIndex" (number from 0-3).`;
+            const schema = {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  "question": {
+                    "type": "STRING"
+                  },
+                  "options": {
+                    "type": "ARRAY",
+                    items: {
+                      "type": "STRING"
+                    }
+                  },
+                  "correctAnswerIndex": {
+                    "type": "INTEGER"
+                  }
+                },
+                required: ["question", "options", "correctAnswerIndex"]
+              }
+            };
+            const result = await callGemini(prompt, schema);
+
+            if (!result) {
+              return;
+            }
+
+            try {
+              const questions = JSON.parse(result);
+              taskModalBody.innerHTML = `<h3>Ready!</h3><p>Category: ${category}</p><button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>`;
+              document.getElementById('start-challenge-btn').onclick = () => {
+                let currentQ = 0;
+
+                function renderQuestion() {
+                  if (currentQ >= questions.length) {
+                    markTaskComplete();
+                    return;
+                  }
+                  const q = questions[currentQ];
+                  taskModalBody.innerHTML =
+                    `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
+                  document.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = handleAnswer);
+                }
+
+                function handleAnswer(e) {
+                  const selectedIndex = parseInt(e.target.dataset.index);
+                  const correctIndex = questions[currentQ].correctAnswerIndex;
+                  if (selectedIndex === correctIndex) {
+                    updateMainScore(1000);
+                  } else {
+                    updateMainScore(-500);
+                  }
+                  document.querySelectorAll('.task-option-btn').forEach((btn, i) => {
+                    btn.disabled = true;
+                    if (i === correctIndex) btn.style.backgroundColor = '#27ae60';
+                    else if (i === selectedIndex) btn.style.backgroundColor = '#c0392b';
+                  });
+                  setTimeout(() => {
+                    currentQ++;
+                    renderQuestion();
+                  }, 1500);
+                }
+                renderQuestion();
+              };
+            } catch (e) {
+              taskModalBody.innerHTML = `<p class="text-red-500">AI returned invalid data. Please try again.</p>`;
+            }
+          }
+
+          async function setupTrivia3Task() {
+            taskModalTitle.textContent = "Type the Answer";
+            const prompt =
+              `Create a JSON array of 3 fill-in-the-blank trivia questions. Each question must have one single, definitive correct answer. Avoid subjective or riddle-style questions. Each object must have "question" (string) and "answer" (string, a simple one or two word answer). The theme should be random and of average difficulty.`;
+            const schema = {
+              type: "ARRAY",
+              items: {
+                type: "OBJECT",
+                properties: {
+                  "question": {
+                    "type": "STRING"
+                  },
+                  "answer": {
+                    "type": "STRING"
+                  }
+                },
+                required: ["question", "answer"]
+              }
+            };
+            const result = await callGemini(prompt, schema);
+            if (!result) {
+              return;
+            }
+            try {
+              const questions = JSON.parse(result);
+              taskModalBody.innerHTML = `<h3>Ready!</h3><p>You'll be asked 3 questions.</p><button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>`;
+              document.getElementById('start-challenge-btn').onclick = () => {
+                let currentQ = 0;
+
+                function renderQuestion() {
+                  if (currentQ >= questions.length) {
+                    markTaskComplete();
+                    return;
+                  }
+                  const q = questions[currentQ];
+                  taskModalBody.innerHTML =
+                    `<p class="text-xl mb-4">(${currentQ + 1}/3) ${q.question}</p><input type="text" id="typed-answer-input" class="w-full task-input-field" placeholder="Type your answer here..."><button id="submit-trivia3" class="modal-action-btn mt-4">Submit</button>`;
+                  document.getElementById('submit-trivia3').onclick = () => {
+                    const userInput = document.getElementById('typed-answer-input').value.trim().toLowerCase();
+                    const correctAnswer = q.answer.toLowerCase();
+                    if (userInput === correctAnswer) {
+                      updateMainScore(1000);
+                      currentQ++;
+                      setTimeout(renderQuestion, 500);
+                    } else {
+                      updateMainScore(-500);
+                      alert(`Incorrect! The answer was: ${q.answer}`);
+                      closeTaskModal();
+                    }
+                  };
+                  document.getElementById('typed-answer-input').focus();
+                }
+                renderQuestion();
+              };
+            } catch (e) {
+              taskModalBody.innerHTML = `<p class="text-red-500">AI returned invalid data. Please try again.</p>`;
+            }
+          }
+
+          function setupMatchPairsTask() {
+            taskModalTitle.textContent = "Match the Pairs";
+            const configs = [{
+                size: 16,
+                time: 50,
+                gridClass: 'grid-cols-4',
+                emojiSize: '2rem'
+              },
+              {
+                size: 20,
+                time: 70,
+                gridClass: 'grid-cols-5',
+                emojiSize: '1.5rem'
+              }, // <-- FIX: Added missing comma here
+              {
+                size: 24,
+                time: 90,
+                gridClass: 'grid-cols-5',
+                emojiSize: '1.5rem'
+              }
+            ];
+            const config = configs[Math.floor(Math.random() * configs.length)];
+
+            taskModalBody.innerHTML = `<h3>Ready to Match?</h3><p>Find all ${config.size / 2} pairs before time runs out.</p><button id="start-challenge-btn" class="modal-action-btn">Start Matching</button>`;
+            document.getElementById('start-challenge-btn').onclick = () => {
+              // FIX: Cleaned up emoji list
+              const baseEmojis = ['🍆', '🍑', '💦', '👄', '👅', '💪', '⛓️', '🔥', '😈', '🦄', '🐷', '💨', '🚀', '🫃🏽'];
+              const gameEmojis = [...baseEmojis.slice(0, config.size / 2), ...baseEmojis.slice(0, config.size / 2)].sort(() => 0.5 - Math.random());
+              let flipped = [];
+              let matchedCount = 0;
+              let canClick = true;
+              let timeLeft = config.time;
+              taskModalBody.innerHTML =
+                `<div class="flex justify-between items-center mb-4"><h3 id="pairs-timer" class="text-2xl font-bold">Time: ${timeLeft}</h3></div><div class="emoji-grid ${config.gridClass}">${gameEmojis.map((emoji, i) => `<div class="emoji-cell" data-index="${i}" style="font-size: ${config.emojiSize};"><div class="emoji-content">${emoji}</div></div>`).join('')}</div>`;
+              modalTimer = setInterval(() => {
+                timeLeft--;
+                const timerEl = document.getElementById('pairs-timer');
+                if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
+                if (timeLeft <= 0) {
+                  clearInterval(modalTimer);
+                  updateMainScore(-1000);
+                  alert("Time's up!");
+                  closeTaskModal();
+                }
+              }, 1000);
+              document.querySelectorAll('.emoji-cell').forEach(cell => {
+                cell.onclick = () => {
+                  if (!canClick || cell.classList.contains('flipped') || cell.classList.contains('matched') || flipped.length >= 2) return;
+                  cell.classList.add('flipped');
+                  flipped.push(cell);
+                  if (flipped.length === 2) {
+                    canClick = false;
+                    const [first, second] = flipped;
+                    if (gameEmojis[first.dataset.index] === gameEmojis[second.dataset.index]) {
+                      first.classList.add('matched');
+                      second.classList.add('matched');
+                      matchedCount += 2;
+                      flipped = [];
+                      canClick = true;
+                      updateMainScore(500);
+                      if (matchedCount === gameEmojis.length) {
+                        clearInterval(modalTimer);
+                        updateMainScore(timeLeft * 100);
+                        markTaskComplete();
+                      }
+                    } else {
+                      setTimeout(() => {
+                        first.classList.remove('flipped');
+                        second.classList.remove('flipped');
+                        flipped = [];
+                        canClick = true;
+                      }, 1000);
+                    }
+                  }
+                };
+              });
+            };
+          }
+
+          function setupBlowbackTask() {
+            taskModalTitle.textContent = "Blowback!";
+            const inhaleTime = Math.floor(Math.random() * 3) + 2;
+            const holdTime = Math.floor(Math.random() * 3) + 2;
+            const exhaleTime = Math.floor(Math.random() * 6) + 5;
+            const breathCount = Math.floor(Math.random() * 6) + 5;
+
+            document.getElementById('inhale').value = inhaleTime;
+            document.getElementById('hold').value = holdTime;
+            document.getElementById('exhale').value = exhaleTime;
+            document.getElementById('breaths').value = breathCount;
+
+            taskModalBody.innerHTML =
+              `<h3>Ready to Breathe?</h3><p class="my-4">Inhale for ${inhaleTime}s, Hold for ${holdTime}s, Exhale for ${exhaleTime}s. Repeat ${breathCount} times.</p><button id="start-challenge-btn" class="modal-action-btn">Start Breathing</button>`;
+            document.getElementById('start-challenge-btn').onclick = () => {
+              isTaskCompleted = true; // Mark as completed since it runs in the background
+              markTaskComplete();
+              document.getElementById('startBreathingGuideButton').click();
+            };
+          }
+
+          async function setupMemoryGameTask() {
+            taskModalTitle.textContent = "Memory Test";
+            if (videoFiles.length < 11) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need to upload at least 11 videos to play this game.</p>`;
+              return;
+            }
+            const shuffledIndices = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
+            const clipIndices = shuffledIndices.slice(0, 11);
+            const hiddenClipIndex = clipIndices[10];
+            let clipData = [];
+            for (const index of clipIndices) {
+              const vidFile = videoFiles[index];
+              const tempVid = document.createElement('video');
+              const url = URL.createObjectURL(vidFile);
+              await new Promise(resolve => {
+                tempVid.onloadedmetadata = () => {
+                  const startTime = Math.random() * (tempVid.duration > 3 ? tempVid.duration - 3 : 0);
+                  clipData.push({
+                    index,
+                    url,
+                    startTime
+                  });
+                  resolve();
+                };
+                tempVid.src = url;
+              });
+            }
+            taskModalBody.innerHTML = `<h3>Ready to Watch?</h3><p>You will be shown 10 short clips. Pay attention!</p><button id="start-challenge-btn" class="modal-action-btn">Start Clips</button>`;
+            document.getElementById('start-challenge-btn').onclick = async () => {
+              taskModalBody.innerHTML = `<div id="memory-video-player-container"><video id="memory-player" muted playsinline></video></div>`;
+              const memoryPlayer = document.getElementById('memory-player');
+              const clipsToPlay = clipIndices.slice(0, 10);
+              for (let i = 0; i < clipsToPlay.length; i++) {
+                const data = clipData.find(c => c.index === clipsToPlay[i]);
+                taskModalTitle.textContent = `Playing Clip ${i + 1} / 10`;
+                memoryPlayer.src = data.url;
+                memoryPlayer.currentTime = data.startTime;
+                await memoryPlayer.play();
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                memoryPlayer.pause();
+              }
+              taskModalTitle.textContent = "Which clip was NOT shown?";
+              clipData.sort(() => 0.5 - Math.random());
+              taskModalBody.innerHTML = `<div class="memory-clip-grid"></div>`;
+              const grid = taskModalBody.querySelector('.memory-clip-grid');
+              for (const data of clipData) {
+                const thumbDiv = document.createElement('div');
+                thumbDiv.className = 'memory-clip-thumbnail';
+                thumbDiv.dataset.index = data.index;
+                thumbDiv.innerHTML = `<video src="${data.url}#t=${data.startTime+1}" preload="metadata"></video>`;
+                thumbDiv.onclick = () => {
+                  document.querySelectorAll('.memory-clip-thumbnail').forEach(t => t.classList.add('disabled'));
+                  if (parseInt(thumbDiv.dataset.index) === hiddenClipIndex) {
+                    thumbDiv.style.outline = "4px solid #27ae60";
+                    updateMainScore(2500);
+                    setTimeout(markTaskComplete, 1000);
+                  } else {
+                    thumbDiv.style.outline = "4px solid #c0392b";
+                    document.querySelector(`.memory-clip-thumbnail[data-index='${hiddenClipIndex}']`).style.outline = "4px solid #27ae60";
+                    updateMainScore(-1000);
+                    setTimeout(closeTaskModal, 2000);
+                  }
+                };
+                grid.appendChild(thumbDiv);
+              }
+            };
+          }
+
+          function setupBingoBuilderTask() {
+            taskModalTitle.textContent = "Build a 3x2 Bingo Card";
+            taskModalBody.innerHTML = `<h3>Ready to Build?</h3><p>Create your custom 3x2 bingo card.</p><button id="start-challenge-btn" class="modal-action-btn">Start Building</button>`;
+            document.getElementById('start-challenge-btn').onclick = () => {
+              let selectedPrompts = [];
+              const masterList = bingoPrompts.sort(() => 0.5 - Math.random());
+              taskModalBody.innerHTML =
+                `<p>Select 6 prompts from the list below:</p><div id="bingo-builder-master-list">${masterList.map(p => `<div class="bingo-item">${p}</div>`).join('')}</div><h3>Your Card Preview (<span id="bingo-pick-count">0</span>/6)</h3><div id="my-bingo-card-preview">${Array(6).fill('<div class="cell"></div>').join('')}</div><button id="confirm-bingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>`;
+              const updatePreview = () => {
+                const cells = document.querySelectorAll('#my-bingo-card-preview .cell');
+                cells.forEach((cell, i) => {
+                  cell.textContent = selectedPrompts[i] || '';
+                });
+                document.getElementById('bingo-pick-count').textContent = selectedPrompts.length;
+                document.getElementById('confirm-bingo-card').disabled = selectedPrompts.length !== 6;
+              };
+              document.querySelectorAll('#bingo-builder-master-list .bingo-item').forEach(item => {
+                item.onclick = () => {
+                  const prompt = item.textContent;
+                  if (item.classList.contains('selected')) {
+                    item.classList.remove('selected');
+                    selectedPrompts = selectedPrompts.filter(p => p !== prompt);
+                  } else if (selectedPrompts.length < 6) {
+                    item.classList.add('selected');
+                    selectedPrompts.push(prompt);
+                  }
+                  updatePreview();
+                };
+              });
+              document.getElementById('confirm-bingo-card').onclick = () => {
+                createBingoCardWidget(selectedPrompts, activeTaskElement);
+                closeTaskModal();
+              };
+              updatePreview();
+            };
+          }
+
+          function createBingoCardWidget(prompts, originalTaskElement) {
+            const card = document.createElement('div');
+            card.className = 'bingo-card-widget';
+            const cardId = `bingo-card-${Date.now()}`;
+            card.id = cardId;
+            card.style.top = `${Math.random() * 50 + 20}vh`;
+            card.style.left = `${Math.random() * 50 + 20}vw`;
+
+            card.innerHTML = `<div class="bingo-card-header"><span>Bingo Card</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+            const gridContainer = card.querySelector('.bingo-grid-container');
+            prompts.forEach(prompt => {
+              const cell = document.createElement('div');
+              cell.className = 'cell';
+              cell.textContent = prompt;
+              cell.addEventListener('click', () => {
+                cell.classList.toggle('marked');
+                const allMarked = [...gridContainer.querySelectorAll('.cell')].every(c => c.classList.contains('marked'));
+                if (allMarked) {
+                  card.remove();
+                  activeTaskElement = originalTaskElement; // Re-assign active element
+                  updateMainScore(2000);
+                  markTaskComplete();
+                }
+              });
+              gridContainer.appendChild(cell);
+            });
+            bingoCardsOverlayContainer.appendChild(card);
+            makeDraggable(card);
+            card.querySelector('.bingo-card-close-btn').onclick = () => card.remove();
+          }
+
+          async function setupAiChallengeTask() {
+            taskModalTitle.textContent = "AI Challenge";
+            const prompt = `Generate a funny, wacky, or provocative, potentially NSFW, cloud-themed creative challenge that requires a witty text response. For example: "Write a Grindr bio for a lonely rain cloud."`;
+            const result = await callGemini(prompt);
+            if (!result) {
+              return;
+            }
+            taskModalBody.innerHTML = `<h3>Ready for a Dare?</h3><p class="italic my-2">"${result.replace(/"/g, '')}"</p><button id="start-challenge-btn" class="modal-action-btn">Accept Challenge</button>`;
+            document.getElementById('start-challenge-btn').onclick = () => {
+              taskModalBody.innerHTML =
+                `<p class="text-xl mb-4 italic">"${result.replace(/"/g, '')}"</p><textarea id="ai-challenge-response" rows="3" class="w-full task-input-field" placeholder="Type your witty response..."></textarea><button id="submit-ai-challenge" class="modal-action-btn mt-4">I Did It!</button>`;
+              document.getElementById('submit-ai-challenge').onclick = () => {
+                if (document.getElementById('ai-challenge-response').value.trim().length > 0) {
+                  updateMainScore(1500);
+                  markTaskComplete();
+                } else {
+                  alert("You have to write something!");
+                }
+              };
+              document.getElementById('ai-challenge-response').focus();
+            };
+          }
+
+          async function setupScavengerHuntTask() {
+            taskModalTitle.textContent = "Video Scavenger Hunt";
+            const prompt =
+              `Generate a short, simple scavenger hunt clue for a video. The clue should describe a common visual element that could appear in a wide variety of videos. Examples: 'Someone wearing glasses', 'A tattoo is visible', 'The scene is outdoors', 'A piece of furniture is visible', 'Find the color red'.`;
+            const clue = await callGemini(prompt);
+            if (!clue) {
+              return;
+            }
+
+            taskModalOverlay.style.pointerEvents = 'none';
+            taskModalContent.style.pointerEvents = 'all';
+
+            let timeLeft = 60;
+            taskModalBody.innerHTML = `
+                <div id="task-modal-timer">Time: ${timeLeft}</div>
+                <h3 class="text-2xl mb-4">Find a video of: <span class="italic text-yellow-400">${clue.replace(/"/g, '')}</span></h3>
+                <p class="text-sm text-gray-400 mb-4">Use the main video controls (Next, Previous, Progress Bar) to search!</p>
+                <button id="found-it-btn" class="modal-action-btn">Found It!</button>
+            `;
+
+            document.getElementById('found-it-btn').onclick = () => {
+              if (modalTimer) clearInterval(modalTimer);
+              updateMainScore(1000 + (timeLeft * 20)); // Bonus for remaining time
+              taskModalOverlay.style.pointerEvents = 'all'; // Restore pointer events before closing
+              markTaskComplete();
+            };
+
+            modalTimer = setInterval(() => {
+              timeLeft--;
+              const timerEl = document.getElementById('task-modal-timer');
+              if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
+              if (timeLeft <= 0) {
+                clearInterval(modalTimer);
+                alert("Time's up!");
+                taskModalOverlay.style.pointerEvents = 'all'; // Restore pointer events
+                closeTaskModal();
+              }
+            }, 1000);
+          }
+
+          async function setupClipSequencerTask() {
+            taskModalTitle.textContent = "Clip Sequencer";
+            const NUM_CLIPS = 5;
+            if (videoFiles.length < NUM_CLIPS) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least ${NUM_CLIPS} videos for this challenge.</p>`;
+              return;
+            }
+
+            taskModalBody.innerHTML = `<h3>Memorize the Sequence!</h3><p>You will be shown ${NUM_CLIPS} clips. Watch carefully.</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
+
+            document.getElementById('start-challenge-btn').onclick = async () => {
+              const shuffledIndices = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
+              const correctSequence = shuffledIndices.slice(0, NUM_CLIPS);
+
+              taskModalBody.innerHTML = `<div id="memory-video-player-container"><video id="sequencer-player" muted playsinline></video></div>`;
+              const player = document.getElementById('sequencer-player');
+
+              for (let i = 0; i < correctSequence.length; i++) {
+                const videoIndex = correctSequence[i];
+                taskModalTitle.textContent = `Watching Clip ${i + 1} / ${NUM_CLIPS}`;
+                const file = videoFiles[videoIndex];
+                const url = URL.createObjectURL(file);
+                player.src = url;
+                await player.play();
+                await new Promise(resolve => setTimeout(resolve, 2500)); // Play each clip for 2.5s
+                player.pause();
+              }
+
+              renderArrangementPhase(correctSequence);
+            };
+          }
+
+          function renderArrangementPhase(correctSequence) {
+            taskModalTitle.textContent = `Recreate the Sequence`;
+            const shuffledSequence = [...correctSequence].sort(() => 0.5 - Math.random());
+
+            taskModalBody.innerHTML = `
+                <div class="sequencer-container">
+                    <div class="sequencer-drop-zones">
+                        ${Array(correctSequence.length).fill(0).map((_, i) => `<div class="sequencer-drop-zone" data-drop-index="${i}">${i+1}</div>`).join('')}
+                    </div>
+                    <p>Drag the clips from the pool below into the correct order above.</p>
+                    <div class="sequencer-clips-pool">
+                         ${shuffledSequence.map(index => `
+                            <div class="sequencer-draggable-clip" draggable="true" data-video-index="${index}">
+                                <video src="${URL.createObjectURL(videoFiles[index])}#t=1" preload="metadata"></video>
+                            </div>
+                         `).join('')}
+                    </div>
+                    <button id="check-sequence-btn" class="modal-action-btn mt-4" style="max-width: 200px;">Check Sequence</button>
+                </div>
+            `;
+
+            const draggables = document.querySelectorAll('.sequencer-draggable-clip');
+            const dropZones = document.querySelectorAll('.sequencer-drop-zone');
+            let userSequence = Array(correctSequence.length).fill(null);
+
+            draggables.forEach(draggable => {
+              draggable.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', draggable.dataset.videoIndex);
+                setTimeout(() => draggable.style.opacity = '0.5', 0);
+              });
+              draggable.addEventListener('dragend', () => draggable.style.opacity = '1');
+            });
+
+            dropZones.forEach(zone => {
+              zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                zone.classList.add('over');
+              });
+              zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+              zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('over');
+                const videoIndex = e.dataTransfer.getData('text/plain');
+                const draggableElement = document.querySelector(`.sequencer-draggable-clip[data-video-index='${videoIndex}']`);
+                if (draggableElement) {
+                  const dropIndex = parseInt(zone.dataset.dropIndex);
+                  // If another clip is already here, send it back to the pool
+                  if (zone.firstChild && zone.firstChild.dataset) {
+                    document.querySelector('.sequencer-clips-pool').appendChild(zone.firstChild);
+                  }
+                  zone.innerHTML = '';
+                  zone.appendChild(draggableElement);
+                  userSequence[dropIndex] = parseInt(videoIndex);
+                }
+              });
+            });
+
+            document.getElementById('check-sequence-btn').onclick = () => {
+              const isCorrect = userSequence.every((val, index) => val === correctSequence[index]);
+              if (isCorrect) {
+                updateMainScore(3000);
+                markTaskComplete();
+              } else {
+                alert('Incorrect sequence. Try again!');
+                updateMainScore(-1000);
+                closeTaskModal();
+              }
+            };
+          }
+
+          async function setupAudioAnagramTask() {
+            taskModalTitle.textContent = "Say What?";
+            const prompt =
+              `Generate a JSON object with two properties: "word" and "scrambled_letters". The word should be a 5-8 letter word relevant to pop culture, gay culture, or internet slang. The "scrambled_letters" should be an array of the letters from the word in a random order. Example: {"word": "BOTTOM", "scrambled_letters": ["T","O","M","B","T","O"]}`;
+            const schema = {
+              type: "OBJECT",
+              properties: {
+                "word": {
+                  "type": "STRING"
+                },
+                "scrambled_letters": {
+                  "type": "ARRAY",
+                  "items": {
+                    "type": "STRING"
+                  }
+                }
+              },
+              required: ["word", "scrambled_letters"]
+            };
+            const result = await callGemini(prompt, schema);
+            if (!result) {
+              return;
+            }
+
+            try {
+              const data = JSON.parse(result);
+              const {
+                word,
+                scrambled_letters
+              } = data;
+
+              taskModalBody.innerHTML = `
+                    <h3>Listen to the letters and unscramble the word!</h3>
+                    <button id="play-anagram-sound" class="modal-action-btn">🔊 Play Sound</button>
+                `;
+
+              document.getElementById('play-anagram-sound').onclick = () => {
+                const textToSpeak = `The letters are: ${scrambled_letters.join('... ')}`;
+                speak(textToSpeak, storyMakerVoiceSelect.value);
+
+                let timeLeft = 30;
+                taskModalBody.innerHTML = `
+                        <div id="task-modal-timer">Time: ${timeLeft}</div>
+                        <p class="mb-4">Unscramble the word you just heard.</p>
+                        <input type="text" id="anagram-answer" class="w-full task-input-field" placeholder="Type your answer...">
+                        <button id="submit-anagram" class="modal-action-btn mt-4">Submit</button>
+                    `;
+                document.getElementById('anagram-answer').focus();
+
+                modalTimer = setInterval(() => {
+                  timeLeft--;
+                  const timerEl = document.getElementById('task-modal-timer');
+                  if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
+                  if (timeLeft <= 0) {
+                    clearInterval(modalTimer);
+                    alert("Time's up!");
+                    closeTaskModal();
+                  }
+                }, 1000);
+
+                document.getElementById('submit-anagram').onclick = () => {
+                  const userAnswer = document.getElementById('anagram-answer').value.trim().toLowerCase();
+                  if (userAnswer === word.toLowerCase()) {
+                    clearInterval(modalTimer);
+                    updateMainScore(2000);
+                    markTaskComplete();
+                  } else {
+                    alert(`Incorrect! The word was: ${word}`);
+                    closeTaskModal();
+                  }
+                };
+              };
+            } catch (e) {
+              taskModalBody.innerHTML = `<p class="text-red-500">AI returned invalid data. Please try again.</p>`;
+            }
+          }
+
+          async function setupReflexTestTask() {
+            taskModalTitle.textContent = "Don't Blink";
+            if (videoFiles.length < 1) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least one video for this challenge.</p>`;
+              return;
+            }
+
+            taskModalBody.innerHTML = `<h3>Click the button ONLY when you see the 😈 symbol.</h3><p>Don't click too early!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
+
+            document.getElementById('start-challenge-btn').onclick = () => {
+              const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
+              const videoURL = URL.createObjectURL(videoFiles[randomVideoIndex]);
+              let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
+              let symbolTimer = null;
+
+              taskModalBody.innerHTML = `
+                    <div class="reflex-test-container">
+                        <video class="reflex-test-video" src="${videoURL}" muted autoplay loop></video>
+                        <div class="reflex-test-symbol">😈</div>
+                    </div>
+                    <button id="reflex-click-btn" class="modal-action-btn mt-4">CLICK HERE!</button>
+                `;
+
+              const symbolEl = document.querySelector('.reflex-test-symbol');
+
+              const showSymbolTimeout = setTimeout(() => {
+                gamePhase = 'active';
+                symbolEl.classList.add('visible');
+                symbolTimer = setTimeout(() => { // Symbol disappears
+                  gamePhase = 'ended';
+                  symbolEl.classList.remove('visible');
+                  if (activeTaskElement && !isTaskCompleted) { // If player hasn't clicked by now
+                    alert('Too slow!');
+                    closeTaskModal();
+                  }
+                }, 1500); // Symbol is visible for 1.5s
+              }, Math.random() * 5000 + 3000); // Random delay 3-8s
+
+              currentTimers.push(showSymbolTimeout, symbolTimer);
+
+              document.getElementById('reflex-click-btn').onclick = () => {
+                  if(gamePhase === 'ended') return;
+
+                  if (gamePhase === 'waiting') {
+                    alert('Too early!');
+                    clearTimeout(showSymbolTimeout);
+                    closeTaskModal();
+                  } else if (gamePhase === 'active') {
+                    updateMainScore(2000);
+                    markTaskComplete();
+                  }
+                  gamePhase = 'ended'; // Prevent multiple clicks
+              };
+            };
+          }
+
+          // --- Initial Setup ---
+          function populateVoices() {
+            const voices = speechSynthesis.getVoices();
+            storyMakerVoiceSelect.innerHTML = '';
+            voices.filter(v => v.lang.startsWith('en')).forEach(voice => {
+              const option = document.createElement('option');
+              option.textContent = `${voice.name} (${voice.lang})`;
+              option.value = voice.voiceURI;
+              storyMakerVoiceSelect.appendChild(option);
+            });
+          }
+          populateVoices();
+          if (speechSynthesis.onvoiceschanged !== undefined) {
+            speechSynthesis.onvoiceschanged = populateVoices;
+          }
+          document.getElementById('preview-voice-btn').addEventListener('click', () => {
+            speak("This is a preview of the selected voice.", storyMakerVoiceSelect.value);
+          });
+
+          initChallengeGrid();
+          startScoreDecay();
+          mainVideo.volume = 0;
+          volumeSlider.value = 0;
+        });
+  </script>
+</body>
+
+</html>
