@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Word Color Blocks - Two Player Game</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(-45deg, #0f0f0f, #1a1a1a, #2a2a2a, #1a1a1a);
+      background-size: 400% 400%;
+      animation: gradientBG 20s ease infinite;
+      color: #e2e8f0;
+      overflow-x: hidden;
+    }
+
+    @keyframes gradientBG {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .game-container {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      padding: 1rem;
+    }
+
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+      padding: 1rem;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 0.5rem;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .player-info {
+      flex: 1;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+    }
+
+    .player-info.active {
+      background: rgba(59, 130, 246, 0.3);
+      border: 2px solid #3b82f6;
+    }
+
+    .player-info.inactive {
+      background: rgba(100, 100, 100, 0.2);
+      border: 2px solid transparent;
+    }
+
+    .player-name {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .player-score {
+      font-size: 0.9rem;
+      opacity: 0.8;
+    }
+
+    .grid-container {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.75rem;
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 1rem;
+    }
+
+    .grid-tile {
+      aspect-ratio: 1;
+      background: rgba(30, 30, 30, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 0.5rem;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 2rem;
+      font-weight: 700;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .grid-tile:hover:not(.owned):not(.blocked) {
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: scale(1.05);
+    }
+
+    .grid-tile.owned-p1 {
+      background: rgba(59, 130, 246, 0.4);
+      border-color: #3b82f6;
+      cursor: default;
+    }
+
+    .grid-tile.owned-p2 {
+      background: rgba(239, 68, 68, 0.4);
+      border-color: #ef4444;
+      cursor: default;
+    }
+
+    .grid-tile.blocked {
+      background: rgba(139, 92, 246, 0.3);
+      border-color: #8b5cf6;
+    }
+
+    .tile-number {
+      position: absolute;
+      top: 0.25rem;
+      left: 0.25rem;
+      font-size: 0.75rem;
+      opacity: 0.6;
+    }
+
+    .tile-owner {
+      position: absolute;
+      bottom: 0.25rem;
+      right: 0.25rem;
+      font-size: 0.7rem;
+      background: rgba(0, 0, 0, 0.6);
+      padding: 0.1rem 0.3rem;
+      border-radius: 0.25rem;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 1000;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    .overlay.active {
+      display: flex;
+    }
+
+    .overlay-content {
+      max-width: 90%;
+      max-height: 90vh;
+      background: #1a1a1a;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      border-radius: 1rem;
+      padding: 2rem;
+      text-align: center;
+      overflow-y: auto;
+    }
+
+    .video-container {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      margin: 1rem auto;
+      border-radius: 0.5rem;
+      overflow: hidden;
+    }
+
+    .video-container video {
+      width: 100%;
+      height: auto;
+      display: block;
+    }
+
+    .word-color-overlay {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+
+    .overlay-word {
+      font-size: clamp(2rem, 8vw, 5rem);
+      font-weight: 900;
+      text-shadow: 0 4px 20px rgba(0, 0, 0, 0.8);
+      margin-bottom: 1rem;
+      animation: pulse 1s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .instruction {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin: 1rem 0;
+      color: #fbbf24;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 1rem;
+      justify-content: center;
+      margin-top: 2rem;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      padding: 1rem 2rem;
+      font-size: 1.1rem;
+      font-weight: 700;
+      border: none;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn:hover {
+      transform: scale(1.05);
+    }
+
+    .btn-primary {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2563eb;
+    }
+
+    .btn-success {
+      background: #10b981;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #059669;
+    }
+
+    .btn-danger {
+      background: #ef4444;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #dc2626;
+    }
+
+    .btn-secondary {
+      background: #6b7280;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #4b5563;
+    }
+
+    .block-challenge-container {
+      text-align: center;
+    }
+
+    .block-challenge-title {
+      font-size: 2rem;
+      font-weight: 900;
+      color: #8b5cf6;
+      margin-bottom: 2rem;
+      text-transform: uppercase;
+    }
+
+    .block-task {
+      font-size: 1.3rem;
+      line-height: 1.6;
+      margin: 2rem 0;
+      padding: 2rem;
+      background: rgba(139, 92, 246, 0.1);
+      border: 2px solid #8b5cf6;
+      border-radius: 0.5rem;
+    }
+
+    .host-controls {
+      display: flex;
+      gap: 2rem;
+      justify-content: center;
+      margin-top: 2rem;
+    }
+
+    .host-btn {
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      border: 3px solid;
+      font-size: 2.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .host-btn-tick {
+      background: #10b981;
+      border-color: #059669;
+      color: white;
+    }
+
+    .host-btn-tick:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 30px rgba(16, 185, 129, 0.6);
+    }
+
+    .host-btn-cross {
+      background: #ef4444;
+      border-color: #dc2626;
+      color: white;
+    }
+
+    .host-btn-cross:hover {
+      transform: scale(1.1);
+      box-shadow: 0 0 30px rgba(239, 68, 68, 0.6);
+    }
+
+    .setup-screen {
+      max-width: 600px;
+      margin: 4rem auto;
+      text-align: center;
+      padding: 2rem;
+      background: rgba(0, 0, 0, 0.5);
+      border-radius: 1rem;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .setup-title {
+      font-size: 2.5rem;
+      font-weight: 900;
+      margin-bottom: 2rem;
+      background: linear-gradient(45deg, #3b82f6, #8b5cf6);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .file-input-label {
+      display: inline-block;
+      padding: 1rem 2rem;
+      background: #3b82f6;
+      color: white;
+      border-radius: 0.5rem;
+      cursor: pointer;
+      font-weight: 700;
+      margin: 1rem 0;
+      transition: all 0.2s ease;
+    }
+
+    .file-input-label:hover {
+      background: #2563eb;
+      transform: scale(1.05);
+    }
+
+    input[type="file"] {
+      display: none;
+    }
+
+    .file-count {
+      margin: 1rem 0;
+      font-size: 1.1rem;
+      color: #10b981;
+    }
+
+    .game-result {
+      font-size: 2rem;
+      font-weight: 900;
+      margin: 2rem 0;
+      padding: 2rem;
+      border-radius: 1rem;
+      text-transform: uppercase;
+    }
+
+    .result-correct {
+      background: rgba(16, 185, 129, 0.2);
+      border: 3px solid #10b981;
+      color: #10b981;
+    }
+
+    .result-incorrect {
+      background: rgba(239, 68, 68, 0.2);
+      border: 3px solid #ef4444;
+      color: #ef4444;
+    }
+
+    .winner-announcement {
+      font-size: 3rem;
+      font-weight: 900;
+      margin: 2rem 0;
+      padding: 2rem;
+      background: linear-gradient(45deg, #fbbf24, #f59e0b);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="setupScreen" class="setup-screen">
+    <h1 class="setup-title">Word Color Blocks</h1>
+    <p style="font-size: 1.2rem; margin-bottom: 2rem; line-height: 1.6;">
+      A two-player turn-based game where you must identify correct word + color combinations!
+    </p>
+    <label class="file-input-label" for="videoInput">
+      📁 Select Video Folder
+    </label>
+    <input type="file" id="videoInput" webkitdirectory directory multiple accept="video/*">
+    <div id="fileCount" class="file-count">No videos selected</div>
+    <button id="startGameBtn" class="btn btn-primary" style="margin-top: 2rem;" disabled>
+      Start Game
+    </button>
+  </div>
+
+  <div id="gameContainer" class="game-container" style="display: none;">
+    <div class="header">
+      <div id="player1Info" class="player-info active">
+        <div class="player-name">Player 1</div>
+        <div class="player-score">Tiles: <span id="p1Score">0</span></div>
+      </div>
+      <div style="text-align: center; flex: 1;">
+        <div style="font-size: 1.5rem; font-weight: 700;" id="turnIndicator">Player 1's Turn</div>
+      </div>
+      <div id="player2Info" class="player-info inactive">
+        <div class="player-name">Player 2</div>
+        <div class="player-score">Tiles: <span id="p2Score">0</span></div>
+      </div>
+    </div>
+
+    <div id="gridContainer" class="grid-container">
+      <!-- Grid tiles will be generated here -->
+    </div>
+  </div>
+
+  <div id="overlay" class="overlay">
+    <div class="overlay-content" id="overlayContent">
+      <!-- Dynamic content will be inserted here -->
+    </div>
+  </div>
+
+  <script>
+    // Game state
+    let videoFiles = [];
+    let currentPlayer = 1;
+    let gameGrid = [];
+    let scores = { p1: 0, p2: 0 };
+    const GRID_SIZE = 16; // 4x4 grid
+    const NUM_BLOCKED_TILES = 3;
+    const MIN_VIDEOS_REQUIRED = 8;
+
+    // Color and word combinations
+    const COLORS = ['RED', 'BLUE', 'GREEN', 'YELLOW', 'PURPLE', 'ORANGE'];
+    const COLOR_VALUES = {
+      'RED': '#ef4444',
+      'BLUE': '#3b82f6',
+      'GREEN': '#10b981',
+      'YELLOW': '#fbbf24',
+      'PURPLE': '#8b5cf6',
+      'ORANGE': '#f97316'
+    };
+
+    // Initialize setup
+    document.getElementById('videoInput').addEventListener('change', (e) => {
+      const files = Array.from(e.target.files).filter(f => f.type.startsWith('video/'));
+      videoFiles = files;
+      const count = files.length;
+      document.getElementById('fileCount').textContent = 
+        count > 0 ? `${count} video${count !== 1 ? 's' : ''} selected` : 'No videos selected';
+      document.getElementById('startGameBtn').disabled = count < MIN_VIDEOS_REQUIRED;
+    });
+
+    document.getElementById('startGameBtn').addEventListener('click', () => {
+      initializeGame();
+    });
+
+    function initializeGame() {
+      // Hide setup, show game
+      document.getElementById('setupScreen').style.display = 'none';
+      document.getElementById('gameContainer').style.display = 'flex';
+
+      // Create grid
+      createGrid();
+      updateUI();
+    }
+
+    function createGrid() {
+      const container = document.getElementById('gridContainer');
+      gameGrid = [];
+
+      // Determine blocked tiles randomly
+      const blockedIndices = new Set();
+      while (blockedIndices.size < NUM_BLOCKED_TILES) {
+        blockedIndices.add(Math.floor(Math.random() * GRID_SIZE));
+      }
+
+      // Create tiles
+      for (let i = 0; i < GRID_SIZE; i++) {
+        const tile = {
+          index: i,
+          owner: null,
+          isBlocked: blockedIndices.has(i),
+          displayText: String(i + 1)
+        };
+        gameGrid.push(tile);
+
+        const tileEl = document.createElement('div');
+        tileEl.className = 'grid-tile';
+        if (tile.isBlocked) {
+          tileEl.classList.add('blocked');
+        }
+        tileEl.innerHTML = `
+          <span class="tile-number">${i + 1}</span>
+          <span>${tile.displayText}</span>
+        `;
+        tileEl.addEventListener('click', () => handleTileClick(i));
+        container.appendChild(tileEl);
+      }
+    }
+
+    function handleTileClick(index) {
+      const tile = gameGrid[index];
+      
+      // Can't click owned tiles
+      if (tile.owner) return;
+
+      // Check if it's a blocked tile
+      if (tile.isBlocked) {
+        showBlockChallenge(index);
+      } else {
+        showWordColorChallenge(index);
+      }
+    }
+
+    function showWordColorChallenge(tileIndex) {
+      // Select random video
+      const videoFile = videoFiles[Math.floor(Math.random() * videoFiles.length)];
+      const videoURL = URL.createObjectURL(videoFile);
+
+      // Generate word and color - 50% chance of matching
+      const displayWord = COLORS[Math.floor(Math.random() * COLORS.length)];
+      const shouldMatch = Math.random() < 0.5;
+      const wordColor = shouldMatch ? displayWord : COLORS.filter(c => c !== displayWord)[Math.floor(Math.random() * (COLORS.length - 1))];
+      const actuallyCorrect = (displayWord === wordColor);
+
+      const overlay = document.getElementById('overlay');
+      const content = document.getElementById('overlayContent');
+
+      content.innerHTML = `
+        <h2 class="instruction">Watch closely</h2>
+        <div class="video-container">
+          <video id="challengeVideo" autoplay loop muted>
+            <source src="${videoURL}" type="${videoFile.type}">
+          </video>
+          <div class="word-color-overlay">
+            <div class="overlay-word" style="color: ${COLOR_VALUES[wordColor]}">${displayWord}</div>
+          </div>
+        </div>
+        <h3 style="font-size: 1.5rem; margin-top: 2rem;">
+          Is this word + color combination CORRECT or INCORRECT?
+        </h3>
+        <div class="button-group">
+          <button id="btnCorrect" class="btn btn-success">
+            ✓ CORRECT
+          </button>
+          <button id="btnIncorrect" class="btn btn-danger">
+            ✗ INCORRECT
+          </button>
+        </div>
+      `;
+
+      overlay.classList.add('active');
+
+      // Attach event listeners
+      document.getElementById('btnCorrect').addEventListener('click', () => checkAnswer(tileIndex, true, actuallyCorrect));
+      document.getElementById('btnIncorrect').addEventListener('click', () => checkAnswer(tileIndex, false, actuallyCorrect));
+    }
+
+    function checkAnswer(tileIndex, userSaidCorrect, actuallyCorrect) {
+      const correct = (userSaidCorrect === actuallyCorrect);
+      
+      const overlay = document.getElementById('overlay');
+      const content = document.getElementById('overlayContent');
+
+      if (correct) {
+        // Player wins the tile
+        gameGrid[tileIndex].owner = `p${currentPlayer}`;
+        scores[`p${currentPlayer}`]++;
+
+        content.innerHTML = `
+          <div class="game-result result-correct">
+            ✓ CORRECT!
+          </div>
+          <p style="font-size: 1.3rem;">Player ${currentPlayer} wins this tile!</p>
+          <button id="btnContinue" class="btn btn-primary">Continue</button>
+        `;
+      } else {
+        // Player loses, other player gets a chance (simplified: just continue)
+        content.innerHTML = `
+          <div class="game-result result-incorrect">
+            ✗ INCORRECT!
+          </div>
+          <p style="font-size: 1.3rem;">Better luck next time!</p>
+          <button id="btnContinue" class="btn btn-secondary">Continue</button>
+        `;
+      }
+
+      // Attach event listener
+      document.getElementById('btnContinue').addEventListener('click', closeOverlayAndContinue);
+    }
+
+    function showBlockChallenge(tileIndex) {
+      const overlay = document.getElementById('overlay');
+      const content = document.getElementById('overlayContent');
+
+      // Generate a random challenge task
+      const tasks = [
+        "Tell a joke that makes everyone laugh!",
+        "Do 10 jumping jacks right now!",
+        "Name 5 countries that start with 'A' in 10 seconds!",
+        "Sing the first verse of your favorite song!",
+        "Do your best celebrity impression!",
+        "Spell 'Mississippi' backwards!",
+        "Name all 7 dwarfs from Snow White!",
+        "Do a silly dance for 10 seconds!",
+        "Count backwards from 20 to 1 as fast as you can!",
+        "Name 3 animals that start with the letter 'P'!"
+      ];
+
+      const task = tasks[Math.floor(Math.random() * tasks.length)];
+
+      content.innerHTML = `
+        <div class="block-challenge-container">
+          <div class="block-challenge-title">🚫 YOU GOT BLOCKED! 🚫</div>
+          <p style="font-size: 1.2rem; margin-bottom: 2rem;">
+            Complete this special challenge to win the tile:
+          </p>
+          <div class="block-task">${task}</div>
+          <p style="font-size: 1rem; margin: 2rem 0; opacity: 0.8;">
+            Host: Did Player ${currentPlayer} succeed?
+          </p>
+          <div class="host-controls">
+            <div id="btnTick" class="host-btn host-btn-tick">
+              ✓
+            </div>
+            <div id="btnCross" class="host-btn host-btn-cross">
+              ✗
+            </div>
+          </div>
+        </div>
+      `;
+
+      overlay.classList.add('active');
+
+      // Attach event listeners
+      document.getElementById('btnTick').addEventListener('click', () => resolveBlockChallenge(tileIndex, true));
+      document.getElementById('btnCross').addEventListener('click', () => resolveBlockChallenge(tileIndex, false));
+    }
+
+    function resolveBlockChallenge(tileIndex, success) {
+      const overlay = document.getElementById('overlay');
+      const content = document.getElementById('overlayContent');
+
+      if (success) {
+        gameGrid[tileIndex].owner = `p${currentPlayer}`;
+        scores[`p${currentPlayer}`]++;
+
+        content.innerHTML = `
+          <div class="game-result result-correct">
+            ✓ CHALLENGE PASSED!
+          </div>
+          <p style="font-size: 1.3rem;">Player ${currentPlayer} wins this tile!</p>
+          <button id="btnContinue" class="btn btn-primary">Continue</button>
+        `;
+      } else {
+        content.innerHTML = `
+          <div class="game-result result-incorrect">
+            ✗ CHALLENGE FAILED!
+          </div>
+          <p style="font-size: 1.3rem;">Better luck next time!</p>
+          <button id="btnContinue" class="btn btn-secondary">Continue</button>
+        `;
+      }
+
+      // Attach event listener
+      document.getElementById('btnContinue').addEventListener('click', closeOverlayAndContinue);
+    }
+
+    function closeOverlayAndContinue() {
+      const overlay = document.getElementById('overlay');
+      overlay.classList.remove('active');
+      
+      // Stop any playing video
+      const video = document.getElementById('challengeVideo');
+      if (video) {
+        video.pause();
+        URL.revokeObjectURL(video.src);
+      }
+
+      // Update UI
+      updateUI();
+
+      // Check for game end
+      const allTilesOwned = gameGrid.every(t => t.owner !== null);
+      if (allTilesOwned) {
+        endGame();
+      } else {
+        // Switch player
+        switchPlayer();
+      }
+    }
+
+    function switchPlayer() {
+      currentPlayer = currentPlayer === 1 ? 2 : 1;
+      updateUI();
+    }
+
+    function updateUI() {
+      // Update scores
+      document.getElementById('p1Score').textContent = scores.p1;
+      document.getElementById('p2Score').textContent = scores.p2;
+
+      // Update turn indicator
+      document.getElementById('turnIndicator').textContent = `Player ${currentPlayer}'s Turn`;
+
+      // Update player info styling
+      document.getElementById('player1Info').className = 
+        currentPlayer === 1 ? 'player-info active' : 'player-info inactive';
+      document.getElementById('player2Info').className = 
+        currentPlayer === 2 ? 'player-info active' : 'player-info inactive';
+
+      // Update grid tiles
+      const tileElements = document.querySelectorAll('.grid-tile');
+      gameGrid.forEach((tile, index) => {
+        const tileEl = tileElements[index];
+        tileEl.className = 'grid-tile';
+        
+        if (tile.owner === 'p1') {
+          tileEl.classList.add('owned-p1');
+          tileEl.innerHTML = `
+            <span class="tile-number">${index + 1}</span>
+            <span>P1</span>
+          `;
+        } else if (tile.owner === 'p2') {
+          tileEl.classList.add('owned-p2');
+          tileEl.innerHTML = `
+            <span class="tile-number">${index + 1}</span>
+            <span>P2</span>
+          `;
+        } else if (tile.isBlocked) {
+          tileEl.classList.add('blocked');
+          tileEl.innerHTML = `
+            <span class="tile-number">${index + 1}</span>
+            <span style="font-size: 1rem;">🚫</span>
+          `;
+        }
+      });
+    }
+
+    function endGame() {
+      const winner = scores.p1 > scores.p2 ? 1 : (scores.p2 > scores.p1 ? 2 : 0);
+      
+      const overlay = document.getElementById('overlay');
+      const content = document.getElementById('overlayContent');
+
+      let winnerText = '';
+      if (winner === 0) {
+        winnerText = "IT'S A TIE!";
+      } else {
+        winnerText = `PLAYER ${winner} WINS!`;
+      }
+
+      content.innerHTML = `
+        <div class="winner-announcement">${winnerText}</div>
+        <p style="font-size: 1.5rem; margin: 2rem 0;">
+          Player 1: ${scores.p1} tiles<br>
+          Player 2: ${scores.p2} tiles
+        </p>
+        <button id="btnPlayAgain" class="btn btn-primary">
+          Play Again
+        </button>
+      `;
+
+      overlay.classList.add('active');
+
+      // Attach event listener
+      document.getElementById('btnPlayAgain').addEventListener('click', () => location.reload());
+    }
+  </script>
+</body>
+</html>

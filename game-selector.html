@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Grid Game - Game Selector</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: linear-gradient(-45deg, #0f0f0f, #1a1a1a, #2a2a2a, #1a1a1a);
+      background-size: 400% 400%;
+      animation: gradientBG 20s ease infinite;
+      color: #e2e8f0;
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2rem;
+    }
+
+    @keyframes gradientBG {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+
+    .container {
+      max-width: 1200px;
+      width: 100%;
+    }
+
+    .header {
+      text-align: center;
+      margin-bottom: 3rem;
+    }
+
+    .title {
+      font-size: clamp(2rem, 6vw, 4rem);
+      font-weight: 900;
+      margin-bottom: 1rem;
+      background: linear-gradient(45deg, #3b82f6, #8b5cf6, #ec4899);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      font-size: 1.2rem;
+      opacity: 0.8;
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 2rem;
+      margin-bottom: 2rem;
+    }
+
+    .game-card {
+      background: rgba(30, 30, 30, 0.8);
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      border-radius: 1rem;
+      padding: 2rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .game-card::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      transform: translateX(-100%);
+      transition: transform 0.6s ease;
+    }
+
+    .game-card:hover::before {
+      transform: translateX(100%);
+    }
+
+    .game-card:hover {
+      border-color: rgba(255, 255, 255, 0.4);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    }
+
+    .game-icon {
+      font-size: 4rem;
+      margin-bottom: 1rem;
+    }
+
+    .game-title {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+    }
+
+    .game-description {
+      font-size: 1rem;
+      opacity: 0.7;
+      line-height: 1.5;
+    }
+
+    .badge {
+      display: inline-block;
+      padding: 0.25rem 0.75rem;
+      border-radius: 1rem;
+      font-size: 0.75rem;
+      font-weight: 600;
+      margin-top: 1rem;
+      text-transform: uppercase;
+    }
+
+    .badge-new {
+      background: #10b981;
+      color: white;
+    }
+
+    .badge-classic {
+      background: #3b82f6;
+      color: white;
+    }
+
+    .badge-advanced {
+      background: #8b5cf6;
+      color: white;
+    }
+
+    @media (max-width: 768px) {
+      .game-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1 class="title">Grid Game Collection</h1>
+      <p class="subtitle">Choose your game mode and start playing!</p>
+    </div>
+
+    <div class="game-grid">
+      <div class="game-card" onclick="window.location.href='index.html'">
+        <div class="game-icon">🎮</div>
+        <div class="game-title">Cloud 9 Video Player</div>
+        <div class="game-description">
+          The classic grid-based challenge game with multiple mini-games, 2-player mode, and video integration.
+        </div>
+        <span class="badge badge-classic">Classic</span>
+      </div>
+
+      <div class="game-card" onclick="window.location.href='boom.html'">
+        <div class="game-icon">💥</div>
+        <div class="game-title">Quadrant Timers</div>
+        <div class="game-description">
+          Full Ferocity (v16 Challenges) - Complex two-quadrant video-based game mode with intense timer challenges.
+        </div>
+        <span class="badge badge-new">New</span>
+      </div>
+
+      <div class="game-card" onclick="window.location.href='word-color-blocks.html'">
+        <div class="game-icon">🎨</div>
+        <div class="game-title">Word Color Blocks</div>
+        <div class="game-description">
+          Two-player turn-based game where you must identify correct word + color combinations. Includes special blocked tile challenges!
+        </div>
+        <span class="badge badge-new">New</span>
+      </div>
+
+      <div class="game-card" onclick="window.location.href='newg.html'">
+        <div class="game-icon">🌟</div>
+        <div class="game-title">Cloud 9 (Alt Version)</div>
+        <div class="game-description">
+          Alternative version of the classic Cloud 9 Video Player with the same great gameplay.
+        </div>
+        <span class="badge badge-classic">Classic</span>
+      </div>
+
+      <div class="game-card" onclick="window.location.href='newq.html'">
+        <div class="game-icon">⚡</div>
+        <div class="game-title">Cloud 9 (Simplified)</div>
+        <div class="game-description">
+          Simplified version of Cloud 9 with streamlined styling and gameplay.
+        </div>
+        <span class="badge badge-classic">Classic</span>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
