@@ -1100,7 +1100,7 @@
 
     #gemini-key-container {
       position: fixed;
-      top: 1rem;
+      bottom: 1rem;
       right: 1rem;
       z-index: 210;
       display: flex;
@@ -2770,9 +2770,9 @@
               square.className = 'challenge-square';
               square.dataset.challengeIndex = index;
               square.dataset.owner = '';
-              // FIX: Use icon instead of broken image link
+              // FIX: Use image instead of emoji icon
               square.innerHTML = `
-                    <div class="w-full h-full flex items-center justify-center text-4xl" style="text-shadow: 2px 2px 4px rgba(0,0,0,0.5);">${challenge.icon}</div>
+                    <div class="w-full h-full flex items-center justify-center" style="background-image: url('images/${index + 1}.png'); background-size: cover; background-position: center;"></div>
                     <div class="status-overlay"></div>
                 `;
               square.addEventListener('click', () => {
