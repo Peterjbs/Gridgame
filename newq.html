@@ -1505,11 +1505,6 @@
               icon: '?'
             },
             {
-              type: 'scavengerHunt',
-              name: 'Scavenger Hunt',
-              icon: '?'
-            },
-            {
               type: 'matchPairs',
               name: 'Match Pairs',
               icon: '?'
@@ -1573,7 +1568,6 @@
             memory: 'rgba(230, 126, 34, 0.5)',
             bingo: 'rgba(231, 76, 60, 0.5)',
             aiChallenge: 'rgba(52, 73, 94, 0.5)',
-            scavengerHunt: 'rgba(39, 174, 96, 0.5)',
             clipSequencer: 'rgba(211, 84, 0, 0.5)',
             audioAnagram: 'rgba(142, 68, 173, 0.5)',
             reflexTest: 'rgba(41, 128, 185, 0.5)',
@@ -1819,6 +1813,53 @@
             script: [],
             timelineClips: []
           };
+
+          // --- Free Trivia DB API ---
+          async function fetchTriviaQuestions(amount = 5, category = null, difficulty = null) {
+            let apiUrl = `https://opentdb.com/api.php?amount=${amount}`;
+            if (category) apiUrl += `&category=${category}`;
+            if (difficulty) apiUrl += `&difficulty=${difficulty}`;
+            apiUrl += '&type=multiple'; // Multiple choice questions
+
+            try {
+              const response = await fetch(apiUrl);
+              if (!response.ok) {
+                throw new Error(`Trivia API error: ${response.status}`);
+              }
+              const data = await response.json();
+              
+              if (data.response_code !== 0) {
+                throw new Error('No trivia questions available');
+              }
+
+              // Transform the API response to match our internal format
+              return data.results.map((q, index) => {
+                const options = [...q.incorrect_answers, q.correct_answer];
+                // Shuffle options
+                for (let i = options.length - 1; i > 0; i--) {
+                  const j = Math.floor(Math.random() * (i + 1));
+                  [options[i], options[j]] = [options[j], options[i]];
+                }
+                const correctAnswerIndex = options.indexOf(q.correct_answer);
+                
+                return {
+                  question: decodeHTMLEntities(q.question),
+                  options: options.map(opt => decodeHTMLEntities(opt)),
+                  correctAnswerIndex: correctAnswerIndex
+                };
+              });
+            } catch (error) {
+              console.error('Trivia API Error:', error);
+              return null;
+            }
+          }
+
+          function decodeHTMLEntities(text) {
+            const textarea = document.createElement('textarea');
+            textarea.innerHTML = text;
+            return textarea.value;
+          }
+
           // --- Utility Functions ---
           const clearAllTimers = () => {
             currentTimers.forEach(timer => {
@@ -2867,9 +2908,6 @@
                 break;
               case 'aiChallenge':
                 setupAiChallengeTask();
-                break;
-              case 'scavengerHunt':
-                setupScavengerHuntTask();
                 break;
               case 'clipSequencer':
                 setupClipSequencerTask();
