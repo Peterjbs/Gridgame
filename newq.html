@@ -10,10 +10,25 @@
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Cinzel:wght@700&family=Impact&family=Trajan+Pro:wght@400&display=swap"
     rel="stylesheet">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.7.77/Tone.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/twemoji@latest/dist/twemoji.min.js" crossorigin="anonymous"></script>
   <style>
     body {
       font-family: 'Inter', sans-serif;
       background: linear-gradient(-45deg, #1a1a1a, #2a2a2a, #3a3a3a, #2a2a2a, #1a1a1a);
+    }
+
+    /* Twemoji Image Styling */
+    img.emoji {
+      height: 1em;
+      width: 1em;
+      margin: 0 .05em 0 .1em;
+      vertical-align: -0.1em;
+      display: inline-block;
+    }
+
+    .panel-toggle-button img.emoji {
+      height: 1.75rem;
+      width: 1.75rem;
     }
 
     /* Panel Toggle Bars */
@@ -1100,7 +1115,7 @@
 
     #gemini-key-container {
       position: fixed;
-      bottom: 1rem;
+      top: 1rem;
       right: 1rem;
       z-index: 210;
       display: flex;
@@ -1449,6 +1464,14 @@
           const challengeTurnIndicator = document.getElementById('challenge-turn-indicator');
           const challengePlayerList = document.getElementById('challenge-player-list');
 
+          // --- Initialize Twemoji to replace all emojis with SVG images ---
+          if (typeof twemoji !== 'undefined') {
+            twemoji.parse(document.body, {
+              folder: 'svg',
+              ext: '.svg'
+            });
+          }
+
           // --- Challenge Grid Elements & State ---
           const challengeGrid = document.getElementById('challenge-grid');
           const taskModalOverlay = document.getElementById('task-modal-overlay');
@@ -1569,6 +1592,16 @@
           ];
           let challengeScores = challengePlayers.map(() => 0);
           let currentChallengePlayerIndex = 0;
+
+          // Helper function to parse emojis in an element or the whole document
+          function parseEmojis(element = document.body) {
+            if (typeof twemoji !== 'undefined') {
+              twemoji.parse(element, {
+                folder: 'svg',
+                ext: '.svg'
+              });
+            }
+          }
 
           const GEMINI_STORAGE_KEY = 'gridgameGeminiKey';
           let geminiApiKey = '';
@@ -1799,6 +1832,7 @@
             videoChangeInterval = null;
             intervalCountdownInterval = null;
             selectorToggleBtn.innerHTML = '🎞️';
+            parseEmojis(selectorToggleBtn);
           };
           const formatTime = (seconds) => {
             if (isNaN(seconds)) return "0:00";
@@ -2098,12 +2132,14 @@
             group.className = 'guess-input-group flex items-center gap-2 mb-2';
             group.innerHTML = `<input type="text" id="player${i}Guess" placeholder="Player ${i} Guess..."><span class="guess-emoji-cycler text-2xl cursor-pointer" data-player="${i}">${guessEmojis[0]}</span>`;
             guessingInputsContainer.appendChild(group);
+            parseEmojis(group);
           }
           guessingInputsContainer.addEventListener('click', (e) => {
             if (e.target.classList.contains('guess-emoji-cycler')) {
               let currentEmojiIndex = guessEmojis.indexOf(e.target.textContent);
               currentEmojiIndex = (currentEmojiIndex + 1) % guessEmojis.length;
               e.target.textContent = guessEmojis[currentEmojiIndex];
+              parseEmojis(e.target);
             }
           });
           document.getElementById('startGuessGameButton').addEventListener('click', () => {
@@ -2123,6 +2159,7 @@
               });
               onScreenTallyContainer.appendChild(tallyDiv);
             });
+            parseEmojis(onScreenTallyContainer);
             onScreenTallyContainer.classList.add('visible');
             let seconds = parseInt(document.getElementById('guessTimerDuration').value);
             const changeInterval = parseInt(document.getElementById('guessVideoChangeSeconds').value);
@@ -2481,6 +2518,7 @@
                 `<div class="score-display">${score}</div><div class="score-controls"><button class="score-plus" data-player="${i}">+</button><button class="score-minus" data-player="${i}">-</button><button class="score-hide" data-player="${i}">👁️</button><button class="score-reset" data-player="${i}">🔄</button></div>`;
               scoresWrapper.appendChild(widget);
             });
+            parseEmojis(scoreboardContainer);
             makeDraggable(scoreboardContainer);
           }
           scoreboardContainer.addEventListener('click', (e) => {
@@ -2758,6 +2796,7 @@
             mainVideo.playbackRate = 1;
             const completionOverlay = document.getElementById('completionOverlay');
             completionOverlay.innerHTML = '<button id="replay-movie-btn" style="font-size: 5rem; background: none; border: none; color: white; cursor: pointer;">🔄</button>';
+            parseEmojis(completionOverlay);
             completionOverlay.classList.add('visible');
           }
 
