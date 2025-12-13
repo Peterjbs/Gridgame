@@ -3667,7 +3667,12 @@
             videoElements.forEach(video => {
               video.load();
               video.addEventListener('loadedmetadata', () => {
-                video.currentTime = 0.5; // Seek to 0.5 seconds to show a frame
+                try {
+                  video.currentTime = 0.5; // Seek to 0.5 seconds to show a frame
+                } catch (e) {
+                  // Some videos may not be seekable yet, just use first frame
+                  console.log('Could not seek video for thumbnail');
+                }
               });
             });
 
@@ -4115,10 +4120,11 @@
             parseEmojis(taskModalBody);
             
             document.getElementById('start-splash-btn').onclick = () => {
-              // Varied target and decoy emojis
+              // Varied target and decoy emojis - ensure no overlap
               const possibleTargets = ['💦', '⭐', '🌟', '✨', '💎', '🔮'];
               const targetEmoji = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
-              const decoyEmojis = ['🔥', '💨', '⚡', '🌊', '❄️', '☀️', '🌙', '💫', '🌈', '☁️'].filter(e => e !== targetEmoji);
+              const allDecoys = ['🔥', '💨', '⚡', '🌊', '❄️', '☀️', '🌙', '💫', '🌈', '☁️'];
+              const decoyEmojis = allDecoys.filter(e => e !== targetEmoji);
               
               let correctClicks = 0;
               let gameOver = false;

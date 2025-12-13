@@ -3443,7 +3443,12 @@
             videoElements.forEach(video => {
               video.load();
               video.addEventListener('loadedmetadata', () => {
-                video.currentTime = 0.5; // Seek to 0.5 seconds to show a frame
+                try {
+                  video.currentTime = 0.5; // Seek to 0.5 seconds to show a frame
+                } catch (e) {
+                  // Some videos may not be seekable yet, just use first frame
+                  console.log('Could not seek video for thumbnail');
+                }
               });
             });
 
