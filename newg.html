@@ -4087,92 +4087,194 @@
             taskModalTitle.textContent = "Splash Click";
             const currentPlayer = challengePlayers[currentChallengePlayerIndex];
             
+            // Get a word from the current video filename for the label
+            let videoWord = "Challenge";
+            if (videoFiles.length > 0 && currentVideoIndex >= 0 && currentVideoIndex < videoFiles.length) {
+              const filename = videoFiles[currentVideoIndex].name;
+              const words = filename.replace(/\.[^/.]+$/, "").split(/[\s_-]+/).filter(w => w.length > 3);
+              videoWord = words.length > 0 ? words[0].charAt(0).toUpperCase() + words[0].slice(1) : "Challenge";
+            }
+            
             taskModalBody.innerHTML = `
               <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
-              <p>Click the 💦 splash emojis only!</p>
-              <p style="color: #fbbf24;">+1 point for 💦, -1 and lose for others</p>
-              <p>Get 10 splashes to win! Time limit: 30 seconds</p>
+              <p>Click the target emojis as they appear over the video!</p>
+              <p style="color: #fbbf24;">Get 10 targets to win! Time limit: 30 seconds</p>
+              <p style="color: #8b5cf6;">Faster clicks = bigger bonus!</p>
               <button id="start-splash-btn" class="modal-action-btn">Start Game</button>
             `;
             
             parseEmojis(taskModalBody);
             
             document.getElementById('start-splash-btn').onclick = () => {
-              const SPLASH_SPAWN_RATE = 0.6; // 60% chance for splash emoji
-              let splashCount = 0;
-              let gameOver = false;
-              const emojis = ['💦', '🔥', '💨', '⚡', '🌊'];
-              const targetEmoji = '💦';
+              // Varied target and decoy emojis
+              const possibleTargets = ['💦', '⭐', '🌟', '✨', '💎', '🔮'];
+              const targetEmoji = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
+              const decoyEmojis = ['🔥', '💨', '⚡', '🌊', '❄️', '☀️', '🌙', '💫', '🌈', '☁️'].filter(e => e !== targetEmoji);
               
-              taskModalBody.innerHTML = `
-                <div id="splash-game-container" style="position: relative; width: 100%; height: 400px; background: rgba(0,0,0,0.3); border-radius: 8px; overflow: hidden;">
-                  <div id="splash-score" style="position: absolute; top: 10px; left: 10px; font-size: 1.5rem; font-weight: bold; z-index: 10;">Splashes: 0/10</div>
-                  <div id="splash-timer" style="position: absolute; top: 10px; right: 10px; font-size: 1.5rem; font-weight: bold; z-index: 10;">Time: 30s</div>
-                </div>
+              let correctClicks = 0;
+              let gameOver = false;
+              const startTime = Date.now();
+              
+              // Close the modal and show minimal overlay over video
+              taskModalOverlay.style.pointerEvents = 'none'; // Allow clicks through to video overlay
+              taskModalBody.innerHTML = ''; // Clear modal content but keep modal visible with dark background
+              
+              // Create overlay container over the video
+              const gameOverlay = document.createElement('div');
+              gameOverlay.id = 'splash-click-overlay';
+              gameOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 250;
+                pointer-events: none;
               `;
               
-              const container = document.getElementById('splash-game-container');
-              const scoreDisplay = document.getElementById('splash-score');
-              const timerDisplay = document.getElementById('splash-timer');
+              // Info panel at top (minimal, semi-transparent)
+              const infoPanel = document.createElement('div');
+              infoPanel.style.cssText = `
+                position: absolute;
+                top: 10px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0, 0, 0, 0.7);
+                padding: 0.5rem 1rem;
+                border-radius: 8px;
+                display: flex;
+                gap: 2rem;
+                align-items: center;
+                pointer-events: none;
+                z-index: 10;
+              `;
+              infoPanel.innerHTML = `
+                <div style="color: #8b5cf6; font-weight: bold;">Studio Challenge: ${videoWord}</div>
+                <div style="color: #3b82f6; font-weight: bold;">Player ${currentChallengePlayerIndex + 1}'s Turn</div>
+                <div id="splash-score-display" style="color: #10b981; font-weight: bold;">Score: 0/10</div>
+                <div id="splash-timer-display" style="color: #f59e0b; font-weight: bold;">Time: 30s</div>
+              `;
+              gameOverlay.appendChild(infoPanel);
+              
+              // Feedback container for tick/cross
+              const feedbackContainer = document.createElement('div');
+              feedbackContainer.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 5rem;
+                pointer-events: none;
+                z-index: 15;
+                transition: opacity 0.3s;
+                opacity: 0;
+              `;
+              gameOverlay.appendChild(feedbackContainer);
+              
+              document.body.appendChild(gameOverlay);
+              
+              const scoreDisplay = document.getElementById('splash-score-display');
+              const timerDisplay = document.getElementById('splash-timer-display');
+              
+              const showFeedback = (isCorrect) => {
+                feedbackContainer.textContent = isCorrect ? '✔️' : '✖️';
+                feedbackContainer.style.opacity = '1';
+                parseEmojis(feedbackContainer);
+                setTimeout(() => {
+                  feedbackContainer.style.opacity = '0';
+                }, 500);
+              };
               
               const spawnEmoji = () => {
                 if (gameOver) return;
                 
                 const emojiEl = document.createElement('div');
-                // 60% chance for splash, 40% for decoys
-                const randomEmoji = Math.random() < SPLASH_SPAWN_RATE ? targetEmoji : emojis[Math.floor(Math.random() * (emojis.length - 1)) + 1];
-                emojiEl.textContent = randomEmoji;
+                // 50% chance for target, 50% for random decoy
+                const isTarget = Math.random() < 0.5;
+                const emoji = isTarget ? targetEmoji : decoyEmojis[Math.floor(Math.random() * decoyEmojis.length)];
+                emojiEl.textContent = emoji;
                 emojiEl.style.cssText = `
                   position: absolute;
-                  font-size: 3rem;
+                  font-size: 2.5rem;
                   cursor: pointer;
+                  pointer-events: auto;
                   transition: transform 0.1s;
-                  top: ${Math.random() * 70 + 10}%;
-                  left: ${Math.random() * 80 + 5}%;
+                  top: ${Math.random() * 70 + 15}%;
+                  left: ${Math.random() * 80 + 10}%;
+                  text-shadow: 0 0 4px rgba(0,0,0,0.8);
                 `;
                 
-                emojiEl.addEventListener('click', () => {
+                emojiEl.addEventListener('click', (e) => {
+                  e.stopPropagation();
                   if (gameOver) return;
                   
-                  if (randomEmoji === targetEmoji) {
-                    splashCount++;
-                    scoreDisplay.textContent = `Splashes: ${splashCount}/10`;
-                    emojiEl.style.transform = 'scale(1.5)';
-                    setTimeout(() => emojiEl.remove(), 200);
+                  if (emoji === targetEmoji) {
+                    correctClicks++;
+                    scoreDisplay.textContent = `Score: ${correctClicks}/10`;
+                    showFeedback(true);
+                    emojiEl.remove();
                     
-                    if (splashCount >= 10) {
+                    if (correctClicks >= 10) {
                       gameOver = true;
-                      container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 2rem;">🎉 You Win!</div>';
-                      setTimeout(() => {
-                        updateMainScore(2000);
+                      clearInterval(spawnInterval);
+                      clearInterval(gameTimer);
+                      
+                      // Calculate time-based bonus
+                      const elapsedTime = (Date.now() - startTime) / 1000;
+                      const baseScore = 2000;
+                      const timeBonus = Math.max(0, Math.floor((30 - elapsedTime) * 50));
+                      const totalScore = baseScore + timeBonus;
+                      
+                      gameOverlay.remove();
+                      taskModalOverlay.style.pointerEvents = 'all';
+                      taskModalBody.innerHTML = `
+                        <h2>🎉 Victory!</h2>
+                        <p style="font-size: 1.3rem; margin: 1rem 0;">Completed in ${elapsedTime.toFixed(1)}s</p>
+                        <p style="font-size: 1.1rem;">Base Score: ${baseScore}</p>
+                        <p style="font-size: 1.1rem; color: #10b981;">Time Bonus: +${timeBonus}</p>
+                        <p style="font-size: 1.5rem; font-weight: bold; margin-top: 1rem;">Total: ${totalScore} points</p>
+                        <button id="splash-finish-btn" class="modal-action-btn mt-4">Claim Square</button>
+                      `;
+                      
+                      parseEmojis(taskModalBody);
+                      
+                      document.getElementById('splash-finish-btn').onclick = () => {
+                        updateMainScore(totalScore);
                         markTaskComplete();
-                      }, 1000);
+                      };
                     }
                   } else {
                     gameOver = true;
-                    container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 2rem;">❌ Wrong emoji!</div>';
-                    setTimeout(() => closeTaskModal(), 1500);
+                    clearInterval(spawnInterval);
+                    clearInterval(gameTimer);
+                    showFeedback(false);
+                    
+                    setTimeout(() => {
+                      gameOverlay.remove();
+                      taskModalOverlay.style.pointerEvents = 'all';
+                      closeTaskModal();
+                    }, 800);
                   }
                 });
                 
-                container.appendChild(emojiEl);
+                gameOverlay.appendChild(emojiEl);
                 parseEmojis(emojiEl);
                 
                 setTimeout(() => {
                   if (!gameOver && emojiEl.parentNode) {
                     emojiEl.remove();
                   }
-                }, 2000);
+                }, 2500);
               };
               
-              // Spawn emojis every 800ms
+              // Spawn emojis every 700ms
               const spawnInterval = setInterval(() => {
                 if (gameOver) {
                   clearInterval(spawnInterval);
                 } else {
                   spawnEmoji();
                 }
-              }, 800);
+              }, 700);
               
               currentTimers.push(spawnInterval);
               
@@ -4186,8 +4288,11 @@
                   gameOver = true;
                   clearInterval(spawnInterval);
                   clearInterval(gameTimer);
-                  container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 2rem;">⏰ Time&apos;s up!</div>';
-                  setTimeout(() => closeTaskModal(), 1500);
+                  
+                  gameOverlay.remove();
+                  taskModalOverlay.style.pointerEvents = 'all';
+                  taskModalBody.innerHTML = '<div style="text-align: center; padding: 2rem;"><h2>⏰ Time\'s Up!</h2><p>Not enough targets found.</p></div>';
+                  setTimeout(() => closeTaskModal(), 2000);
                 }
               }, 1000);
               
