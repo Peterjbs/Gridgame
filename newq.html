@@ -1499,6 +1499,9 @@
            ["Mystical Monuments 🏯", "Elemental Power 🔥", "Classic Cartoons 📺", "Crime Scene Clues 🔎", "Oceanic Odysseys 🐳", "Jungle Jive 🐒", "Rhythmic Rhymes 🎤", "Cloud Computing ☁️", "Culinary Concoctions 🍲", "Wacky World Records 🏆"]
          ];
 
+          // Challenges that require Gemini AI
+          const AI_REQUIRED_CHALLENGES = new Set(['aiChallenge', 'audioAnagram']);
+
           const challengeTypes = [{
               type: 'trivia1',
               name: 'Trivia',
@@ -1708,9 +1711,6 @@
             const keyInUse = geminiApiKey && geminiApiKey.trim();
             if (!keyInUse) {
               updateGeminiStatus('Add your Gemini key to run AI tasks', 'info');
-              if (taskModalOverlay && taskModalOverlay.classList.contains('visible') && taskModalBody) {
-                taskModalBody.innerHTML = `<p style="color: #fbbf24; text-align: center; font-size: 1.1rem;">Add your Gemini API key (top right) to unlock this challenge.</p>`;
-              }
               return null;
             }
 
@@ -1776,9 +1776,6 @@
                 retries--;
                 if (retries <= 0) {
                   updateGeminiStatus('Gemini request failed', 'error');
-                  if (taskModalOverlay && taskModalOverlay.classList.contains('visible') && taskModalBody) {
-                    taskModalBody.innerHTML = `<p style="color: #e74c3c; text-align: center;">An error occurred with the AI. Please try another task.</p>`;
-                  }
                   return null;
                 }
                 await new Promise(res => setTimeout(res, delay));
@@ -2637,7 +2634,7 @@
                 alert('AI generated invalid data. Please try again.');
               }
             } else {
-              alert('Failed to generate script. Please try again.');
+              alert('Failed to generate script. Please add your Gemini API key (top right) and try again.');
             }
           });
 
@@ -2885,6 +2882,13 @@
           }
 
           function startConcreteTask(type, options = {}) {
+            // Check if challenge requires Gemini AI and key is not available
+            if (AI_REQUIRED_CHALLENGES.has(type) && (!geminiApiKey || !geminiApiKey.trim())) {
+              taskModalTitle.textContent = "AI Key Required";
+              taskModalBody.innerHTML = `<p style="color: #fbbf24; text-align: center; font-size: 1.1rem;">Add your Gemini API key (top right) to unlock this AI-powered challenge.</p>`;
+              return;
+            }
+            
             taskModalContent.style.backgroundColor = challengeUIColors[type] || 'rgba(31, 31, 31, 0.5)';
             switch (type) {
               case 'trivia1':
@@ -3370,6 +3374,7 @@
             const prompt = `Generate a funny, wacky, or provocative, potentially NSFW, cloud-themed creative challenge that requires a witty text response. For example: "Write a Grindr bio for a lonely rain cloud."`;
             const result = await callGemini(prompt);
             if (!result) {
+              taskModalBody.innerHTML = `<p style="color: #e74c3c; text-align: center;">Failed to generate AI challenge. Please check your API key and try again.</p>`;
               return;
             }
             taskModalBody.innerHTML = `<h3>Ready for a Dare?</h3><p class="italic my-2">"${result.replace(/"/g, '')}"</p><button id="start-challenge-btn" class="modal-action-btn">Accept Challenge</button>`;
@@ -3512,6 +3517,7 @@
             };
             const result = await callGemini(prompt, schema);
             if (!result) {
+              taskModalBody.innerHTML = `<p style="color: #e74c3c; text-align: center;">Failed to generate audio anagram. Please check your API key and try again.</p>`;
               return;
             }
 
