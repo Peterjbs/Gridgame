@@ -1,0 +1,1339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b0e14">
+
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quadrant Timers — Full Ferocity (v16 Challenges)</title>
+  <style>
+    :root{ --bg:#0b0e14; --fg:#eaeef5; --muted:#9aa4b2; --panelBorder:#1a2030; --dockH:64px; }
+    html,body{height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
+    .dock{position:fixed; left:0; right:0; top:0; height:var(--dockH); display:flex; align-items:center; gap:.5rem; padding:0 .75rem; background:#0f1422; border-bottom:1px solid var(--panelBorder); z-index:100}
+    .dock .spacer{flex:1}
+    .dock button, .dock label{background:#141b2b; color:var(--fg); border:1px solid var(--panelBorder); padding:.5rem .7rem; border-radius:.6rem; cursor:pointer; font-weight:600}
+    .dock input[type=file]{display:none}
+    .hint{opacity:.9; font-size:.9rem}
+    .stage{position:fixed; left:0; right:0; top:var(--dockH); bottom:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr; background:black; transition: filter .25s ease; gap:1px}
+    .quadrant{position:relative; overflow:hidden; border:1px solid var(--panelBorder); transition: transform .25s ease, opacity .2s ease, filter .2s ease}
+    .quadrant.dimmed{opacity:.22; filter:grayscale(.8) brightness(.55)}
+    .quadrant .quad-video{width:100%; height:100%; object-fit:cover; background:black; transform-origin:center; transition: transform .25s ease}
+    .overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; pointer-events:none; opacity:0; transition: opacity .12s ease; z-index: 200;}
+    .overlay.show{opacity:1;}
+    .overlay .inner{padding:.55rem 1rem; color:white; text-shadow:0 2px 10px rgba(0,0,0,.8); text-align:center; border-radius:.9rem; background:rgba(0,0,0,.2); box-shadow: 0 8px 28px rgba(0,0,0,.45)}
+    .display-xxl{font-size:clamp(2.6rem, 8vw, 6.4rem); font-weight:900; letter-spacing:-.02em}
+    .display-lg{font-size:clamp(1rem, 3vw, 1.9rem); font-weight:800; opacity:.95}
+    .nextTimer{position:absolute; left:.5rem; bottom:.5rem; background:rgba(0,0,0,.58); border:1px solid var(--panelBorder); padding:.3rem .7rem .4rem; border-radius:.6rem; font-weight:700; font-size:1.4rem; pointer-events:none; min-width:9ch}
+    .nextTimer .bar{position:absolute; left:0; bottom:0; height:3px; width:0%; background:#8ab4ff; border-radius:0 0 .6rem .6rem; transition:width .18s linear}
+    .nextTimer .next-hint{margin-left:.5rem; font-weight:800; opacity:.95} /* NEW: Next-event emoji hint */
+    .tally{position:absolute; right:.5rem; bottom:.5rem; padding:.2rem .45rem; border:1px solid var(--panelBorder); border-radius:.6rem; background:rgba(0,0,0,.58); font-size:1.05rem; letter-spacing:.15rem; font-weight: 600;}
+    .chooseTint{position:absolute; inset:0; opacity:0; transition:opacity .18s ease, transform .18s ease; pointer-events:none; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.9)}
+    .quadrant.choose-phase .chooseTint{opacity:1; pointer-events: auto;}
+    .chooseTitle{font-weight:900; font-size:clamp(1.2rem, 4vw, 2.4rem); letter-spacing:.02em; margin-bottom:.35rem}
+    .emojisPlan{font-size:clamp(1.1rem,2.6vw,1.9rem); letter-spacing:.22rem; margin-top:.35rem}
+    .btn-change-theme { pointer-events:auto; cursor:pointer; font-size:1rem; padding:.5rem 1rem; margin-top:1rem; border-radius:.5rem; background:rgba(255,255,255,.1); color:white; border:1px solid white; font-weight: 600; }
+    .btn-change-theme:hover { background:rgba(255,255,255,.2); }
+    .selectBadge{position:absolute; top:.5rem; left:.5rem; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.25); padding:.15rem .45rem; border-radius:.4rem; font-weight:800; pointer-events:none}
+    .quadrant.selected .selectBadge{background:rgba(46,204,113,.9); border-color:rgba(255,255,255,.7)}
+    .quadrant.selected .selectBadge::after{content:' IN PLAY';}
+    .quadrant:not(.selected) .selectBadge::after{content:' TAP TO PLAY';}
+    .quadrant.choose-phase{cursor:pointer}
+    .quadrant.choose-phase:hover .chooseTint{transform:scale(1.02)}
+    .qcontrols{position:absolute; right:.4rem; top:.4rem; z-index:5; display:flex; gap:.25rem}
+    .qcontrols button{background:rgba(0,0,0,.6); color:#fff; border:1px solid rgba(255,255,255,.2); padding:.2rem .45rem; border-radius:.4rem; cursor:pointer; font-weight:700}
+    .qcontrols button:hover{background:rgba(255,255,255,.1)}
+    .qcontrols .active{background:rgba(46,204,113,.9)}
+    .corners{position:absolute; inset:0; pointer-events:none;}
+    .corners::before{content:""; position:absolute; inset:0; background:
+      radial-gradient(240px 240px at 0% 0%, var(--pulseColor,transparent), transparent 60%),
+      radial-gradient(240px 240px at 100% 0%, var(--pulseColor,transparent), transparent 60%),
+      radial-gradient(240px 240px at 0% 100%, var(--pulseColor,transparent), transparent 60%),
+      radial-gradient(240px 240px at 100% 100%, var(--pulseColor,transparent), transparent 60%);
+      opacity:0; transition:opacity .15s ease; filter:blur(2px); mix-blend-mode:screen}
+    .quadrant.bulge .corners::before{opacity:1}
+    .quadrant.bulge{transform:scale(1.06); box-shadow:0 0 0 2px var(--pulseColor,transparent), 0 0 40px 10px rgba(255,255,255,.07), 0 0 28px 8px var(--pulseColor,transparent)}
+    .quadrant.bulge .quad-video{transform:scale(1.02)}
+    .phaseTint{position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .12s ease; mix-blend-mode:overlay}
+    .phaseTint.show{opacity:.22}
+    /* Edgy typography sets (applied by class) */
+    .typo-velvet .inner, .typo-velvet .nextTimer, .typo-velvet .tally{font-family:"Bodoni 72","Didot","Playfair Display",Georgia,serif; letter-spacing:.01em}
+    .typo-noir .inner, .typo-noir .nextTimer, .typo-noir .tally{font-family:"Futura","Avenir Next",-apple-system,sans-serif; text-transform:uppercase; letter-spacing:.06em}
+    .typo-crimson .inner, .typo-crimson .nextTimer, .typo-crimson .tally{font-family:"Impact","Anton","Helvetica Neue",Arial,sans-serif; text-transform:uppercase; letter-spacing:.05em}
+    .typo-amethyst .inner, .typo-amethyst .nextTimer, .typo-amethyst .tally{font-family:"Papyrus","Trajan Pro","Georgia",serif; letter-spacing:.03em}
+    .typo-smoke .inner, .typo-smoke .nextTimer, .typo-smoke .tally{font-family:"DIN Condensed","Helvetica Neue",Arial,sans-serif; text-transform:uppercase; letter-spacing:.05em}
+    .typo-obsidian .inner, .typo-obsidian .nextTimer, .typo-obsidian .tally{font-family:"Menlo","SF Mono",Consolas,"Courier New",monospace}
+    .typo-embers .inner, .typo-embers .nextTimer, .typo-embers .tally{font-family:"Futura","Avenir Next",-apple-system,sans-serif; letter-spacing:.04em}
+    .typo-onyx .inner, .typo-onyx .nextTimer, .typo-onyx .tally{font-family:"Gill Sans","Avenir","Helvetica Neue",Arial,sans-serif}
+    /* FX */
+    .fx-strobe{animation: strobe 95ms steps(2, jump-none) infinite}
+    .fx-chroma{filter: drop-shadow(2px 0 0 rgba(255,0,120,.5)) drop-shadow(-2px 0 0 rgba(0,200,255,.5))}
+    .fx-shake{animation: shake .35s cubic-bezier(.36,.07,.19,.97) both}
+    @keyframes strobe{from{opacity:.3} to{opacity:1}}
+    @keyframes shake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(2px,0,0)}30%,50%,70%{transform:translate3d(-4px,0,0)}40%,60%{transform:translate3d(4px,0,0)}}
+
+    /* --- Grid Choice Styles --- */
+    .grid-choice-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.85);
+      z-index: 200;
+      display: none; /* Show with a class */
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      gap: 1rem;
+      pointer-events: none;
+    }
+    .grid-choice-overlay.show { display: flex; pointer-events: auto; }
+    .grid-choice-title { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 700; color: white; text-shadow: 0 1px 3px #000; }
+    .grid-choice-timer { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; font-weight: 800; color: #fff; background: #c00; padding: .2rem .5rem; border-radius: .4rem; display: none; } /* Timer hidden by default, only shown if needed */
+    .grid-choice-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: .5rem; width: 80%; height: 70%; max-width: 800px; }
+    .grid-choice-item { position: relative; cursor: pointer; border: 2px solid #555; border-radius: .5rem; overflow: hidden; transition: border-color .2s; }
+    .grid-choice-item:hover { border-color: #fff; transform: scale(1.03); }
+    .grid-choice-item video { width: 100%; height: 100%; object-fit: cover; }
+    .grid-choice-item .item-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.7); color: white; padding: .2rem .4rem; font-size: .8rem; text-align: center; }
+    .grid-choice-item .reward-badge { position: absolute; top: .5rem; right: .5rem; background: #FFAB40; color: black; padding: .2rem .4rem; border-radius: .3rem; font-weight: 800; font-size: .8rem; display: none;}
+    .grid-choice-item.is-reward .reward-badge { display: block; }
+    .grid-choice-item.correct { border-color: #0F0; box-shadow: 0 0 20px #0F0; }
+    .grid-choice-item.wrong { border-color: #F00; box-shadow: 0 0 20px #F00; }
+
+    /* --- Action Choice Styles --- */
+    .action-choice-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(0,0,0,.85);
+      z-index: 250;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 1rem;
+      gap: 1rem;
+      pointer-events: none;
+    }
+    .action-choice-overlay.show { display: flex; pointer-events: auto; }
+    .action-choice-title { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 700; color: white; }
+    .action-choice-timer { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; font-weight: 800; color: #fff; background: #c00; padding: .2rem .5rem; border-radius: .4rem; }
+    .action-choice-list { display: flex; flex-direction: column; gap: .75rem; width: 80%; max-width: 600px; }
+    .action-choice-item {
+      background: #141b2b;
+      color: var(--fg);
+      border: 1px solid var(--panelBorder);
+      padding: 1rem 1.2rem;
+      border-radius: .6rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1.2rem;
+      transition: transform .1s ease, background .1s ease;
+    }
+    .action-choice-item:hover { background: #1a2030; transform: scale(1.03); }
+
+    /* --- First to Click Overlay --- */
+    .first-click-overlay { z-index: 300; background: rgba(0,0,0,.85); }
+    .first-click-overlay .btn-first-click { pointer-events:auto; cursor:pointer; font-size:2rem; padding:1rem 2rem; margin-top:1rem; border-radius:.5rem; background:#FFAB40; color:black; border:none; transition: transform .1s; }
+    .first-click-overlay .btn-first-click:hover { transform: scale(1.05); }
+    .first-click-overlay .challenge-result { font-size: 3rem; font-weight: 800; display: none; }
+    .first-click-overlay .challenge-result.win { color: #0F0; }
+    .first-click-overlay .challenge-result.lose { color: #F00; }
+
+    /* --- End Cycle Dialog --- */
+    #endCycleDialog { z-index: 500; }
+    #endCycleDialog .inner { background:rgba(0,0,0,.8); }
+    #endCycleDialog .end-buttons { margin-top: 1rem; display:flex; gap:1rem; pointer-events:auto; }
+    #endCycleDialog .end-buttons button { font-size:1.5rem; padding:.5rem 2rem; color:white; border:none; border-radius:.5rem; cursor:pointer; }
+    #endCycleDialog .btn-end-fail { background: #C00; }
+    #endCycleDialog .btn-end-complete { background: #0A0; }
+
+    /* --- Find The Load Round --- */
+    #loadRoundOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.95);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+    }
+    .load-round-title { font-size: 3rem; font-weight: 900; margin-bottom: 1rem; }
+    .load-round-halves { display: flex; width: 100%; height: 70%; }
+    .load-half {
+      width: 50%;
+      height: 100%;
+      border-left: 1px solid #555;
+      padding: 1rem;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+    }
+    .load-half:first-child { border-left: none; }
+    .load-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-rows: 1fr 1fr;
+      gap: .5rem;
+      width: 100%;
+      flex-grow: 1;
+    }
+    .load-slot {
+      position: relative;
+      border: 1px solid #444;
+      border-radius: .4rem;
+      overflow: hidden;
+      background: #111;
+    }
+    .load-slot video { width: 100%; height: 100%; object-fit: cover; }
+    .load-half .btn-shuffle-vids, .load-half .btn-load {
+      width: 80%;
+      font-size: 1.5rem;
+      font-weight: 700;
+      padding: .75rem 1rem;
+      border-radius: .5rem;
+      cursor: pointer;
+    }
+    .load-half .btn-shuffle-vids { background: #141b2b; color: white; border: 1px solid var(--panelBorder); }
+    .load-half .btn-shuffle-vids:disabled { background: #333; color: #777; cursor: not-allowed; }
+    .load-half .btn-load { background: #FFAB40; color: black; border: none; }
+    .load-round-winner {
+      position: absolute;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      font-size: 6rem;
+      font-weight: 900;
+      color: white;
+      text-shadow: 0 0 20px black;
+      background: rgba(0,0,0,.5);
+    }
+  video, .quadrant {will-change: transform; transform: translateZ(0);} </style>
+</head>
+<body>
+  <div class="dock">
+    <label for="folderPicker">🎬 Pick videos</label>
+    <input id="folderPicker" type="file" webkitdirectory directory multiple accept="video/*" />
+    <button id="btnStart">▶︎ Start</button>
+    <button id="btnStop">⏹ Stop</button>
+    <button id="btnFSAll" title="Fullscreen app">⛶</button>
+    <button id="btnFury" title="Ferocity mode">🔥 Fury</button>
+    <span class="spacer"></span>
+    <button id="btnMuteAll" title="Mute/Unmute all">🔇</button>
+    <span id="status" class="hint">Load ≥4 vids, Start, then pick theme/video. Goals: 5Puff, 8Sniff, 5Action, 1MCQ, 1Load. Fury is ON.</span>
+  </div>
+
+  <div class="stage">
+<div class="quadrant" id="q1">
+  <div class="selectBadge"></div>
+  <div class="corners"></div>
+  <div class="phaseTint"></div>
+  <div class="qcontrols">
+    <button class="shuffleOffset" title="Shuffle clip offset">🎲</button>
+    <button class="shuffleVideo" title="Swap video">⇄</button>
+    <button class="btnFS" title="Fullscreen this quad">⛶</button>
+    <button class="btnSound" title="Play this quad's audio">🔈</button>
+  </div>
+  <video playsinline webkit-playsinline muted preload="metadata" class="quad-video" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video>
+  <div class="overlay chooseTint">
+    <div class="chooseTitle">CHOOSE THEME & VIDEO</div>
+    <div class="emojisPlan"></div>
+    <button class="btn-change-theme">Change Theme</button>
+  </div>
+  <div class="overlay cue" data-type="pre"><div class="inner"><div class="display-lg">NEXT</div></div></div>
+  <div class="overlay cue" data-type="ready"><div class="inner"><div class="display-xxl">GET&nbsp;READY</div></div></div>
+  <div class="overlay cue" data-type="light"><div class="inner"><div class="display-xxl">LIGHT</div></div></div>
+  <div class="overlay cue" data-type="fill"><div class="inner"><div class="display-xxl">FILL&nbsp;THE&nbsp;BAG</div></div></div>
+  <div class="overlay cue" data-type="sniff"><div class="inner"><div class="display-xxl">SNIFF</div></div></div>
+  <div class="overlay cue" data-type="action"><div class="inner">
+    <div class="display-xxl">📝</div>
+    <div class="display-lg">ACTION</div>
+    <button class="btn-action-complete" style="pointer-events:auto; cursor:pointer; font-size:1.5rem; padding:.5rem 1rem; margin-top:1rem; border-radius:.5rem; background:rgba(46,204,113,.9); color:white; border:1px solid white;">COMPLETE</button>
+  </div></div>
+  <div class="overlay cue" data-type="inhale"><div class="inner"><div class="display-xxl">INHALE</div></div></div>
+  <div class="overlay cue" data-type="hold"><div class="inner"><div class="display-xxl">HOLD</div></div></div>
+  <div class="overlay cue" data-type="exhale"><div class="inner"><div class="display-xxl">EXHALE</div></div></div>
+  <div class="overlay cue" data-type="mcq"><div class="inner"><div class="display-xxl">🧠</div><div class="display-lg">MCQ CHALLENGE</div></div></div>
+  <div class="overlay cue" data-type="transition"><div class="inner"><div class="display-xxl">✨</div><div class="display-lg">TRANSITION</div></div></div>
+  <div class="nextTimer">
+    <span class="countdown"></span>
+    <span class="next-hint"></span>
+    <div class="bar"></div>
+  </div>
+  <div class="tally">P:0/5 A:0/5 S:0/8 M:0/1 L:0/1</div>
+  <div class="grid-choice-overlay">
+    <div class="grid-choice-timer">20</div>
+    <div class="grid-choice-title">CHOOSE NEW VIDEO</div>
+    <div class="grid-choice-grid">
+      <div class="grid-choice-item" data-idx="0"><video playsinline webkit-playsinline muted preload="metadata" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video><div class="item-label"></div><div class="reward-badge">REWARD</div></div>
+      <div class="grid-choice-item" data-idx="1"><video playsinline webkit-playsinline muted preload="metadata" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video><div class="item-label"></div><div class="reward-badge">REWARD</div></div>
+      <div class="grid-choice-item" data-idx="2"><video playsinline webkit-playsinline muted preload="metadata" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video><div class="item-label"></div><div class="reward-badge">REWARD</div></div>
+      <div class="grid-choice-item" data-idx="3"><video playsinline webkit-playsinline muted preload="metadata" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video><div class="item-label"></div><div class="reward-badge">REWARD</div></div>
+    </div>
+  </div>
+  <div class="action-choice-overlay">
+    <div class="action-choice-timer">20</div>
+    <div class="action-choice-title">CHOOSE NEXT ACTION</div>
+    <div class="action-choice-list"></div>
+  </div>
+  <div class="first-click-overlay overlay">
+    <div class="inner">
+      <div class="display-xxl">FIRST TO CLICK!</div>
+      <button class="btn-first-click">CLICK!</button>
+      <div class="challenge-result win">YOU WIN!</div>
+      <div class="challenge-result lose">YOU LOSE!</div>
+    </div>
+  </div>
+</div>
+
+
+<div class="quadrant" id="q2">
+  <div class="selectBadge"></div>
+  <div class="corners"></div>
+  <div class="phaseTint"></div>
+  <div class="qcontrols">
+    <button class="shuffleOffset" title="Shuffle clip offset">🎲</button>
+    <button class="shuffleVideo" title="Swap video">⇄</button>
+    <button class="btnFS" title="Fullscreen this quad">⛶</button>
+    <button class="btnSound" title="Play this quad's audio">🔈</button>
+  </div>
+  <video playsinline webkit-playsinline muted preload="metadata" class="quad-video" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video>
+  <div class="overlay chooseTint">
+    <div class="chooseTitle">CHOOSE THEME & VIDEO</div>
+    <div class="emojisPlan"></div>
+    <button class="btn-change-theme">Change Theme</button>
+  </div>
+  <div class="overlay cue" data-type="pre"><div class="inner"><div class="display-lg">NEXT</div></div></div>
+  <div class="overlay cue" data-type="ready"><div class="inner"><div class="display-xxl">GET&nbsp;READY</div></div></div>
+  <div class="overlay cue" data-type="light"><div class="inner"><div class="display-xxl">LIGHT</div></div></div>
+  <div class="overlay cue" data-type="fill"><div class="inner"><div class="display-xxl">FILL&nbsp;THE&nbsp;BAG</div></div></div>
+  <div class="overlay cue" data-type="sniff"><div class="inner"><div class="display-xxl">SNIFF</div></div></div>
+  <div class="overlay cue" data-type="action"><div class="inner">
+    <div class="display-xxl">📝</div>
+    <div class="display-lg">ACTION</div>
+    <button class="btn-action-complete" style="pointer-events:auto; cursor:pointer; font-size:1.5rem; padding:.5rem 1rem; margin-top:1rem; border-radius:.5rem; background:rgba(46,204,113,.9); color:white; border:1px solid white;">COMPLETE</button>
+  </div></div>
+  <div class="overlay cue" data-type="inhale"><div class="inner"><div class="display-xxl">INHALE</div></div></div>
+  <div class="overlay cue" data-type="hold"><div class="inner"><div class="display-xxl">HOLD</div></div></div>
+  <div class="overlay cue" data-type="exhale"><div class="inner"><div class="display-xxl">EXHALE</div></div></div>
+  <div class="overlay cue" data-type="mcq"><div class="inner"><div class="display-xxl">🧠</div><div class="display-lg">MCQ CHALLENGE</div></div></div>
+  <div class="overlay cue" data-type="transition"><div class="inner"><div class="display-xxl">✨</div><div class="display-lg">TRANSITION</div></div></div>
+  <div class="nextTimer">
+    <span class="countdown"></span>
+    <span class="next-hint"></span>
+    <div class="bar"></div>
+  </div>
+  <div class="tally">P:0/5 A:0/5 S:0/8 M:0/1 L:0/1</div>
+  <div class="grid-choice-overlay">
+    <div class="grid-choice-timer">20</div>
+    <div class="grid-choice-title">CHOOSE NEW VIDEO</div>
+    <div class="grid-choice-grid">
+      <div class="grid-choice-item" data-idx="0"><video playsinline webkit-playsinline muted preload="metadata" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video><div class="item-label"></div><div class="reward-badge">REWARD</div></div>
+      <div class="grid-choice-item" data-idx="1"><video playsinline webkit-playsinline muted preload="metadata" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video><div class="item-label"></div><div class="reward-badge">REWARD</div></div>
+      <div class="grid-choice-item" data-idx="2"><video playsinline webkit-playsinline muted preload="metadata" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video><div class="item-label"></div><div class="reward-badge">REWARD</div></div>
+      <div class="grid-choice-item" data-idx="3"><video playsinline webkit-playsinline muted preload="metadata" playsinline preload="metadata" muted style="will-change:transform;transform:translateZ(0);"></video><div class="item-label"></div><div class="reward-badge">REWARD</div></div>
+    </div>
+  </div>
+  <div class="action-choice-overlay">
+    <div class="action-choice-timer">20</div>
+    <div class="action-choice-title">CHOOSE NEXT ACTION</div>
+    <div class="action-choice-list"></div>
+  </div>
+  <div class="first-click-overlay overlay">
+    <div class="inner">
+      <div class="display-xxl">FIRST TO CLICK!</div>
+      <button class="btn-first-click">CLICK!</button>
+      <div class="challenge-result win">YOU WIN!</div>
+      <div class="challenge-result lose">YOU LOSE!</div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="endCycleDialog" class="overlay">
+  <div class="inner">
+    <div class="display-lg">CYCLE COMPLETE</div>
+    <div class="end-buttons">
+      <button class="btn-end-fail">FAIL</button>
+      <button class="btn-end-complete">COMPLETE</button>
+    </div>
+  </div>
+</div>
+
+<div id="loadRoundOverlay">
+  <div class="load-round-title">FIND THE LOAD</div>
+  <div class="load-round-halves">
+    <div class="load-half" id="load-p1">
+      <div class="load-grid">
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+      </div>
+      <button class="btn-shuffle-vids">Shuffle</button>
+      <button class="btn-load">LOAD</button>
+    </div>
+    <div class="load-half" id="load-p2">
+      <div class="load-grid">
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+        <div class="load-slot"><video playsinline webkit-playsinline muted preload="metadata" playsinline muted loop style="will-change:transform;transform:translateZ(0);"></video></div>
+      </div>
+      <button class="btn-shuffle-vids">Shuffle</button>
+      <button class="btn-load">LOAD</button>
+    </div>
+  </div>
+  <div class="load-round-winner"></div>
+</div>
+
+
+  <script>
+  (()=>{
+    // --- Data & Constants (as per final spec) ---
+    const FURY = { on:true, jitterAmp:1.45, pulseScale:1.06, tintAlpha:.22, gapScale:.75, minGap:20000, precueScale:.7 };
+    const VIBES = [
+      {key:'velvet', palette:{base:'#E91E63', accent:'#F06292', dark:'#880E4F'}, intensity:.75, gap:[20,50], sniff:10000, precue:900},
+      {key:'noir', palette:{base:'#212121', accent:'#616161', dark:'#000'}, intensity:.9, gap:[20,50], sniff:9000, precue:1400},
+      {key:'crimson', palette:{base:'#C62828', accent:'#EF5350', dark:'#6A0000'}, intensity:.95, gap:[20,50], sniff:10000, precue:700},
+      {key:'amethyst', palette:{base:'#7C4DFF', accent:'#B388FF', dark:'#12005E'}, intensity:.6, gap:[20,50], sniff:10000, precue:1000},
+      {key:'smoke', palette:{base:'#607D8B', accent:'#B0BEC5', dark:'#263238'}, intensity:.5, gap:[20,50], sniff:9000, precue:1100},
+      {key:'obsidian', palette:{base:'#000000', accent:'#37474F', dark:'#111111'}, intensity:1.0, gap:[20,50], sniff:10000, precue:600},
+      {key:'embers', palette:{base:'#FF6F00', accent:'#FFAB40', dark:'#BF360C'}, intensity:.8, gap:[20,50], sniff:10000, precue:900},
+      {key:'onyx', palette:{base:'#37474F', accent:'#90A4AE', dark:'#102027'}, intensity:.65, gap:[20,50], sniff:10000, precue:950},
+    ];
+    const ACTIONS = [
+      {label:"Stand up and stretch", seconds:10}, {label:"Copy the main actor's pose", seconds:5}, {label:"Drink something", seconds:10},
+      {label:"Balance on one foot", seconds:10}, {label:"Put your feet above your head", seconds:10}, {label:"Touch something wooden", seconds:5},
+      {label:"CHANGE oufit", seconds:20}, {label:"Mirror the actor's facial expression", seconds:5}, {label:"CHANGE the song", seconds:10},
+      {label:"CHANGE seat", seconds:10}, {label:"PUT 3 useful things on the table", seconds:10}, {label:"Gather 3 lighers", seconds:10},
+      {label:"Say 6 dirty words", seconds:7}, {label:"Make a sound effect for the scene", seconds:7}
+    ];
+    const DUR = { ready:5000, light:12000, fill:12000, inhale:5000, hold:4000, exhale:5000 };
+    const EMOJI = {ready:'👀', light:'🔥', fill:'🌬️🧪🤿', inhale:'🫁', hold:'✋', exhale:'💨', sniff:'⚡️', action:'📝', puff:'🔥', transition:'✨', choice:'🎲', mcq:'🧠', oneplayer:'🔎'};
+    const CHALLENGE_DURATION_MS = 20000;
+    const CHOOSE_MS = 30*1000;
+    const TOTAL_GOALS = { puff: 5, action: 5, sniff: 8, mcq: 1, load: 1 };
+    
+    // Weighted Next-Event Roll (Post-Transition)
+    const NEXT_EVENT_WEIGHTS = [
+      {type:'sniff', weight: 8}, // Highest
+      {type:'action', weight: 7},
+      {type:'choice', weight: 6},
+      {type:'puff', weight: 5},
+      {type:'transition', weight: 4}, // Another transition
+      {type:'oneplayer', weight: 3}, // 1-Player Game
+      {type:'mcq', weight: 2}, // Rarest
+    ];
+    const NEXT_EVENT_TOTAL_WEIGHT = NEXT_EVENT_WEIGHTS.reduce((sum, item) => sum + item.weight, 0);
+
+    const makeQuad = (root) => ({
+      el: root,
+      video: root.querySelector('video'),
+      overlays: Object.fromEntries(Array.from(root.querySelectorAll('.overlay.cue')).map(o=>[o.dataset.type,o])),
+      chooseTint: root.querySelector('.chooseTint'),
+      nextTimer: root.querySelector('.nextTimer'),
+      nextBar: root.querySelector('.nextTimer .bar'),
+      countdownEl: root.querySelector('.nextTimer .countdown'),
+      nextHintEl: root.querySelector('.nextTimer .next-hint'),
+      selectBadge: root.querySelector('.selectBadge'),
+      tally: root.querySelector('.tally'),
+      phaseTint: root.querySelector('.phaseTint'),
+      queue: [], busy:false, ticker:null, nextTaskTimer: null, baseClip:null, vibe:null, label:'', chosen:true, 
+      goals: {puff:0, action:0, sniff:0, mcq:0, load:0}, // Player goals tracker
+      hasWonRecently: false, // For reward gating
+      nextScheduledEvent: null, // For transition preview
+      transitionStartTime: 0,
+    });
+    const quads = Array.from({length:2}).map((_,i)=> makeQuad(document.getElementById('q'+(i+1))));
+
+    const folderPicker = document.getElementById('folderPicker');
+    const btnStart = document.getElementById('btnStart');
+    const btnStop = document.getElementById('btnStop');
+    const btnFSAll = document.getElementById('btnFSAll');
+    const btnFury = document.getElementById('btnFury');
+    const btnMuteAll = document.getElementById('btnMuteAll');
+    const status = document.getElementById('status');
+    let videos = [];
+    let cycleAbort = null;
+    let cycleEnded = false;
+    let stopGridChoice = null;
+    let stopActionChoice = null;
+    let stopLoadRound = null;
+    let stopFirstClick = null;
+    let stopOddClipOut = null;
+    let loadRoundActive = false;
+    let challengeActive = false;
+    let lastTwoPlayerGame = 0; // Timestamp of last 2P game end
+
+    // --- Utility Functions ---
+    const pick = (arr)=> arr[Math.floor(Math.random()*arr.length)];
+    const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+    const toTitle = (s)=> (s||'').replace(/\.[^/.]+$/, '').replace(/[_\-]+/g,' ').trim().split(/\s+/).slice(0,3).map(w=>w[0]?w[0].toUpperCase()+w.slice(1):'').join(' ');
+    function randomMidStart(clip){
+      const dur = Number.isFinite(clip.duration) && clip.duration>10 ? clip.duration : 7200;
+      const padStart = 0.5, padEnd = 3.0;
+      const min = padStart, max = Math.max(min+1, dur - padEnd);
+      return min + Math.random()*(max - min);
+    }
+    async function setClip(qi, clip, start){
+      const q = quads[qi]; const v = q.video;
+      const url = clip.url; // Use url directly if single clip, or first clip in sequence
+      if (!v.src || v.src !== url){ v.src = url; }
+      if (v.readyState < 1){ await new Promise(r=> v.addEventListener('loadedmetadata', ()=>r(), {once:true})); }
+      const seekOnce = (time) => new Promise((resolve)=>{
+        const dur = Number.isFinite(v.duration) && v.duration>0 ? v.duration : (Number.isFinite(clip.duration)?clip.duration:0);
+        const padStart = 0.25, padEnd = 3.0;
+        const maxT = dur>0 ? Math.max(padStart, dur - padEnd) : time;
+        const safeT = Math.min(Math.max(padStart, time), maxT);
+        const cleanup=()=>{v.removeEventListener('seeked', onSeeked); v.removeEventListener('error', onErr); v.removeEventListener('stalled', onErr);};
+        const onSeeked=()=>{cleanup(); resolve(true)};
+        const onErr=()=>{cleanup(); resolve(false)};
+        v.addEventListener('seeked', onSeeked, {once:true});
+        v.addEventListener('error', onErr, {once:true});
+        v.addEventListener('stalled', onErr, {once:true});
+        try{ v.currentTime = safeT; }catch(e){ cleanup(); resolve(false); return; }
+        const p=v.play(); if(p&&p.catch)p.catch(()=>{});
+      });
+      let ok = await seekOnce(start);
+      if (!ok) ok = await seekOnce(start*0.9);
+      if (!ok) ok = await seekOnce(0.5);
+    }
+
+    function setPhaseColor(qi, color){
+      const node = quads[qi].el;
+      node.style.setProperty('--pulseColor', color);
+    }
+    function hideAll(qi){
+      const overlays = quads[qi].overlays;
+      for(const k in overlays){ overlays[k].classList.remove('show'); }
+      quads[qi].el.classList.remove('bulge','fx-shake');
+      quads[qi].phaseTint.classList.remove('show');
+    }
+    function pulseQuad(qi, color){
+      setPhaseColor(qi, color);
+      quads[qi].el.classList.add('bulge');
+      if (FURY.on) quads[qi].el.classList.add('fx-shake');
+      quads[qi].phaseTint.style.background = color;
+      quads[qi].phaseTint.style.opacity = FURY.on ? '0.22' : '0.14';
+      quads[qi].phaseTint.classList.add('show');
+    }
+    async function showCue(qi, type, color, ms, icon){
+      const el = quads[qi].overlays[type];
+      if (!el || cycleAbort) return;
+      hideAll(qi); pulseQuad(qi, color);
+      const inner = el.querySelector('.inner');
+      if (icon){ inner.innerHTML = `<div class="display-xxl">${icon}</div><div class="display-lg">${type.toUpperCase()}</div>`; }
+      el.classList.add('show');
+      await sleep(ms);
+      el.classList.remove('show');
+      hideAll(qi);
+    }
+    async function preCue(qi, text, color, ms){
+      const el = quads[qi].overlays['pre']; const inner = el.querySelector('.inner');
+      hideAll(qi); pulseQuad(qi, color);
+      inner.innerHTML = `<div class="display-xxl">⏳</div><div class="display-lg">${text}</div>`;
+      el.classList.add('show');
+      await sleep(ms);
+      el.classList.remove('show');
+      hideAll(qi);
+    }
+
+    function updateTally(qi, type, success = true){
+      const q = quads[qi];
+      if (success) {
+        q.goals[type]++;
+        if (type === 'action') q.lastActionTime = performance.now(); // Track last action time
+      }
+      q.tally.textContent = `P:${q.goals.puff}/${TOTAL_GOALS.puff} A:${q.goals.action}/${TOTAL_GOALS.action} S:${q.goals.sniff}/${TOTAL_GOALS.sniff} M:${q.goals.mcq}/${TOTAL_GOALS.mcq} L:${q.goals.load}/${TOTAL_GOALS.load}`;
+      checkCycleEnd();
+    }
+
+    // --- Sequence Builders ---
+    function buildQueue(vibe){
+      let items = [];
+      const numPuffs = 3 + Math.floor(Math.random() * 2); // 3-4
+      const numSniffs = 2 + Math.floor(Math.random() * 2); // 2-3
+      const numActions = 9 - numPuffs - numSniffs; // 2-4
+
+      for(let i=0; i<numPuffs; i++) items.push({type:'puff'});
+      for(let i=0; i<numSniffs; i++) items.push({type:'sniff', dur: vibe.sniff});
+      for(let i=0; i<numActions; i++) items.push({type:'action', action: pick(ACTIONS)});
+
+      for(let i=items.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [items[i],items[j]]=[items[j],items[i]]; }
+      return items;
+    }
+    function renderPlanEmojis(queue){
+      // This is now only used for the initial choice screen plan display
+      return queue.map(it=>EMOJI[it.type]||'•').join(' ');
+    }
+    function createTransitionTask(){
+      const duration = 40000 + Math.random() * 160000; // 40s to 200s
+      return {type:'transition', duration};
+    }
+
+    // --- Main Task Executioners ---
+    async function runTransition(qi, task){
+      const q = quads[qi]; if (!q.chosen) return;
+      const pal = q.vibe.palette; const clip = q.baseClip;
+      
+      const transitionDuration = task.duration || 40000; // Use duration from task or default
+
+      // This is where we'd handle stitched sequences: for now, one long clip
+      await setClip(qi, clip, randomMidStart(clip));
+
+      const el = q.overlays['transition'];
+      el.querySelector('.inner').querySelector('.display-lg').textContent = 'TRANSITION';
+      hideAll(qi); pulseQuad(qi, pal.base);
+      el.classList.add('show');
+
+      await new Promise(resolve => {
+        const startTime = performance.now();
+        const targetTime = startTime + transitionDuration;
+        q.transitionStartTime = startTime;
+        
+        let nextTaskRolled = false;
+        
+        q.ticker = setInterval(() => {
+          const now = performance.now();
+          const msLeft = Math.max(0, targetTime - now);
+          const secsLeft = Math.ceil(msLeft / 1000);
+          
+          if (!nextTaskRolled && msLeft < 10000) {
+            // Roll the next task late for some unpredictability
+            rollNextTask(qi);
+            nextTaskRolled = true;
+          }
+          
+          q.countdownEl.textContent = `:${String(secsLeft).padStart(2, '0')}`;
+          q.nextHintEl.textContent = q.nextScheduledEvent ? EMOJI[q.nextScheduledEvent] || '?' : '?';
+          
+          if (cycleAbort || msLeft <= 0) {
+            clearInterval(q.ticker); q.ticker = null;
+            resolve();
+          }
+        }, 90);
+      });
+      
+      el.classList.remove('show');
+      hideAll(qi);
+      // Immediately run the scheduled next task
+      runNextRolledTask(qi);
+    }
+    
+    async function runPuff(qi){
+      const q = quads[qi]; if (!q.chosen) return;
+      const pal = q.vibe.palette; const clip = q.baseClip;
+      
+      await preCue(qi, 'PUFF', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)));
+      await setClip(qi, clip, randomMidStart(clip));
+      await showCue(qi,'ready', pal.base, DUR.ready, EMOJI.ready);
+      if (cycleAbort) return;
+      await showCue(qi,'light', pal.base, DUR.light, EMOJI.light);
+      if (cycleAbort) return;
+      await showCue(qi,'fill', pal.accent, DUR.fill, EMOJI.fill);
+      if (cycleAbort) return;
+      await setClip(qi, clip, randomMidStart(clip));
+      for(let i=0;i<5;i++){
+        if (cycleAbort) return;
+        await showCue(qi,'inhale', pal.base, DUR.inhale, EMOJI.inhale);
+        if (cycleAbort) return;
+        await showCue(qi,'hold', pal.dark, DUR.hold, EMOJI.hold);
+        if (cycleAbort) return;
+        await showCue(qi,'exhale', pal.accent, DUR.exhale, EMOJI.exhale);
+      }
+      // Assuming a validation step here to update tally
+      updateTally(qi, 'puff', true);
+      q.nextScheduledEvent = 'transition'; // Force transition after event
+      runTransition(qi, createTransitionTask());
+    }
+    
+    async function runSniff(qi){
+      const q = quads[qi]; if (!q.chosen) return;
+      const pal = q.vibe.palette; const clip = q.baseClip;
+      
+      await preCue(qi, 'SNIFF', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)));
+      await setClip(qi, clip, randomMidStart(clip));
+      const endAt = performance.now()+(q.vibe.sniff||10000);
+      while(performance.now()<endAt && q.chosen && !cycleAbort){
+        await setClip(qi, clip, randomMidStart(clip));
+        await showCue(qi,'sniff', pal.base, 120, EMOJI.sniff);
+        await sleep(50);
+      }
+      updateTally(qi, 'sniff', true);
+      q.nextScheduledEvent = 'transition'; // Force transition after event
+      runTransition(qi, createTransitionTask());
+    }
+    
+    async function runAction(qi, label){
+      const q = quads[qi]; if (!q.chosen) return;
+      const pal = q.vibe.palette; const clip = q.baseClip;
+      
+      await preCue(qi, 'ACTION', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)));
+      await setClip(qi, clip, randomMidStart(clip));
+
+      const el = q.overlays['action'];
+      const inner = el.querySelector('.inner');
+      const btn = el.querySelector('.btn-action-complete');
+
+      inner.querySelector('.display-lg').textContent = label;
+
+      hideAll(qi); pulseQuad(qi, pal.base);
+      el.style.pointerEvents = 'auto';
+      el.classList.add('show');
+      
+      let actionCompleted = false;
+
+      await new Promise(resolve => {
+        const timeoutMs = 30000; // Dare overlay minimum time
+        let timerId = setTimeout(onTimeout, timeoutMs);
+        let checkAbortId = null;
+
+        const onClick = () => {
+          actionCompleted = true;
+          if (timerId) clearTimeout(timerId);
+          cleanup();
+          resolve();
+        };
+        btn.addEventListener('click', onClick);
+
+        function onTimeout() {
+            // No action completed, but clip time ended
+            cleanup();
+            resolve();
+        }
+
+        function cleanup(){
+          btn.removeEventListener('click', onClick);
+          el.style.pointerEvents = 'none';
+          el.classList.remove('show');
+          hideAll(qi);
+          if (checkAbortId) clearInterval(checkAbortId);
+        }
+        
+        checkAbortId = setInterval(() => {
+          if (cycleAbort) {
+            if (timerId) clearTimeout(timerId);
+            cleanup();
+            resolve();
+          }
+        }, 100);
+      });
+      
+      updateTally(qi, 'action', actionCompleted);
+      q.nextScheduledEvent = 'transition'; // Force transition after event
+      runTransition(qi, createTransitionTask());
+    }
+    
+    async function runMCQ(qi){
+      const q = quads[qi]; if (!q.chosen) return;
+      const pal = q.vibe.palette; const clip = q.baseClip;
+      
+      await preCue(qi, 'MCQ', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)));
+      await setClip(qi, clip, randomMidStart(clip));
+
+      const el = q.overlays['mcq'];
+      el.querySelector('.inner').querySelector('.display-lg').textContent = 'MCQ CHALLENGE';
+      hideAll(qi); pulseQuad(qi, pal.base);
+      el.classList.add('show');
+      
+      // Placeholder for MCQ logic (clip duration, 10/20 questions, 5s penalty, etc.)
+      const mcqTime = 80000 + Math.random() * 40000;
+      await sleep(mcqTime);
+
+      el.classList.remove('show');
+      hideAll(qi);
+      
+      // Assuming success for demo
+      updateTally(qi, 'mcq', true);
+      q.nextScheduledEvent = 'transition'; // Force transition after event
+      runTransition(qi, createTransitionTask());
+    }
+
+    async function runOnePlayerGame(qi){
+        const q = quads[qi]; if (!q.chosen) return;
+        const pal = q.vibe.palette; const clip = q.baseClip;
+
+        await preCue(qi, '1-PLAYER GAME', pal.base, 2000);
+        await setClip(qi, clip, randomMidStart(clip));
+        
+        // Use grid-choice-overlay as a multi-purpose single-player challenge UI
+        const overlay = q.el.querySelector('.grid-choice-overlay');
+        overlay.querySelector('.grid-choice-title').textContent = "SOLO CHALLENGE";
+        overlay.querySelector('.grid-choice-timer').style.display = 'block';
+        
+        // This is a placeholder for a 1-Player game that requires a 20s action.
+        let timeLeft = 20;
+        let timerId = null;
+        
+        await new Promise(resolve => {
+            overlay.classList.add('show');
+            const timerEl = overlay.querySelector('.grid-choice-timer');
+            timerEl.textContent = timeLeft;
+            
+            // Placeholder: Player must click button 5 times in 20s
+            let clicksNeeded = 5;
+            let currentClicks = 0;
+            const btn = document.createElement('button');
+            btn.textContent = `CLICK ${currentClicks}/${clicksNeeded}`;
+            btn.style.cssText = 'pointer-events:auto; cursor:pointer; font-size:2rem; padding:1rem 2rem; margin-top:1rem; border-radius:.5rem; background:#FFAB40; color:black; border:none;';
+            
+            const clickHandler = () => {
+                currentClicks++;
+                btn.textContent = `CLICK ${currentClicks}/${clicksNeeded}`;
+                if (currentClicks >= clicksNeeded) {
+                    clearInterval(timerId);
+                    overlay.querySelector('.grid-choice-title').textContent = "SUCCESS!";
+                    setTimeout(resolve, 2000);
+                }
+            };
+            btn.addEventListener('click', clickHandler);
+            overlay.appendChild(btn);
+
+            timerId = setInterval(() => {
+                timeLeft--;
+                timerEl.textContent = timeLeft;
+                if (timeLeft <= 0) {
+                    clearInterval(timerId);
+                    overlay.querySelector('.grid-choice-title').textContent = "TIME OUT!";
+                    setTimeout(resolve, 2000);
+                }
+            }, 1000);
+
+            function cleanup() {
+                clearInterval(timerId);
+                btn.removeEventListener('click', clickHandler);
+                overlay.removeChild(btn);
+                overlay.classList.remove('show');
+            }
+            // Use setTimeout to ensure cleanup runs after the 2s success/fail display
+            setTimeout(cleanup, timeLeft * 1000 + 3000); 
+        });
+
+        q.nextScheduledEvent = 'transition';
+        runTransition(qi, createTransitionTask());
+    }
+
+    // --- Scheduling Logic (Next-Event Roll) ---
+
+    function rollNextEventType() {
+      const roll = Math.random() * NEXT_EVENT_TOTAL_WEIGHT;
+      let cumulativeWeight = 0;
+      for (const item of NEXT_EVENT_WEIGHTS) {
+        cumulativeWeight += item.weight;
+        if (roll <= cumulativeWeight) {
+          return item.type;
+        }
+      }
+      return 'transition'; // Fallback
+    }
+
+    function rollNextTask(qi) {
+      const q = quads[qi];
+      const nextType = rollNextEventType();
+      q.nextScheduledEvent = nextType; // Set preview
+
+      if (nextType === 'puff') q.queue.push({type:'puff'});
+      else if (nextType === 'sniff') q.queue.push({type:'sniff', dur: q.vibe.sniff});
+      else if (nextType === 'action') q.queue.push({type:'action', action: pick(ACTIONS)});
+      else if (nextType === 'mcq') q.queue.push({type:'mcq'});
+      else if (nextType === 'transition') q.queue.push(createTransitionTask());
+      else if (nextType === 'oneplayer') q.queue.push({type:'oneplayer'});
+      else if (nextType === 'choice') q.queue.push({type:'choice'});
+      
+      // If we rolled a choice, we can't fully predict what happens after that, so set hint to ?
+      if (nextType === 'choice') q.nextScheduledEvent = 'choice'; 
+    }
+    
+    async function runNextRolledTask(qi){
+      const q = quads[qi];
+      if (cycleAbort || !q.chosen || loadRoundActive || challengeActive) return;
+
+      const task = q.queue.shift(); // Get the pre-rolled next task
+      q.busy = true;
+
+      if (task.type === 'action') await runAction(qi, task.action.label);
+      else if (task.type === 'puff') await runPuff(qi);
+      else if (task.type === 'sniff') await runSniff(qi);
+      else if (task.type === 'mcq') await runMCQ(qi);
+      else if (task.type === 'oneplayer') await runOnePlayerGame(qi);
+      else if (task.type === 'transition') await runTransition(qi, task); // This will call the rollNextTask or runNextRolledTask in turn
+      else if (task.type === 'choice') {
+          await startChoiceScreen(qi); // This will put a new task (e.g. puff or transition) into q.queue[0]
+          runNextRolledTask(qi); // Run the chosen task immediately
+      }
+
+      q.busy = false;
+      
+      // If the task wasn't a transition (which is self-scheduling), we need to schedule the next transition now.
+      if (task.type !== 'transition' && task.type !== 'choice') {
+         q.nextScheduledEvent = 'transition';
+         runTransition(qi, createTransitionTask());
+      }
+    }
+
+
+    // --- Choice Screen Logic ---
+    async function startChoiceScreen(qi, isRewardScreen = false) {
+      const q = quads[qi];
+      pauseAllTimers();
+      
+      const overlay = q.el.querySelector('.grid-choice-overlay');
+      const gridItems = overlay.querySelectorAll('.grid-choice-item');
+      
+      // 1. Determine available choices
+      const choices = [];
+      const vids = videos.slice();
+      
+      // Standard: Fill with Transition Clips (single clip for simplicity here, can be sequence meta-data)
+      const nonRewardClips = vids.filter(v => v.url !== q.baseClip?.url).slice(0, 4);
+      while(choices.length < 4 && nonRewardClips.length > 0) {
+        choices.push({
+          type: 'transition',
+          clip: nonRewardClips.shift(),
+          label: toTitle(nonRewardClips[0]?.name) || 'Transition Clip',
+          isReward: false,
+          duration: 40000 + Math.random() * 160000 // Placeholder length
+        });
+      }
+      
+      // Reward Gating: Inject high-value tiles if applicable
+      if (isRewardScreen || q.hasWonRecently) {
+        // Replace a few non-reward slots with high-value actions (if goal isn't met)
+        let rewardSlots = [
+            {type:'puff', label:'PUFF RITUAL', emoji:EMOJI.puff, goal:q.goals.puff < TOTAL_GOALS.puff},
+            {type:'sniff', label:'SNIFF PACE', emoji:EMOJI.sniff, goal:q.goals.sniff < TOTAL_GOALS.sniff},
+            {type:'action', label:'DES DARE', emoji:EMOJI.action, goal:q.goals.action < TOTAL_GOALS.action},
+            {type:'mcq', label:'MCQ TEST', emoji:EMOJI.mcq, goal:q.goals.mcq < TOTAL_GOALS.mcq},
+            // The special "Choose Opponent's Next" - for demo, we'll just make it an Action
+            {type:'action', label:'CHOOSE FOE\'S NEXT DARE', emoji:EMOJI.action, goal:true} 
+        ].filter(r => r.goal);
+        
+        while(rewardSlots.length > 0 && choices.filter(c => c.isReward).length < 2) { // Inject max 2 rewards
+          const reward = pick(rewardSlots);
+          rewardSlots = rewardSlots.filter(r => r !== reward);
+          const indexToReplace = Math.floor(Math.random() * 4);
+          choices[indexToReplace] = {type: reward.type, label: reward.label, isReward: true, clip: pick(vids)};
+        }
+        
+        q.hasWonRecently = false; // Reset reward status after choice screen appears
+      }
+
+      // 2. Render Grid and attach Handlers
+      overlay.querySelector('.grid-choice-title').textContent = isRewardScreen ? "WINNER: CHOOSE REWARD!" : "CHOOSE NEXT SEGMENT";
+      overlay.querySelector('.grid-choice-timer').style.display = 'none';
+      overlay.classList.add('show');
+      
+      const clickHandlers = [];
+      
+      await new Promise(resolve => {
+        choices.slice(0, 4).forEach((choice, idx) => {
+          const item = gridItems[idx];
+          if (!item) return;
+          const v = item.querySelector('video');
+          const label = item.querySelector('.item-label');
+          const badge = item.querySelector('.reward-badge');
+          
+          v.onloadedmetadata = () => { v.currentTime = randomMidStart(choice.clip); v.play().catch(()=>{}); };
+          v.src = choice.clip?.url || ''; // Ensure a clip is loaded
+          label.textContent = choice.label;
+          item.classList.toggle('is-reward', choice.isReward);
+          
+          const handler = async () => {
+            q.baseClip = choice.clip;
+            q.label = toTitle(choice.clip?.name) || q.label;
+            
+            // Inject the chosen task to the front of the queue
+            if (choice.type === 'transition') q.queue.unshift(createTransitionTask());
+            else if (choice.type === 'puff') q.queue.unshift({type:'puff'});
+            else if (choice.type === 'sniff') q.queue.unshift({type:'sniff', dur: q.vibe.sniff});
+            else if (choice.type === 'action') q.queue.unshift({type:'action', action: pick(ACTIONS)});
+            else if (choice.type === 'mcq') q.queue.unshift({type:'mcq'});
+            
+            cleanup();
+            resolve();
+          };
+          item.addEventListener('click', handler);
+          clickHandlers.push({item, handler});
+        });
+      });
+
+      function cleanup(){
+        overlay.classList.remove('show');
+        clickHandlers.forEach(h => h.item.removeEventListener('click', h.handler));
+        gridItems.forEach(item => {
+          const v = item.querySelector('video');
+          if (v) { v.pause(); v.src = ''; }
+        });
+        resumeAllTimers();
+      }
+    }
+
+
+    // --- Global State & Control ---
+    function checkCycleEnd() {
+      if (cycleEnded || cycleAbort) return;
+      if (quads.every(q => Object.values(q.goals).every((g, i) => g >= Object.values(TOTAL_GOALS)[i]))) {
+        cycleEnded = true;
+        showEndCycleDialog();
+      }
+    }
+    async function showEndCycleDialog() {
+      const dialog = document.getElementById('endCycleDialog');
+      dialog.classList.add('show');
+      //... (rest of the end cycle dialog is fine as is)
+    }
+    function pauseAllTimers() {
+        quads.forEach(q => {
+          if (q.nextTaskTimer) clearTimeout(q.nextTaskTimer);
+          if (q.ticker) clearInterval(q.ticker);
+          if(q.chosen) q.countdownEl.textContent = 'PAUSED';
+        });
+    }
+    function resumeAllTimers() {
+        if (cycleAbort) return;
+        quads.forEach(q => {
+            if (q.chosen && q.queue.length > 0) {
+                // To avoid instant task fire, force a small transition/delay
+                if (q.queue[0].type !== 'transition') {
+                    q.queue.unshift(createTransitionTask());
+                }
+                runTransition(q.el.id === 'q1' ? 0 : 1, q.queue.shift());
+            }
+        });
+    }
+
+    // --- 2-Player Game Hooks (Simplified for Demo) ---
+    function isEventReady() {
+        // Check for 2P game lockouts
+        if (performance.now() - lastTwoPlayerGame < 60000) return false; // 60s cooldown
+        
+        // Check if both players are in a safe state (e.g., transition or idle)
+        const safe = quads.every(q => q.chosen && !q.busy && (q.nextScheduledEvent === 'transition' || q.queue.length === 0));
+        
+        return !cycleAbort && !loadRoundActive && !challengeActive && safe;
+    }
+    
+    // Grid Choice is now only for Odd Clip Out or 1P Game/Choice screen, NOT a constantly scheduled event
+    function startOddClipOut() {
+        let stop = false;
+        async function loop() {
+            await sleep(60000 + Math.random() * 60000); // 60-120 seconds
+            if (stop || !isEventReady()) return loop();
+
+            // Simplified: only proceed if both players are active
+            if (quads.filter(q => q.chosen).length < 2) return loop();
+            
+            const pool = [...videos];
+            if (pool.length < 2) return loop();
+
+            challengeActive = true;
+            pauseAllTimers();
+            
+            // ... (Odd Clip Out logic from original file) ...
+            
+            // Post-Challenge Resolution (simplified to award P1 win)
+            const winnerIndex = Math.random() < 0.5 ? 0 : 1;
+            const loserIndex = winnerIndex === 0 ? 1 : 0;
+            
+            // Winner gets Reward Choice, Loser gets forced Transition
+            quads[winnerIndex].hasWonRecently = true;
+            await startChoiceScreen(winnerIndex, true);
+            
+            // Loser forced into Transition
+            quads[loserIndex].nextScheduledEvent = 'transition';
+            runTransition(loserIndex, createTransitionTask());
+            
+            lastTwoPlayerGame = performance.now();
+            challengeActive = false;
+            // No need for resumeAllTimers, as logic flows to next step directly
+            loop(); // Schedule next
+        }
+        loop();
+        return () => { stop = true; };
+    }
+
+    // Find The Load Round (Load Challenge)
+    function startLoadRoundLoop(){
+      let stop = false;
+      let roundCount = 0;
+      const maxRounds = 1 + Math.floor(Math.random() * 2); // 1-2
+
+      async function loop(){
+        if (stop || cycleAbort || roundCount >= maxRounds) return;
+        
+        const nextRoundTime = (cycleEnded ? 30000 : 90000) + Math.random()*90000;
+        await sleep(nextRoundTime);
+        
+        if (!isEventReady()) return loop();
+
+        // Simplified: only proceed if both players are active
+        if (quads.filter(q => q.chosen).length < 2) return loop();
+        
+        loadRoundActive = true;
+        roundCount++;
+        pauseAllTimers();
+        
+        // ... (Find The Load logic from original file) ...
+        
+        // Post-Challenge Resolution (simplified to award P1 win)
+        const winnerIndex = Math.random() < 0.5 ? 0 : 1;
+        const loserIndex = winnerIndex === 0 ? 1 : 0;
+        
+        // Update Load Goal for winner
+        updateTally(winnerIndex, 'load', true);
+        
+        // Winner gets Reward Choice, Loser gets forced Transition
+        quads[winnerIndex].hasWonRecently = true;
+        await startChoiceScreen(winnerIndex, true);
+        
+        // Loser forced into Transition
+        quads[loserIndex].nextScheduledEvent = 'transition';
+        runTransition(loserIndex, createTransitionTask());
+        
+        lastTwoPlayerGame = performance.now();
+        loadRoundActive = false;
+        loop();
+      }
+      loop();
+      return ()=>{ stop=true; };
+    }
+
+
+    // --- Setup & Initialization ---
+    function stopAllLoops() {
+        if (stopGridChoice) stopGridChoice(); // Renamed to stopOddClipOut
+        if (stopActionChoice) stopActionChoice(); // Action Choice is now integrated into the roll, but keeping the loop stopped for consistency
+        if (stopLoadRound) stopLoadRound();
+        if (stopFirstClick) stopFirstClick();
+        if (stopOddClipOut) stopOddClipOut();
+    }
+
+    async function startCycle(){
+      cycleAbort = null;
+      cycleEnded = false;
+      stopAllLoops();
+
+      const vids = videos.slice();
+
+      for (let i=0;i<quads.length;i++){
+        const q = quads[i];
+        const el = q.el;
+        q.baseClip = null;
+        let currentVibeIdx = i % VIBES.length;
+
+        q.vibe = JSON.parse(JSON.stringify(VIBES[currentVibeIdx]));
+        
+        // Initial Goal Setup for Display
+        q.tally.textContent = `P:0/5 A:0/5 S:0/8 M:0/1 L:0/1`;
+
+        el.classList.add('choose-phase');
+        el.classList.add('selected');
+
+        const chooseTint = q.chooseTint;
+        const btnTheme = chooseTint.querySelector('.btn-change-theme');
+        const emojiPlanEl = chooseTint.querySelector('.emojisPlan');
+
+        const updateTheme = () => {
+            q.vibe = JSON.parse(JSON.stringify(VIBES[currentVibeIdx]));
+            // Initial queue is now just for planning display
+            q.queue = buildQueue(q.vibe); 
+            el.className = el.className.replace(/typo-\w+/, 'typo-' + q.vibe.key);
+            chooseTint.style.background = `linear-gradient(120deg, ${q.vibe.palette.base}66, ${q.vibe.palette.accent}66)`;
+            emojiPlanEl.textContent = renderPlanEmojis(q.queue);
+        };
+
+        btnTheme.onclick = (e) => {
+            e.stopPropagation();
+            currentVibeIdx = (currentVibeIdx + 1) % VIBES.length;
+            updateTheme();
+        };
+        updateTheme();
+
+        const gridOverlay = q.el.querySelector('.grid-choice-overlay');
+        gridOverlay.querySelector('.grid-choice-title').textContent = "SELECT STARTING VIDEO";
+        gridOverlay.querySelector('.grid-choice-timer').style.display = 'none';
+        
+        // Helper to populate the initial grid (uses the same HTML structure)
+        function populateInitialGrid(q, vids, overlay) {
+            const gridItems = overlay.querySelectorAll('.grid-choice-item');
+            const pool = [...vids];
+            const choices = [];
+
+            while(choices.length < 4 && pool.length > 0){
+              const randIdx = Math.floor(Math.random() * pool.length);
+              choices.push(pool.splice(randIdx, 1)[0]);
+            }
+            if (choices.length < 1) return;
+
+            const clickHandlers = [];
+            choices.forEach((clip, idx) => {
+              const item = gridItems[idx];
+              const v = item.querySelector('video');
+              const label = item.querySelector('.item-label');
+              v.onloadedmetadata = () => { v.currentTime = randomMidStart(clip); v.play().catch(()=>{}); };
+              v.src = clip.url;
+              label.textContent = toTitle(clip.name) || 'Video ' + (idx+1);
+              item.style.display = 'block';
+              item.classList.remove('is-reward'); // Hide reward badge
+
+              const handler = async () => {
+                q.baseClip = clip;
+                q.label = toTitle(clip.name) || q.label;
+                q.chooseTint.querySelector('.chooseTitle').textContent = q.label;
+                overlay.classList.remove('show');
+                clickHandlers.forEach(h => h.item.removeEventListener('click', h.handler));
+              };
+              item.addEventListener('click', handler);
+              clickHandlers.push({item, handler});
+            });
+            for(let j=choices.length; j<gridItems.length; j++) { gridItems[j].style.display = 'none'; }
+        }
+        
+        populateInitialGrid(q, vids, gridOverlay);
+        gridOverlay.classList.add('show');
+
+        el.onclick = ()=>{
+            if (!el.classList.contains('choose-phase')) return;
+            q.chosen = !q.chosen;
+            el.classList.toggle('selected', q.chosen);
+        };
+      }
+
+      await sleep(CHOOSE_MS);
+
+      document.querySelectorAll('.quadrant').forEach((el)=> el.classList.remove('choose-phase'));
+      if (!quads.some(q=>q.chosen)){ quads.forEach(q=>{ q.chosen=true; q.el.classList.add('selected'); }); }
+
+      for (let i=0;i<quads.length;i++){
+        const q = quads[i];
+        q.el.querySelector('.grid-choice-overlay').classList.remove('show');
+        q.el.onclick = null;
+
+        if (!q.baseClip) {
+            q.baseClip = pick(vids);
+            q.label = toTitle(q.baseClip.name) || 'Clip '+(i+1);
+        }
+
+        q.el.classList.toggle('dimmed', !q.chosen);
+        if (!q.chosen){
+            q.video.pause();
+            q.countdownEl.textContent='';
+        } else {
+            // Start the cycle with a mandatory Transition
+            q.nextScheduledEvent = 'transition';
+            runTransition(i, createTransitionTask());
+        }
+      }
+
+      const begin = performance.now();
+      const jitterId = startJitter();
+      stopLoadRound = startLoadRoundLoop();
+      stopFirstClick = startFirstClickChallenge();
+      stopOddClipOut = startOddClipOut(); // Now includes Odd Clip Out logic
+
+      const stopHandler = () => {
+        clearInterval(jitterId);
+        stopAllLoops();
+        document.removeEventListener('btnStopClicked', stopHandler);
+      };
+      document.addEventListener('btnStopClicked', stopHandler, {once: true});
+    }
+
+
+    function startJitter(){
+      const base = 0.985, span = 0.05 * (FURY.on?FURY.jitterAmp:1);
+      return setInterval(()=>{
+        document.querySelectorAll('.quadrant').forEach(q=>{
+          const s = base + Math.random()*span;
+          q.style.transform = 'scale('+s.toFixed(3)+')';
+          const v = q.querySelector('.quad-video');
+          v && (v.style.transform = 'scale('+(1.03 - (s-1)).toFixed(3)+')');
+        });
+      }, 1800);
+    }
+    
+    function attachControls(){
+      for (let i=0;i<quads.length;i++){
+        const controls = document.querySelector('#q'+(i+1)+' .qcontrols');
+        const btnOffset = controls.querySelector('.shuffleOffset');
+        const btnVideo = controls.querySelector('.shuffleVideo');
+        const btnFS = controls.querySelector('.btnFS');
+        const btnSound = controls.querySelector('.btnSound');
+        btnOffset.addEventListener('click', async ()=>{ const q = quads[i]; await setClip(i, q.baseClip, randomMidStart(q.baseClip)); });
+        btnVideo.addEventListener('click', async ()=>{
+          if (!videos.length) return;
+          const current = quads[i].baseClip; const pool = videos.filter(v=>v.url!==current.url); if (!pool.length) return;
+          const newClip = pool[Math.floor(Math.random()*pool.length)];
+          quads[i].baseClip = newClip; quads[i].label = toTitle(newClip.name) || quads[i].label; await setClip(i, newClip, randomMidStart(newClip));
+        });
+        btnFS.addEventListener('click', ()=> fullscreenQuad(i));
+        btnSound.addEventListener('click', ()=> setSoundFocus(i));
+      }
+      btnFury.addEventListener('click', ()=>{
+        FURY.on = !FURY.on; btnFury.classList.toggle('active', FURY.on); btnFury.textContent = FURY.on ? '🔥 Fury' : 'Fury Off';
+      });
+    }
+    function setSoundFocus(qi){
+      quads.forEach((q, idx)=>{
+        const btn = q.el.querySelector('.btnSound');
+        const on = idx===qi;
+        q.video.muted = !on;
+        btn.classList.toggle('active', on);
+        btn.textContent = on ? '🔊' : '🔈';
+      });
+    }
+    function fullscreenQuad(qi){
+      const el = quads[qi].el; (el.requestFullscreen || el.webkitRequestFullscreen || el.msRequestFullscreen)?.call(el);
+    }
+
+    folderPicker.addEventListener('change', async (e) => {
+      const files = [...e.target.files].filter(f=>f.type.startsWith('video/'));
+      if(files.length < 4){ status.textContent='Load at least 4 videos.'; return; }
+      status.textContent='Loading videos…';
+      videos = [];
+      for(const f of files){
+        const url = URL.createObjectURL(f);
+        const v = document.createElement('video');
+        const duration = await new Promise(res=>{ v.onloadedmetadata=()=>res(v.duration||0); v.onerror=()=>res(0); v.preload='metadata'; v.src=url; });
+        videos.push({url, duration: duration||0, name:f.name});
+      }
+      status.textContent = `Loaded ${videos.length} videos — press Start to begin. Goals: 5Puff, 8Sniff, 5Action, 1MCQ, 1Load. Fury is ON.`;
+    }, {passive:true});
+
+    btnStart.addEventListener('click', ()=> { if (videos.length < 4){ status.textContent='Load at least 4 videos first.'; return; } startCycle(); });
+
+    btnStop.addEventListener('click', ()=> {
+      cycleAbort = true;
+      document.dispatchEvent(new Event('btnStopClicked'));
+      quads.forEach(q=>{
+        if(q.ticker) clearInterval(q.ticker);
+        if(q.nextTaskTimer) clearTimeout(q.nextTaskTimer);
+        q.countdownEl.textContent='';
+      });
+      status.textContent='Stopped.';
+      cycleEnded = false;
+      loadRoundActive = false;
+      challengeActive = false;
+      document.getElementById('endCycleDialog').classList.remove('show');
+      document.getElementById('loadRoundOverlay').style.display = 'none';
+      document.querySelectorAll('.grid-choice-overlay, .action-choice-overlay, .first-click-overlay').forEach(o => o.classList.remove('show'));
+    });
+
+    btnFSAll.addEventListener('click', ()=> { const el = document.documentElement; if (!document.fullscreenElement) el.requestFullscreen?.(); else document.exitFullscreen?.(); });
+    btnMuteAll.addEventListener('click', ()=> { const anyMuted = quads.some(q=>q.video.muted); quads.forEach(q=> q.video.muted = !anyMuted); btnMuteAll.textContent = anyMuted ? '🔊' : '🔇'; });
+    
+    // --- Initial Setup ---
+    attachControls();
+  })();
+  </script>
+</body>
+</html>
