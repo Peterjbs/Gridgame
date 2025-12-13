@@ -1686,11 +1686,7 @@
               name: 'Match Pairs',
               icon: '?'
             },
-            {
-              type: 'clipSequencer',
-              name: 'Clip Sequencer',
-              icon: '?'
-            },
+
             {
               type: 'reflexTest',
               name: 'Reflex Test',
@@ -1712,11 +1708,7 @@
               name: 'Type It In',
               icon: '?'
             },
-            {
-              type: 'memory',
-              name: 'Memory',
-              icon: '?'
-            },
+
             {
               type: 'bingo',
               name: 'Bingo',
@@ -1733,11 +1725,7 @@
               name: 'Mini Bingo',
               icon: '🎯'
             },
-            {
-              type: 'splashClick',
-              name: 'Splash Click',
-              icon: '💦'
-            },
+
             {
               type: 'weatherGamble',
               name: 'Weather Gamble',
@@ -3107,18 +3095,14 @@
               case 'blowback':
                 setupBlowbackTask();
                 break;
-              case 'memory':
-                setupMemoryGameTask();
-                break;
+
               case 'bingo':
                 setupBingoBuilderTask();
                 break;
               case 'aiChallenge':
                 setupAiChallengeTask();
                 break;
-              case 'clipSequencer':
-                setupClipSequencerTask();
-                break;
+
               case 'audioAnagram':
                 setupAudioAnagramTask();
                 break;
@@ -3131,9 +3115,7 @@
               case 'miniBingo':
                 setupMiniBingoTask();
                 break;
-              case 'splashClick':
-                setupSplashClickTask();
-                break;
+
               case 'weatherGamble':
                 setupWeatherGambleTask();
                 break;
@@ -3805,7 +3787,7 @@
           }
 
           async function setupReflexTestTask() {
-            taskModalTitle.textContent = "Don't Blink";
+            taskModalTitle.textContent = "Watch Closely";
             if (videoFiles.length < 1) {
               taskModalBody.innerHTML = `<p class="text-red-500">You need at least one video for this challenge.</p>`;
               return;
