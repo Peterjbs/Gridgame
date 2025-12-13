@@ -4098,6 +4098,7 @@
             parseEmojis(taskModalBody);
             
             document.getElementById('start-splash-btn').onclick = () => {
+              const SPLASH_SPAWN_RATE = 0.6; // 60% chance for splash emoji
               let splashCount = 0;
               let gameOver = false;
               const emojis = ['💦', '🔥', '💨', '⚡', '🌊'];
@@ -4119,7 +4120,7 @@
                 
                 const emojiEl = document.createElement('div');
                 // 60% chance for splash, 40% for decoys
-                const randomEmoji = Math.random() < 0.6 ? targetEmoji : emojis[Math.floor(Math.random() * (emojis.length - 1)) + 1];
+                const randomEmoji = Math.random() < SPLASH_SPAWN_RATE ? targetEmoji : emojis[Math.floor(Math.random() * (emojis.length - 1)) + 1];
                 emojiEl.textContent = randomEmoji;
                 emojiEl.style.cssText = `
                   position: absolute;
@@ -4210,9 +4211,10 @@
             
             parseEmojis(taskModalBody);
             
+            const SUNNY_PROBABILITY = 0.7; // 70% sunny, 30% stormy
+            
             const handleChoice = (choice) => {
-              // 70% sunny, 30% stormy
-              const result = Math.random() < 0.7 ? 'sunny' : 'stormy';
+              const result = Math.random() < SUNNY_PROBABILITY ? 'sunny' : 'stormy';
               const resultEmoji = result === 'sunny' ? '☁️' : '⚡';
               const resultText = result === 'sunny' ? 'Sunny' : 'Stormy';
               
