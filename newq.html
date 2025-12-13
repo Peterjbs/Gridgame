@@ -1118,7 +1118,7 @@
       top: 1rem;
       right: 1rem;
       z-index: 210;
-      display: flex;
+      display: none; /* Hidden - Gemini integration removed */
       align-items: center;
       gap: 0.5rem;
       background: rgba(0, 0, 0, 0.7);
@@ -1434,8 +1434,7 @@
     <button class="panel-toggle-button" data-panel="panel-guessing" data-color="indigo" title="Pressure Front">🍆</button>
     <button class="panel-toggle-button" data-panel="panel-bingo" data-color="violet"
       title="Atmospheric Bingo">🎲</button>
-    <button class="panel-toggle-button" data-panel="panel-story-maker" data-color="red"
-      title="Dream Factory">🎬</button>
+    <!-- Dream Factory removed - AI integration disabled -->
   </div>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
@@ -1500,6 +1499,7 @@
          ];
 
           // Challenges that require Gemini AI
+          // Challenges that require Gemini AI - DISABLED (AI integration removed)
           const AI_REQUIRED_CHALLENGES = new Set(['aiChallenge', 'audioAnagram']);
 
           const challengeTypes = [{
@@ -1532,11 +1532,7 @@
               name: 'Blowback',
               icon: '?'
             },
-            {
-              type: 'audioAnagram',
-              name: 'Say What?',
-              icon: '?'
-            },
+            // AI challenges disabled - audioAnagram removed
             {
               type: 'trivia3',
               name: 'Type It In',
@@ -1552,11 +1548,7 @@
               name: 'Bingo',
               icon: '?'
             },
-            {
-              type: 'aiChallenge',
-              name: 'AI Dare',
-              icon: '?'
-            },
+            // AI challenges disabled - aiChallenge removed
           ];
           const challenges = Array.from({
             length: 21
