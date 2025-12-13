@@ -1732,6 +1732,26 @@
               name: 'AI Dare',
               icon: '?'
             },
+            {
+              type: 'pressureFront',
+              name: 'Pressure Front',
+              icon: '🍆'
+            },
+            {
+              type: 'miniBingo',
+              name: 'Mini Bingo',
+              icon: '🎯'
+            },
+            {
+              type: 'splashClick',
+              name: 'Splash Click',
+              icon: '💦'
+            },
+            {
+              type: 'weatherGamble',
+              name: 'Weather Gamble',
+              icon: '⛅'
+            },
           ];
           const challenges = Array.from({
             length: 21
@@ -1749,6 +1769,10 @@
             clipSequencer: 'rgba(211, 84, 0, 0.5)',
             audioAnagram: 'rgba(142, 68, 173, 0.5)',
             reflexTest: 'rgba(41, 128, 185, 0.5)',
+            pressureFront: 'rgba(103, 58, 183, 0.5)',
+            miniBingo: 'rgba(255, 87, 34, 0.5)',
+            splashClick: 'rgba(0, 188, 212, 0.5)',
+            weatherGamble: 'rgba(96, 125, 139, 0.5)',
           };
 
           const challengePlayers = [{
@@ -3110,6 +3134,18 @@
               case 'reflexTest':
                 setupReflexTestTask();
                 break;
+              case 'pressureFront':
+                setupPressureFrontTask();
+                break;
+              case 'miniBingo':
+                setupMiniBingoTask();
+                break;
+              case 'splashClick':
+                setupSplashClickTask();
+                break;
+              case 'weatherGamble':
+                setupWeatherGambleTask();
+                break;
             }
           }
 
@@ -3817,6 +3853,404 @@
                   gamePhase = 'ended'; // Prevent multiple clicks
               };
             };
+          }
+
+          // --- Pressure Front Challenge ---
+          async function setupPressureFrontTask() {
+            taskModalTitle.textContent = "Pressure Front";
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            
+            taskModalBody.innerHTML = `
+              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
+              <p>Set up your guess and watch the videos!</p>
+              <div style="margin: 1rem 0;">
+                <label>Time Duration (seconds): <input type="number" id="pf-timer" value="30" min="10" max="120" style="width: 80px;"></label>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Video Change Interval (seconds): <input type="number" id="pf-interval" value="5" min="1" max="30" style="width: 80px;"></label>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Your guess emoji: </label>
+                <span class="pf-emoji-cycler text-2xl cursor-pointer" style="display: inline-block; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 5px;">🍆</span>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Your guess count: <input type="number" id="pf-guess-count" value="5" min="0" max="100" style="width: 80px;"></label>
+              </div>
+              <button id="start-pf-btn" class="modal-action-btn">Start Game</button>
+            `;
+            
+            const guessEmojis = ['🍆', '🍑', '🧍'];
+            const emojiCycler = taskModalBody.querySelector('.pf-emoji-cycler');
+            parseEmojis(emojiCycler);
+            
+            emojiCycler.addEventListener('click', () => {
+              let currentEmojiIndex = guessEmojis.indexOf(emojiCycler.textContent.trim());
+              currentEmojiIndex = (currentEmojiIndex + 1) % guessEmojis.length;
+              emojiCycler.textContent = guessEmojis[currentEmojiIndex];
+              parseEmojis(emojiCycler);
+            });
+            
+            document.getElementById('start-pf-btn').onclick = () => {
+              if (videoFiles.length === 0) {
+                alert("Please upload videos first.");
+                return;
+              }
+              
+              const duration = parseInt(document.getElementById('pf-timer').value);
+              const interval = parseInt(document.getElementById('pf-interval').value);
+              const guessEmoji = emojiCycler.textContent.trim();
+              const guessCount = parseInt(document.getElementById('pf-guess-count').value);
+              
+              taskModalBody.innerHTML = `
+                <h3>Player ${currentChallengePlayerIndex + 1} guessed: ${guessEmoji} × ${guessCount}</h3>
+                <div id="pf-timer-display" style="font-size: 2rem; margin: 1rem 0;">Time: ${duration}s</div>
+                <div id="pf-tally-container" style="display: flex; gap: 1rem; justify-content: center; margin: 1rem 0;"></div>
+                <p style="margin-top: 1rem;">Click the emojis to count occurrences!</p>
+              `;
+              
+              const tallyContainer = document.getElementById('pf-tally-container');
+              const tallyCounts = {};
+              
+              guessEmojis.forEach(emoji => {
+                tallyCounts[emoji] = 0;
+                const tallyDiv = document.createElement('div');
+                tallyDiv.style.cssText = 'text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; user-select: none;';
+                tallyDiv.innerHTML = `<div style="font-size: 2rem;">${emoji}</div><div class="tally-count" style="font-size: 1.5rem; font-weight: bold;">0</div>`;
+                
+                tallyDiv.addEventListener('click', () => {
+                  tallyCounts[emoji]++;
+                  tallyDiv.querySelector('.tally-count').textContent = tallyCounts[emoji];
+                });
+                
+                tallyContainer.appendChild(tallyDiv);
+              });
+              
+              parseEmojis(tallyContainer);
+              
+              // Start video rotation
+              let videoChangeTimer = null;
+              if (interval > 0) {
+                advanceVideo(1);
+                videoChangeTimer = setInterval(() => advanceVideo(1), interval * 1000);
+                currentTimers.push(videoChangeTimer);
+              }
+              
+              // Countdown timer
+              let timeLeft = duration;
+              const timerDisplay = document.getElementById('pf-timer-display');
+              const countdownTimer = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `Time: ${timeLeft}s`;
+                
+                if (timeLeft <= 0) {
+                  clearInterval(countdownTimer);
+                  if (videoChangeTimer) clearInterval(videoChangeTimer);
+                  
+                  // Calculate winner
+                  const actualCount = tallyCounts[guessEmoji];
+                  const difference = Math.abs(actualCount - guessCount);
+                  
+                  taskModalBody.innerHTML = `
+                    <h2>Results</h2>
+                    <p style="font-size: 1.5rem;">Your guess: ${guessEmoji} × ${guessCount}</p>
+                    <p style="font-size: 1.5rem;">Actual count: ${guessEmoji} × ${actualCount}</p>
+                    <p style="font-size: 1.5rem;">Difference: ${difference}</p>
+                    <p style="font-size: 1.2rem; margin-top: 1rem;">${difference <= 2 ? '🎉 Close enough! You win!' : '❌ Not close enough. Try again!'}</p>
+                    <button id="pf-finish-btn" class="modal-action-btn mt-4">${difference <= 2 ? 'Claim Square' : 'Continue'}</button>
+                  `;
+                  
+                  parseEmojis(taskModalBody);
+                  
+                  document.getElementById('pf-finish-btn').onclick = () => {
+                    if (difference <= 2) {
+                      updateMainScore(1500);
+                      markTaskComplete();
+                    } else {
+                      closeTaskModal();
+                    }
+                  };
+                }
+              }, 1000);
+              
+              currentTimers.push(countdownTimer);
+            };
+          }
+
+          // --- Mini Bingo Challenge ---
+          async function setupMiniBingoTask() {
+            taskModalTitle.textContent = "Mini Bingo (2x2)";
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            
+            taskModalBody.innerHTML = `
+              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
+              <p>Create a 2x2 bingo card (select 4 prompts)</p>
+              <button id="start-minibingo-btn" class="modal-action-btn">Start Building</button>
+            `;
+            
+            document.getElementById('start-minibingo-btn').onclick = () => {
+              let selectedPrompts = [];
+              // Pick 12 random prompts from the full list
+              const miniPrompts = [...bingoPrompts].sort(() => 0.5 - Math.random()).slice(0, 12);
+              
+              taskModalBody.innerHTML = `
+                <p>Select 4 prompts from the list below:</p>
+                <div id="minibingo-master-list" style="max-height: 300px; overflow-y: auto; margin: 1rem 0;">
+                  ${miniPrompts.map(p => `<div class="bingo-item" style="padding: 0.5rem; margin: 0.25rem 0; background: rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer;">${p}</div>`).join('')}
+                </div>
+                <h3>Your Card Preview (<span id="minibingo-pick-count">0</span>/4)</h3>
+                <div id="minibingo-card-preview" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0;">
+                  ${Array(4).fill('<div class="cell" style="padding: 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; min-height: 60px;"></div>').join('')}
+                </div>
+                <button id="confirm-minibingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>
+              `;
+              
+              const updatePreview = () => {
+                const cells = document.querySelectorAll('#minibingo-card-preview .cell');
+                cells.forEach((cell, i) => {
+                  cell.textContent = selectedPrompts[i] || '';
+                });
+                document.getElementById('minibingo-pick-count').textContent = selectedPrompts.length;
+                document.getElementById('confirm-minibingo-card').disabled = selectedPrompts.length !== 4;
+              };
+              
+              document.querySelectorAll('#minibingo-master-list .bingo-item').forEach(item => {
+                item.onclick = () => {
+                  const prompt = item.textContent;
+                  if (item.classList.contains('selected')) {
+                    item.classList.remove('selected');
+                    item.style.background = 'rgba(255,255,255,0.1)';
+                    selectedPrompts = selectedPrompts.filter(p => p !== prompt);
+                  } else if (selectedPrompts.length < 4) {
+                    item.classList.add('selected');
+                    item.style.background = 'rgba(76, 175, 80, 0.3)';
+                    selectedPrompts.push(prompt);
+                  }
+                  updatePreview();
+                };
+              });
+              
+              document.getElementById('confirm-minibingo-card').onclick = () => {
+                // Create the mini bingo card widget
+                const card = document.createElement('div');
+                card.className = 'bingo-card-widget';
+                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 8px; padding: 1rem; z-index: 1000; min-width: 250px;';
+                card.style.top = `${Math.random() * 30 + 30}vh`;
+                card.style.left = `${Math.random() * 40 + 30}vw`;
+                
+                card.innerHTML = `
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span style="font-weight: bold;">Mini Bingo Card</span>
+                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 0; width: 30px; height: 30px;">&times;</button>
+                  </div>
+                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer; font-size: 0.8rem; text-align: center;">${prompt}</div>`).join('')}
+                  </div>
+                `;
+                
+                document.body.appendChild(card);
+                
+                let markedCount = 0;
+                const cells = card.querySelectorAll('.minibingo-cell');
+                cells.forEach(cell => {
+                  cell.addEventListener('click', () => {
+                    if (!cell.classList.contains('marked')) {
+                      cell.classList.add('marked');
+                      cell.style.background = 'rgba(76, 175, 80, 0.5)';
+                      cell.style.textDecoration = 'line-through';
+                      markedCount++;
+                      
+                      if (markedCount === 4) {
+                        setTimeout(() => {
+                          alert('🎉 Mini Bingo! You marked all 4!');
+                          card.remove();
+                          updateMainScore(1000);
+                          markTaskComplete();
+                        }, 300);
+                      }
+                    }
+                  });
+                });
+                
+                card.querySelector('.minibingo-close-btn').onclick = () => {
+                  card.remove();
+                };
+                
+                closeTaskModal();
+              };
+              
+              updatePreview();
+            };
+          }
+
+          // --- Splash Click Challenge ---
+          async function setupSplashClickTask() {
+            taskModalTitle.textContent = "Splash Click";
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            
+            taskModalBody.innerHTML = `
+              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
+              <p>Click the 💦 splash emojis only!</p>
+              <p style="color: #fbbf24;">+1 point for 💦, -1 and lose for others</p>
+              <p>Get 10 splashes to win! Time limit: 30 seconds</p>
+              <button id="start-splash-btn" class="modal-action-btn">Start Game</button>
+            `;
+            
+            parseEmojis(taskModalBody);
+            
+            document.getElementById('start-splash-btn').onclick = () => {
+              let splashCount = 0;
+              let gameOver = false;
+              const emojis = ['💦', '🔥', '💨', '⚡', '🌊'];
+              const targetEmoji = '💦';
+              
+              taskModalBody.innerHTML = `
+                <div id="splash-game-container" style="position: relative; width: 100%; height: 400px; background: rgba(0,0,0,0.3); border-radius: 8px; overflow: hidden;">
+                  <div id="splash-score" style="position: absolute; top: 10px; left: 10px; font-size: 1.5rem; font-weight: bold; z-index: 10;">Splashes: 0/10</div>
+                  <div id="splash-timer" style="position: absolute; top: 10px; right: 10px; font-size: 1.5rem; font-weight: bold; z-index: 10;">Time: 30s</div>
+                </div>
+              `;
+              
+              const container = document.getElementById('splash-game-container');
+              const scoreDisplay = document.getElementById('splash-score');
+              const timerDisplay = document.getElementById('splash-timer');
+              
+              const spawnEmoji = () => {
+                if (gameOver) return;
+                
+                const emojiEl = document.createElement('div');
+                // 60% chance for splash, 40% for decoys
+                const randomEmoji = Math.random() < 0.6 ? targetEmoji : emojis[Math.floor(Math.random() * (emojis.length - 1)) + 1];
+                emojiEl.textContent = randomEmoji;
+                emojiEl.style.cssText = `
+                  position: absolute;
+                  font-size: 3rem;
+                  cursor: pointer;
+                  transition: transform 0.1s;
+                  top: ${Math.random() * 70 + 10}%;
+                  left: ${Math.random() * 80 + 5}%;
+                `;
+                
+                emojiEl.addEventListener('click', () => {
+                  if (gameOver) return;
+                  
+                  if (randomEmoji === targetEmoji) {
+                    splashCount++;
+                    scoreDisplay.textContent = `Splashes: ${splashCount}/10`;
+                    emojiEl.style.transform = 'scale(1.5)';
+                    setTimeout(() => emojiEl.remove(), 200);
+                    
+                    if (splashCount >= 10) {
+                      gameOver = true;
+                      container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 2rem;">🎉 You Win!</div>';
+                      setTimeout(() => {
+                        updateMainScore(2000);
+                        markTaskComplete();
+                      }, 1000);
+                    }
+                  } else {
+                    gameOver = true;
+                    container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 2rem;">❌ Wrong emoji!</div>';
+                    setTimeout(() => closeTaskModal(), 1500);
+                  }
+                });
+                
+                container.appendChild(emojiEl);
+                parseEmojis(emojiEl);
+                
+                setTimeout(() => {
+                  if (!gameOver && emojiEl.parentNode) {
+                    emojiEl.remove();
+                  }
+                }, 2000);
+              };
+              
+              // Spawn emojis every 800ms
+              const spawnInterval = setInterval(() => {
+                if (gameOver) {
+                  clearInterval(spawnInterval);
+                } else {
+                  spawnEmoji();
+                }
+              }, 800);
+              
+              currentTimers.push(spawnInterval);
+              
+              // 30 second timer
+              let timeLeft = 30;
+              const gameTimer = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `Time: ${timeLeft}s`;
+                
+                if (timeLeft <= 0 && !gameOver) {
+                  gameOver = true;
+                  clearInterval(spawnInterval);
+                  clearInterval(gameTimer);
+                  container.innerHTML = '<div style="display: flex; align-items: center; justify-content: center; height: 100%; font-size: 2rem;">⏰ Time\'s up!</div>';
+                  setTimeout(() => closeTaskModal(), 1500);
+                }
+              }, 1000);
+              
+              currentTimers.push(gameTimer);
+            };
+          }
+
+          // --- Weather Gamble Challenge ---
+          async function setupWeatherGambleTask() {
+            taskModalTitle.textContent = "Weather Gamble";
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            
+            taskModalBody.innerHTML = `
+              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
+              <p style="font-size: 1.3rem; margin: 2rem 0;">Will the forecast be sunny or stormy?</p>
+              <div style="display: flex; gap: 2rem; justify-content: center; margin: 2rem 0;">
+                <button id="choose-sunny" class="modal-action-btn" style="font-size: 2rem; padding: 2rem;">☁️ Sunny</button>
+                <button id="choose-stormy" class="modal-action-btn" style="font-size: 2rem; padding: 2rem;">⚡ Stormy</button>
+              </div>
+            `;
+            
+            parseEmojis(taskModalBody);
+            
+            const handleChoice = (choice) => {
+              // 70% sunny, 30% stormy
+              const result = Math.random() < 0.7 ? 'sunny' : 'stormy';
+              const resultEmoji = result === 'sunny' ? '☁️' : '⚡';
+              const resultText = result === 'sunny' ? 'Sunny' : 'Stormy';
+              
+              taskModalBody.innerHTML = `
+                <div style="text-align: center;">
+                  <h2>The forecast is...</h2>
+                  <div style="font-size: 8rem; margin: 2rem 0; animation: pulse 0.5s;">${resultEmoji}</div>
+                  <h2>${resultText}!</h2>
+                  <p style="font-size: 1.2rem; margin: 2rem 0;">You chose: ${choice === 'sunny' ? '☁️ Sunny' : '⚡ Stormy'}</p>
+                  <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                    <button id="claim-square-btn" class="modal-action-btn">✅ Claim Square</button>
+                    <button id="pass-btn" class="modal-action-btn">❌ Pass</button>
+                  </div>
+                </div>
+              `;
+              
+              parseEmojis(taskModalBody);
+              
+              document.getElementById('claim-square-btn').onclick = () => {
+                if (choice === result) {
+                  taskModalBody.innerHTML = '<div style="text-align: center; font-size: 2rem; padding: 2rem;">🎉 You win the square!</div>';
+                  setTimeout(() => {
+                    updateMainScore(1000);
+                    markTaskComplete();
+                  }, 1000);
+                } else {
+                  taskModalBody.innerHTML = '<div style="text-align: center; font-size: 2rem; padding: 2rem;">❌ Wrong guess! No square.</div>';
+                  setTimeout(() => closeTaskModal(), 1500);
+                }
+              };
+              
+              document.getElementById('pass-btn').onclick = () => {
+                closeTaskModal();
+              };
+            };
+            
+            document.getElementById('choose-sunny').onclick = () => handleChoice('sunny');
+            document.getElementById('choose-stormy').onclick = () => handleChoice('stormy');
           }
 
           // --- Initial Setup ---
