@@ -655,7 +655,11 @@
       if (v.readyState < 1){ 
         await new Promise(r=> {
           const timeout = setTimeout(() => r(), 3000); // 3s timeout
-          v.addEventListener('loadedmetadata', ()=>{clearTimeout(timeout); r()}, {once:true});
+          const handler = () => {
+            clearTimeout(timeout);
+            r();
+          };
+          v.addEventListener('loadedmetadata', handler, {once:true});
         });
       }
       const seekOnce = (time) => new Promise((resolve)=>{
@@ -679,7 +683,9 @@
       // Ensure video is playing smoothly
       if (v.paused) {
         const playPromise = v.play();
-        if (playPromise) playPromise.catch(()=>{});
+        if (playPromise && typeof playPromise.catch === 'function') {
+          playPromise.catch(()=>{});
+        }
       }
     }
 
@@ -1564,6 +1570,12 @@
         gridOverlay.querySelector('.grid-choice-title').textContent = "SELECT STARTING VIDEO";
         gridOverlay.querySelector('.grid-choice-timer').style.display = 'none';
         
+        // Store resolution function for this quadrant
+        let resolveVideoSelection = null;
+        q.videoSelectionPromise = new Promise(resolve => {
+          resolveVideoSelection = resolve;
+        });
+        
         // Helper to populate the initial grid (uses the same HTML structure)
         function populateInitialGrid(q, vids, overlay) {
             const gridItems = overlay.querySelectorAll('.grid-choice-item');
@@ -1593,6 +1605,7 @@
                 q.chooseTint.querySelector('.chooseTitle').textContent = q.label;
                 overlay.classList.remove('show');
                 clickHandlers.forEach(h => h.item.removeEventListener('click', h.handler));
+                if (resolveVideoSelection) resolveVideoSelection(); // Trigger promise resolution
               };
               item.addEventListener('click', handler);
               clickHandlers.push({item, handler});
@@ -1610,17 +1623,8 @@
         };
       }
 
-      // Wait for both players to select their videos
-      await Promise.all(quads.map(q => {
-        return new Promise(resolve => {
-          const checkInterval = setInterval(() => {
-            if (q.baseClip) {
-              clearInterval(checkInterval);
-              resolve();
-            }
-          }, 100);
-        });
-      }));
+      // Wait for both players to select their videos (event-driven)
+      await Promise.all(quads.map(q => q.videoSelectionPromise));
 
       document.querySelectorAll('.quadrant').forEach((el)=> el.classList.remove('choose-phase'));
       if (!quads.some(q=>q.chosen)){ quads.forEach(q=>{ q.chosen=true; q.el.classList.add('selected'); }); }
@@ -1718,7 +1722,7 @@
         const duration = await new Promise(res=>{ v.onloadedmetadata=()=>res(v.duration||0); v.onerror=()=>res(0); v.preload='metadata'; v.src=url; });
         videos.push({url, duration: duration||0, name:f.name});
       }
-      status.textContent = `Loaded ${videos.length} videos — press Start. Both players ready → select videos → play! Goals: 5Puff, 8Sniff, 5Action, 1MCQ, 1Load. Fury is ON.`;
+      status.textContent = `Loaded ${videos.length} videos — press Start. Both players ready then select videos then play! Goals: 5Puff, 8Sniff, 5Action, 1MCQ, 1Load. Fury is ON.`;
     }, {passive:true});
 
     btnStart.addEventListener('click', ()=> { if (videos.length < 4){ status.textContent='Load at least 4 videos first.'; return; } startCycle(); });
