@@ -411,27 +411,41 @@
       {key:'onyx', palette:{base:'#37474F', accent:'#90A4AE', dark:'#102027'}, intensity:.65, gap:[20,50], sniff:10000, precue:950},
     ];
     const ACTIONS = [
-      {label:"Stand up and stretch", seconds:10}, {label:"Copy the main actor's pose", seconds:5}, {label:"Drink something", seconds:10},
-      {label:"Balance on one foot", seconds:10}, {label:"Put your feet above your head", seconds:10}, {label:"Touch something wooden", seconds:5},
-      {label:"CHANGE oufit", seconds:20}, {label:"Mirror the actor's facial expression", seconds:5}, {label:"CHANGE the song", seconds:10},
-      {label:"CHANGE seat", seconds:10}, {label:"PUT 3 useful things on the table", seconds:10}, {label:"Gather 3 lighers", seconds:10},
-      {label:"Say 6 dirty words", seconds:7}, {label:"Make a sound effect for the scene", seconds:7}
-    ];
+  {label:"Stand up and stretch", seconds:20},
+  {label:"Copy the main actor's pose", seconds:15},
+  {label:"Drink something", seconds:20},
+  {label:"Balance on one foot", seconds:20},
+  {label:"Put your feet above your head", seconds:20},
+  {label:"Touch something wooden", seconds:15},
+  {label:"CHANGE oufit", seconds:30},
+  {label:"Mirror one of the people in the scene", seconds:15},
+  {label:"CHANGE the song", seconds:20},
+  {label:"CHANGE seat", seconds:20},
+  {label:"PUT 3 useful things on the table", seconds:20},
+  {label:"Gather 3 lighers", seconds:20},
+  {label:"Say 6 dirty words", seconds:17},
+  {label:"Title the Video", seconds:17},
+
+  {label:"Porn Karaoke", seconds:20},
+  {label:"Dub the Video", seconds:20},
+  {label:"Tina Task", seconds:20}
+];
+
     const DUR = { ready:5000, light:12000, fill:12000, inhale:5000, hold:4000, exhale:5000 };
     const EMOJI = {ready:'👀', light:'🔥', fill:'🌬️🧪🤿', inhale:'🫁', hold:'✋', exhale:'💨', sniff:'⚡️', action:'📝', puff:'🔥', transition:'✨', choice:'🎲', mcq:'🧠', oneplayer:'🔎'};
     const CHALLENGE_DURATION_MS = 20000;
     const CHOOSE_MS = 30*1000;
-    const TOTAL_GOALS = { puff: 5, action: 5, sniff: 8, mcq: 1, load: 1 };
+    const TOTAL_GOALS = { puff: 5, action: 5, sniff: 8, mcq: 1 };
     
     // Weighted Next-Event Roll (Post-Transition)
     const NEXT_EVENT_WEIGHTS = [
       {type:'sniff', weight: 8}, // Highest
       {type:'action', weight: 7},
       {type:'choice', weight: 6},
-      {type:'puff', weight: 5},
-      {type:'transition', weight: 4}, // Another transition
+      {type:'puff', weight: 8},
+      {type:'transition', weight: 1}, // Another transition
       {type:'oneplayer', weight: 3}, // 1-Player Game
-      {type:'mcq', weight: 2}, // Rarest
+      {type:'mcq', weight: 4}, // Rarest
     ];
     const NEXT_EVENT_TOTAL_WEIGHT = NEXT_EVENT_WEIGHTS.reduce((sum, item) => sum + item.weight, 0);
 
@@ -576,7 +590,7 @@
       return queue.map(it=>EMOJI[it.type]||'•').join(' ');
     }
     function createTransitionTask(){
-      const duration = 40000 + Math.random() * 160000; // 40s to 200s
+      const duration = 25000 + Math.random() * 140000; // 40s to 200s
       return {type:'transition', duration};
     }
 
@@ -741,7 +755,7 @@
       await setClip(qi, clip, randomMidStart(clip));
 
       const el = q.overlays['mcq'];
-      el.querySelector('.inner').querySelector('.display-lg').textContent = 'MCQ CHALLENGE';
+      el.querySelector('.inner').querySelector('.display-lg').textContent = "STUDIO CHALLENGE WITH BIG FAT BRENDA';
       hideAll(qi); pulseQuad(qi, pal.base);
       el.classList.add('show');
       
@@ -767,11 +781,11 @@
         
         // Use grid-choice-overlay as a multi-purpose single-player challenge UI
         const overlay = q.el.querySelector('.grid-choice-overlay');
-        overlay.querySelector('.grid-choice-title').textContent = "SOLO CHALLENGE";
+        overlay.querySelector('.grid-choice-title').textContent = "SLAGGY SALLY SAYS";
         overlay.querySelector('.grid-choice-timer').style.display = 'block';
         
         // This is a placeholder for a 1-Player game that requires a 20s action.
-        let timeLeft = 20;
+        let timeLeft = ;
         let timerId = null;
         
         await new Promise(resolve => {
@@ -1021,91 +1035,8 @@
         
         return !cycleAbort && !loadRoundActive && !challengeActive && safe;
     }
+
     
-    // Grid Choice is now only for Odd Clip Out or 1P Game/Choice screen, NOT a constantly scheduled event
-    function startOddClipOut() {
-        let stop = false;
-        async function loop() {
-            await sleep(60000 + Math.random() * 60000); // 60-120 seconds
-            if (stop || !isEventReady()) return loop();
-
-            // Simplified: only proceed if both players are active
-            if (quads.filter(q => q.chosen).length < 2) return loop();
-            
-            const pool = [...videos];
-            if (pool.length < 2) return loop();
-
-            challengeActive = true;
-            pauseAllTimers();
-            
-            // ... (Odd Clip Out logic from original file) ...
-            
-            // Post-Challenge Resolution (simplified to award P1 win)
-            const winnerIndex = Math.random() < 0.5 ? 0 : 1;
-            const loserIndex = winnerIndex === 0 ? 1 : 0;
-            
-            // Winner gets Reward Choice, Loser gets forced Transition
-            quads[winnerIndex].hasWonRecently = true;
-            await startChoiceScreen(winnerIndex, true);
-            
-            // Loser forced into Transition
-            quads[loserIndex].nextScheduledEvent = 'transition';
-            runTransition(loserIndex, createTransitionTask());
-            
-            lastTwoPlayerGame = performance.now();
-            challengeActive = false;
-            // No need for resumeAllTimers, as logic flows to next step directly
-            loop(); // Schedule next
-        }
-        loop();
-        return () => { stop = true; };
-    }
-
-    // Find The Load Round (Load Challenge)
-    function startLoadRoundLoop(){
-      let stop = false;
-      let roundCount = 0;
-      const maxRounds = 1 + Math.floor(Math.random() * 2); // 1-2
-
-      async function loop(){
-        if (stop || cycleAbort || roundCount >= maxRounds) return;
-        
-        const nextRoundTime = (cycleEnded ? 30000 : 90000) + Math.random()*90000;
-        await sleep(nextRoundTime);
-        
-        if (!isEventReady()) return loop();
-
-        // Simplified: only proceed if both players are active
-        if (quads.filter(q => q.chosen).length < 2) return loop();
-        
-        loadRoundActive = true;
-        roundCount++;
-        pauseAllTimers();
-        
-        // ... (Find The Load logic from original file) ...
-        
-        // Post-Challenge Resolution (simplified to award P1 win)
-        const winnerIndex = Math.random() < 0.5 ? 0 : 1;
-        const loserIndex = winnerIndex === 0 ? 1 : 0;
-        
-        // Update Load Goal for winner
-        updateTally(winnerIndex, 'load', true);
-        
-        // Winner gets Reward Choice, Loser gets forced Transition
-        quads[winnerIndex].hasWonRecently = true;
-        await startChoiceScreen(winnerIndex, true);
-        
-        // Loser forced into Transition
-        quads[loserIndex].nextScheduledEvent = 'transition';
-        runTransition(loserIndex, createTransitionTask());
-        
-        lastTwoPlayerGame = performance.now();
-        loadRoundActive = false;
-        loop();
-      }
-      loop();
-      return ()=>{ stop=true; };
-    }
 
 
     // --- Setup & Initialization ---
