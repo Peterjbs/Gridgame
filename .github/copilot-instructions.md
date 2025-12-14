@@ -205,12 +205,12 @@ Gridgame/
 ## Quick Reference
 
 ### Key Functions
-- `markTaskComplete()`: Award tile to player (lines ~3092-3113 in index.html)
-- `advanceChallengeTurn()`: Switch to next player (lines ~1865-1868)
-- `renderChallengeHud()`: Update player score display (lines ~1834-1857)
-- `parseEmojis(element)`: Convert emojis to SVG (lines ~1771-1779)
-- `callGemini(prompt)`: Call Gemini API (lines ~1888-1952)
-- `fetchTriviaQuestions()`: Get trivia from API (lines ~1992-2029)
+- `markTaskComplete()`: Award tile to player (lines 3141-3162 in index.html)
+- `advanceChallengeTurn()`: Switch to next player (lines 1865-1868)
+- `renderChallengeHud()`: Update player score display (lines 1834-1857)
+- `parseEmojis(element)`: Convert emojis to SVG (lines 1772-1779)
+- `callGemini(prompt)`: Call Gemini API (lines 1913-1989)
+- `fetchTriviaQuestions()`: Get trivia from API (lines 1992-2029)
 
 ### Key Variables
 - `challengePlayers`: Array of player objects
