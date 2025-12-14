@@ -475,6 +475,7 @@
       hasWonRecently: false, // For reward gating
       nextScheduledEvent: null, // For transition preview
       transitionStartTime: 0,
+      phaseCountdownInterval: null, // Track countdown interval for cleanup
     });
     const quads = Array.from({length:2}).map((_,i)=> makeQuad(document.getElementById('q'+(i+1))));
 
@@ -543,6 +544,11 @@
       for(const k in overlays){ overlays[k].classList.remove('show'); }
       quads[qi].el.classList.remove('bulge','fx-shake');
       quads[qi].phaseTint.classList.remove('show');
+      // Clean up countdown interval if active
+      if (quads[qi].phaseCountdownInterval) {
+        clearInterval(quads[qi].phaseCountdownInterval);
+        quads[qi].phaseCountdownInterval = null;
+      }
     }
     function pulseQuad(qi, color, phaseType = ''){
       setPhaseColor(qi, color);
@@ -572,11 +578,15 @@
       // Add live countdown if duration > 2s
       if (ms > 2000) {
         const endTime = performance.now() + ms;
-        const countdownEl = inner.querySelector('.countdown-display');
-        const countdownInterval = setInterval(() => {
+        quads[qi].phaseCountdownInterval = setInterval(() => {
+          // Query for element inside interval to ensure valid reference
+          const countdownEl = inner.querySelector('.countdown-display');
           const remaining = Math.max(0, Math.ceil((endTime - performance.now()) / 1000));
           if (countdownEl) countdownEl.textContent = remaining + 's';
-          if (remaining <= 0 || cycleAbort) clearInterval(countdownInterval);
+          if (remaining <= 0 || cycleAbort) {
+            clearInterval(quads[qi].phaseCountdownInterval);
+            quads[qi].phaseCountdownInterval = null;
+          }
         }, 100);
       }
       
