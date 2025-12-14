@@ -14,19 +14,18 @@
     html,body{height:100%; margin:0; background:var(--bg); color:var(--fg); font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif}
     .dock{position:fixed; left:0; right:0; top:0; height:var(--dockH); display:flex; align-items:center; gap:.5rem; padding:0 .75rem; background:#0f1422; border-bottom:1px solid var(--panelBorder); z-index:100}
     .dock .spacer{flex:1}
-    .dock button, .dock label{background:#141b2b; color:var(--fg); border:1px solid var(--panelBorder); padding:.5rem .7rem; border-radius:.6rem; cursor:pointer; font-weight:600}
+    .dock button, .dock label{background:#141b2b; color:var(--fg); border:1px solid var(--panelBorder); padding:.7rem 1rem; border-radius:.6rem; cursor:pointer; font-weight:600; font-size:1rem; min-height:44px; min-width:44px;}
     .dock input[type=file]{display:none}
     .hint{opacity:.9; font-size:.9rem}
     .stage{position:fixed; left:0; right:0; top:var(--dockH); bottom:0; display:grid; grid-template-columns:1fr 1fr; grid-template-rows:1fr; background:black; transition: filter .25s ease; gap:1px}
     .quadrant{position:relative; overflow:hidden; border:1px solid var(--panelBorder); transition: transform .25s ease, opacity .2s ease, filter .2s ease}
     .quadrant.dimmed{opacity:.22; filter:grayscale(.8) brightness(.55)}
     .quadrant .quad-video{width:100%; height:100%; object-fit:cover; background:black; transform-origin:center; transition: transform .25s ease}
-    .overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; pointer-events:none; opacity:0; transition: opacity .25s ease; z-index: 200; backdrop-filter: blur(4px);}
+    .overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; pointer-events:none; opacity:0; transition: opacity .25s ease; z-index: 200;}
     .overlay.show{opacity:1;}
-    .overlay .inner{padding:2rem 3rem; color:white; text-shadow:0 4px 20px rgba(0,0,0,.9); text-align:center; border-radius:1.5rem; background:rgba(0,0,0,.6); box-shadow: 0 12px 40px rgba(0,0,0,.7), inset 0 2px 10px rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.2); min-width:50%; animation: overlayPulse 1.5s ease-in-out infinite;}
-    .display-xxl{font-size:clamp(4rem, 12vw, 8rem); font-weight:900; letter-spacing:-.02em; text-transform:uppercase; margin:1rem 0;}
-    .display-lg{font-size:clamp(2rem, 5vw, 3.5rem); font-weight:800; opacity:.95; margin:.5rem 0;}
-    @keyframes overlayPulse{0%,100%{transform:scale(1)} 50%{transform:scale(1.02)}}
+    .overlay .inner{padding:1rem 2rem; color:white; text-shadow:0 2px 8px rgba(0,0,0,.9), 0 4px 16px rgba(0,0,0,.6); text-align:center; border-radius:0; background:transparent; box-shadow:none; border:none; min-width:50%;}
+    .display-xxl{font-size:clamp(4rem, 12vw, 8rem); font-weight:900; letter-spacing:-.02em; text-transform:uppercase; margin:1rem 0; text-shadow:0 2px 8px rgba(0,0,0,.9), 0 4px 16px rgba(0,0,0,.6), 0 1px 3px rgba(0,0,0,1);}
+    .display-lg{font-size:clamp(2rem, 5vw, 3.5rem); font-weight:800; opacity:.95; margin:.5rem 0; text-shadow:0 2px 8px rgba(0,0,0,.9), 0 4px 16px rgba(0,0,0,.6);}
     .nextTimer{position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,.85); border:3px solid rgba(255,255,255,.3); padding:1rem 2rem; border-radius:.8rem; font-weight:900; font-size:clamp(3rem, 8vw, 6rem); pointer-events:none; min-width:auto; box-shadow: 0 4px 20px rgba(0,0,0,.5); z-index:150; text-align:center;}
     .nextTimer .bar{position:absolute; left:0; bottom:0; height:5px; width:0%; background:#8ab4ff; border-radius:0 0 .6rem .6rem; transition:width .18s linear}
     .nextTimer .next-hint{margin-left:.5rem; font-weight:800; opacity:.95; font-size:clamp(2rem, 5vw, 4rem);}
@@ -35,8 +34,9 @@
     .quadrant.choose-phase .chooseTint{opacity:1; pointer-events: auto;}
     .chooseTitle{font-weight:900; font-size:clamp(1.2rem, 4vw, 2.4rem); letter-spacing:.02em; margin-bottom:.35rem}
     .emojisPlan{font-size:clamp(1.1rem,2.6vw,1.9rem); letter-spacing:.22rem; margin-top:.35rem}
-    .btn-change-theme { pointer-events:auto; cursor:pointer; font-size:1rem; padding:.5rem 1rem; margin-top:1rem; border-radius:.5rem; background:rgba(255,255,255,.1); color:white; border:1px solid white; font-weight: 600; }
+    .btn-change-theme { pointer-events:auto; cursor:pointer; font-size:1.2rem; padding:.7rem 1.2rem; margin-top:1rem; border-radius:.5rem; background:rgba(255,255,255,.1); color:white; border:1px solid white; font-weight: 600; min-height:44px; }
     .btn-change-theme:hover { background:rgba(255,255,255,.2); }
+    .btn-action-complete { min-height: 60px !important; min-width: 150px !important; padding: 1rem 1.5rem !important; }
     .selectBadge{position:absolute; top:.5rem; left:.5rem; background:rgba(0,0,0,.6); border:1px solid rgba(255,255,255,.25); padding:.15rem .45rem; border-radius:.4rem; font-weight:800; pointer-events:none}
     .quadrant.selected .selectBadge{background:rgba(46,204,113,.9); border-color:rgba(255,255,255,.7)}
     .quadrant.selected .selectBadge::after{content:' IN PLAY';}
@@ -44,7 +44,7 @@
     .quadrant.choose-phase{cursor:pointer}
     .quadrant.choose-phase:hover .chooseTint{transform:scale(1.02)}
     .qcontrols{position:absolute; right:.4rem; top:.4rem; z-index:5; display:flex; gap:.25rem}
-    .qcontrols button{background:rgba(0,0,0,.6); color:#fff; border:1px solid rgba(255,255,255,.2); padding:.2rem .45rem; border-radius:.4rem; cursor:pointer; font-weight:700}
+    .qcontrols button{background:rgba(0,0,0,.6); color:#fff; border:1px solid rgba(255,255,255,.2); padding:.4rem .6rem; border-radius:.4rem; cursor:pointer; font-weight:700; min-height:44px; min-width:44px; font-size:1.2rem;}
     .qcontrols button:hover{background:rgba(255,255,255,.1)}
     .qcontrols .active{background:rgba(46,204,113,.9)}
     .corners{position:absolute; inset:0; pointer-events:none;}
@@ -101,8 +101,8 @@
     .grid-choice-title { font-size: clamp(1.5rem, 4vw, 2.5rem); font-weight: 700; color: white; text-shadow: 0 1px 3px #000; }
     .grid-choice-timer { position: absolute; top: 1rem; right: 1rem; font-size: 1.5rem; font-weight: 800; color: #fff; background: #c00; padding: .2rem .5rem; border-radius: .4rem; display: none; } /* Timer hidden by default, only shown if needed */
     .grid-choice-grid { display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: .5rem; width: 80%; height: 70%; max-width: 800px; }
-    .grid-choice-item { position: relative; cursor: pointer; border: 2px solid #555; border-radius: .5rem; overflow: hidden; transition: border-color .2s; }
-    .grid-choice-item:hover { border-color: #fff; transform: scale(1.03); }
+    .grid-choice-item { position: relative; cursor: pointer; border: 2px solid #555; border-radius: .5rem; overflow: hidden; transition: border-color .2s; min-height: 100px; }
+    .grid-choice-item:active { border-color: #fff; transform: scale(0.97); }
     .grid-choice-item video { width: 100%; height: 100%; object-fit: cover; }
     .grid-choice-item .item-label { position: absolute; bottom: 0; left: 0; right: 0; background: rgba(0,0,0,.7); color: white; padding: .2rem .4rem; font-size: .8rem; text-align: center; }
     .grid-choice-item .reward-badge { position: absolute; top: .5rem; right: .5rem; background: #FFAB40; color: black; padding: .2rem .4rem; border-radius: .3rem; font-weight: 800; font-size: .8rem; display: none;}
@@ -132,19 +132,20 @@
       background: #141b2b;
       color: var(--fg);
       border: 1px solid var(--panelBorder);
-      padding: 1rem 1.2rem;
+      padding: 1.2rem 1.5rem;
       border-radius: .6rem;
       cursor: pointer;
       font-weight: 600;
       font-size: 1.2rem;
       transition: transform .1s ease, background .1s ease;
+      min-height: 60px;
     }
-    .action-choice-item:hover { background: #1a2030; transform: scale(1.03); }
+    .action-choice-item:active { background: #1a2030; transform: scale(0.97); }
 
     /* --- First to Click Overlay --- */
     .first-click-overlay { z-index: 300; background: rgba(0,0,0,.85); }
-    .first-click-overlay .btn-first-click { pointer-events:auto; cursor:pointer; font-size:2rem; padding:1rem 2rem; margin-top:1rem; border-radius:.5rem; background:#FFAB40; color:black; border:none; transition: transform .1s; }
-    .first-click-overlay .btn-first-click:hover { transform: scale(1.05); }
+    .first-click-overlay .btn-first-click { pointer-events:auto; cursor:pointer; font-size:2rem; padding:1.5rem 2.5rem; margin-top:1rem; border-radius:.5rem; background:#FFAB40; color:black; border:none; transition: transform .1s; min-height:70px; min-width:200px; }
+    .first-click-overlay .btn-first-click:active { transform: scale(0.95); }
     .first-click-overlay .challenge-result { font-size: 3rem; font-weight: 800; display: none; }
     .first-click-overlay .challenge-result.win { color: #0F0; }
     .first-click-overlay .challenge-result.lose { color: #F00; }
@@ -156,6 +157,100 @@
     #endCycleDialog .end-buttons button { font-size:1.5rem; padding:.5rem 2rem; color:white; border:none; border-radius:.5rem; cursor:pointer; }
     #endCycleDialog .btn-end-fail { background: #C00; }
     #endCycleDialog .btn-end-complete { background: #0A0; }
+
+    /* --- Celebratory Effects --- */
+    .confetti-container {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      z-index: 999;
+      overflow: hidden;
+    }
+    .confetti {
+      position: absolute;
+      width: 10px;
+      height: 10px;
+      background: #f0f;
+      top: -10px;
+      animation: confetti-fall 3s linear forwards;
+    }
+    @keyframes confetti-fall {
+      to {
+        transform: translateY(100vh) rotate(360deg);
+        opacity: 0;
+      }
+    }
+    .flash-success {
+      animation: flash-green .5s ease-in-out;
+    }
+    @keyframes flash-green {
+      0%, 100% { box-shadow: none; }
+      50% { box-shadow: inset 0 0 100px rgba(76,175,80,.5), 0 0 50px rgba(76,175,80,.8); }
+    }
+
+    /* --- Ready Gate Overlay --- */
+    #readyGateOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.95);
+      z-index: 1000;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      gap: 2rem;
+    }
+    .ready-gate-title { font-size: 3rem; font-weight: 900; margin-bottom: 1rem; }
+    .ready-gate-players { display: flex; width: 100%; height: 60%; gap: 1rem; }
+    .ready-player {
+      width: 50%;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 2rem;
+      border: 2px solid #555;
+      border-radius: 1rem;
+      padding: 2rem;
+      transition: all .3s ease;
+    }
+    .ready-player.is-ready {
+      background: rgba(76,175,80,.2);
+      border-color: #4CAF50;
+      box-shadow: 0 0 30px rgba(76,175,80,.5);
+    }
+    .ready-player-label { font-size: 2rem; font-weight: 700; }
+    .ready-player-status { font-size: 1.5rem; opacity: .7; }
+    .ready-player-status.ready { color: #4CAF50; opacity: 1; }
+    .btn-ready {
+      font-size: 2rem;
+      font-weight: 700;
+      padding: 1.5rem 3rem;
+      border-radius: .8rem;
+      cursor: pointer;
+      background: #FFAB40;
+      color: black;
+      border: none;
+      transition: all .2s;
+      min-width: 200px;
+    }
+    .btn-ready:hover { transform: scale(1.05); background: #FFC107; }
+    .btn-ready.ready { background: #4CAF50; color: white; }
+    .ready-gate-start {
+      font-size: 2.5rem;
+      font-weight: 900;
+      padding: 2rem 4rem;
+      border-radius: 1rem;
+      cursor: pointer;
+      background: #4CAF50;
+      color: white;
+      border: none;
+      display: none;
+      animation: pulse 1s ease-in-out infinite;
+    }
+    .ready-gate-start.show { display: block; }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
 
     /* --- Find The Load Round --- */
     #loadRoundOverlay {
@@ -202,9 +297,10 @@
       width: 80%;
       font-size: 1.5rem;
       font-weight: 700;
-      padding: .75rem 1rem;
+      padding: 1rem 1.5rem;
       border-radius: .5rem;
       cursor: pointer;
+      min-height: 60px;
     }
     .load-half .btn-shuffle-vids { background: #141b2b; color: white; border: 1px solid var(--panelBorder); }
     .load-half .btn-shuffle-vids:disabled { background: #333; color: #777; cursor: not-allowed; }
@@ -233,11 +329,12 @@
     <button id="btnFury" title="Ferocity mode">🔥 Fury</button>
     <span class="spacer"></span>
     <button id="btnMuteAll" title="Mute/Unmute all">🔇</button>
-    <span id="status" class="hint">Load ≥4 vids, Start, then pick theme/video. Goals: 5Puff, 8Sniff, 5Action, 1MCQ, 1Load. Fury is ON.</span>
+    <span id="status" class="hint">Load ≥4 vids, Start. Goals: 5Puff, 8Sniff, 5Action, 1MCQ, 1Load. Touch-friendly. Fury is ON.</span>
   </div>
 
   <div class="stage">
 <div class="quadrant" id="q1">
+  <div class="confetti-container"></div>
   <div class="selectBadge"></div>
   <div class="corners"></div>
   <div class="phaseTint"></div>
@@ -301,6 +398,7 @@
 
 
 <div class="quadrant" id="q2">
+  <div class="confetti-container"></div>
   <div class="selectBadge"></div>
   <div class="corners"></div>
   <div class="phaseTint"></div>
@@ -371,6 +469,23 @@
       <button class="btn-end-complete">COMPLETE</button>
     </div>
   </div>
+</div>
+
+<div id="readyGateOverlay">
+  <div class="ready-gate-title">BOTH PLAYERS READY TO START?</div>
+  <div class="ready-gate-players">
+    <div class="ready-player" id="ready-p1">
+      <div class="ready-player-label">PLAYER 1</div>
+      <div class="ready-player-status" id="status-p1">NOT READY</div>
+      <button class="btn-ready" id="btn-ready-p1">READY</button>
+    </div>
+    <div class="ready-player" id="ready-p2">
+      <div class="ready-player-label">PLAYER 2</div>
+      <div class="ready-player-status" id="status-p2">NOT READY</div>
+      <button class="btn-ready" id="btn-ready-p2">READY</button>
+    </div>
+  </div>
+  <button class="ready-gate-start" id="btn-start-game">START GAME</button>
 </div>
 
 <div id="loadRoundOverlay">
@@ -444,7 +559,6 @@
     const EMOJI = {ready:'👀', light:'🔥', fill:'🌬️🧪🤿', inhale:'🫁', hold:'✋', exhale:'💨', sniff:'⚡️', action:'📝', puff:'🔥', transition:'✨', choice:'🎲', mcq:'🧠', oneplayer:'🔎'};
     const PHASE_CLASSES = ['phase-puff', 'phase-sniff', 'phase-action', 'phase-mcq', 'phase-transition', 'phase-oneplayer', 'phase-ready'];
     const CHALLENGE_DURATION_MS = 20000;
-    const CHOOSE_MS = 30*1000;
     const TOTAL_GOALS = { puff: 5, action: 5, sniff: 8, mcq: 1 };
     
     // Weighted Next-Event Roll (Post-Transition)
@@ -503,6 +617,28 @@
     const pick = (arr)=> arr[Math.floor(Math.random()*arr.length)];
     const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
     const toTitle = (s)=> (s||'').replace(/\.[^/.]+$/, '').replace(/[_\-]+/g,' ').trim().split(/\s+/).slice(0,3).map(w=>w[0]?w[0].toUpperCase()+w.slice(1):'').join(' ');
+    
+    function createConfetti(qi) {
+      const container = quads[qi].el.querySelector('.confetti-container');
+      const colors = ['#FF6B6B', '#4ECDC4', '#45B7D1', '#FFA07A', '#98D8C8', '#F7DC6F', '#BB8FCE', '#85C1E2'];
+      for (let i = 0; i < 30; i++) {
+        setTimeout(() => {
+          const confetti = document.createElement('div');
+          confetti.className = 'confetti';
+          confetti.style.left = Math.random() * 100 + '%';
+          confetti.style.background = pick(colors);
+          confetti.style.animationDelay = Math.random() * 0.5 + 's';
+          confetti.style.animationDuration = (Math.random() * 2 + 2) + 's';
+          container.appendChild(confetti);
+          setTimeout(() => confetti.remove(), 3500);
+        }, i * 50);
+      }
+    }
+    
+    function flashSuccess(qi) {
+      quads[qi].el.classList.add('flash-success');
+      setTimeout(() => quads[qi].el.classList.remove('flash-success'), 500);
+    }
     function randomMidStart(clip){
       const dur = Number.isFinite(clip.duration) && clip.duration>10 ? clip.duration : 7200;
       const padStart = 0.5, padEnd = 3.0;
@@ -516,7 +652,12 @@
         v.src = url; 
         v.load(); // Explicitly load to ensure clean state
       }
-      if (v.readyState < 1){ await new Promise(r=> v.addEventListener('loadedmetadata', ()=>r(), {once:true})); }
+      if (v.readyState < 1){ 
+        await new Promise(r=> {
+          const timeout = setTimeout(() => r(), 3000); // 3s timeout
+          v.addEventListener('loadedmetadata', ()=>{clearTimeout(timeout); r()}, {once:true});
+        });
+      }
       const seekOnce = (time) => new Promise((resolve)=>{
         const dur = Number.isFinite(v.duration) && v.duration>0 ? v.duration : (Number.isFinite(clip.duration)?clip.duration:0);
         const padStart = 0.25, padEnd = 3.0;
@@ -534,6 +675,12 @@
       let ok = await seekOnce(start);
       if (!ok) ok = await seekOnce(start*0.9);
       if (!ok) ok = await seekOnce(0.5);
+      
+      // Ensure video is playing smoothly
+      if (v.paused) {
+        const playPromise = v.play();
+        if (playPromise) playPromise.catch(()=>{});
+      }
     }
 
     function setPhaseColor(qi, color){
@@ -609,6 +756,9 @@
       if (success) {
         q.goals[type]++;
         if (type === 'action') q.lastActionTime = performance.now(); // Track last action time
+        // Celebrate completions with flash and confetti
+        flashSuccess(qi);
+        if (Math.random() > 0.5) createConfetti(qi); // 50% chance for confetti
       }
       q.tally.textContent = `P:${q.goals.puff}/${TOTAL_GOALS.puff} A:${q.goals.action}/${TOTAL_GOALS.action} S:${q.goals.sniff}/${TOTAL_GOALS.sniff} M:${q.goals.mcq}/${TOTAL_GOALS.mcq} L:${q.goals.load}/${TOTAL_GOALS.load}`;
       checkCycleEnd();
@@ -644,13 +794,13 @@
       
       const transitionDuration = task.duration || 40000; // Use duration from task or default
 
-      // This is where we'd handle stitched sequences: for now, one long clip
+      // Seamless video transition: just set new clip and continue
       await setClip(qi, clip, randomMidStart(clip));
 
-      const el = q.overlays['transition'];
-      el.querySelector('.inner').querySelector('.display-lg').textContent = 'TRANSITION';
-      hideAll(qi); pulseQuad(qi, pal.base, 'transition');
-      el.classList.add('show');
+      // No overlay during transition - keep video in focus
+      hideAll(qi);
+      // Subtle phase tint only
+      pulseQuad(qi, pal.base, 'transition');
 
       await new Promise(resolve => {
         const startTime = performance.now();
@@ -680,7 +830,6 @@
         }, 90);
       });
       
-      el.classList.remove('show');
       hideAll(qi);
       // Immediately run the scheduled next task
       runNextRolledTask(qi);
@@ -1178,6 +1327,8 @@
                         if (idx === winner) {
                             otherWin.style.display = 'block';
                             otherQ.hasWonRecently = true; // Grant reward screen access
+                            createConfetti(idx); // Celebrate winner
+                            flashSuccess(idx);
                         } else {
                             otherLose.style.display = 'block';
                         }
@@ -1310,6 +1461,59 @@
 
       const vids = videos.slice();
 
+      // Show ready gate overlay
+      const readyGate = document.getElementById('readyGateOverlay');
+      const btnReady1 = document.getElementById('btn-ready-p1');
+      const btnReady2 = document.getElementById('btn-ready-p2');
+      const statusP1 = document.getElementById('status-p1');
+      const statusP2 = document.getElementById('status-p2');
+      const readyP1El = document.getElementById('ready-p1');
+      const readyP2El = document.getElementById('ready-p2');
+      const btnStartGame = document.getElementById('btn-start-game');
+      
+      let player1Ready = false;
+      let player2Ready = false;
+      
+      const checkBothReady = () => {
+        if (player1Ready && player2Ready) {
+          btnStartGame.classList.add('show');
+        } else {
+          btnStartGame.classList.remove('show');
+        }
+      };
+      
+      btnReady1.onclick = () => {
+        player1Ready = !player1Ready;
+        btnReady1.textContent = player1Ready ? 'READY ✓' : 'READY';
+        btnReady1.classList.toggle('ready', player1Ready);
+        statusP1.textContent = player1Ready ? 'READY ✓' : 'NOT READY';
+        statusP1.classList.toggle('ready', player1Ready);
+        readyP1El.classList.toggle('is-ready', player1Ready);
+        checkBothReady();
+      };
+      
+      btnReady2.onclick = () => {
+        player2Ready = !player2Ready;
+        btnReady2.textContent = player2Ready ? 'READY ✓' : 'READY';
+        btnReady2.classList.toggle('ready', player2Ready);
+        statusP2.textContent = player2Ready ? 'READY ✓' : 'NOT READY';
+        statusP2.classList.toggle('ready', player2Ready);
+        readyP2El.classList.toggle('is-ready', player2Ready);
+        checkBothReady();
+      };
+      
+      readyGate.style.display = 'flex';
+      
+      // Wait for both players to be ready and start button clicked
+      await new Promise(resolve => {
+        btnStartGame.onclick = () => {
+          if (player1Ready && player2Ready) {
+            readyGate.style.display = 'none';
+            resolve();
+          }
+        };
+      });
+
       for (let i=0;i<quads.length;i++){
         const q = quads[i];
         const el = q.el;
@@ -1394,7 +1598,17 @@
         };
       }
 
-      await sleep(CHOOSE_MS);
+      // Wait for both players to select their videos
+      await Promise.all(quads.map(q => {
+        return new Promise(resolve => {
+          const checkInterval = setInterval(() => {
+            if (q.baseClip) {
+              clearInterval(checkInterval);
+              resolve();
+            }
+          }, 100);
+        });
+      }));
 
       document.querySelectorAll('.quadrant').forEach((el)=> el.classList.remove('choose-phase'));
       if (!quads.some(q=>q.chosen)){ quads.forEach(q=>{ q.chosen=true; q.el.classList.add('selected'); }); }
