@@ -442,6 +442,7 @@
 
     const DUR = { ready:5000, light:12000, fill:12000, inhale:5000, hold:4000, exhale:5000 };
     const EMOJI = {ready:'👀', light:'🔥', fill:'🌬️🧪🤿', inhale:'🫁', hold:'✋', exhale:'💨', sniff:'⚡️', action:'📝', puff:'🔥', transition:'✨', choice:'🎲', mcq:'🧠', oneplayer:'🔎'};
+    const PHASE_CLASSES = ['phase-puff', 'phase-sniff', 'phase-action', 'phase-mcq', 'phase-transition', 'phase-oneplayer', 'phase-ready'];
     const CHALLENGE_DURATION_MS = 20000;
     const CHOOSE_MS = 30*1000;
     const TOTAL_GOALS = { puff: 5, action: 5, sniff: 8, mcq: 1 };
@@ -556,8 +557,7 @@
       if (FURY.on) quads[qi].el.classList.add('fx-shake');
       const phaseTint = quads[qi].phaseTint;
       // Remove old phase-specific classes only
-      const phaseClasses = ['phase-puff', 'phase-sniff', 'phase-action', 'phase-mcq', 'phase-transition', 'phase-oneplayer', 'phase-ready'];
-      phaseClasses.forEach(cls => phaseTint.classList.remove(cls));
+      PHASE_CLASSES.forEach(cls => phaseTint.classList.remove(cls));
       // Add new phase class if provided
       if (phaseType) phaseTint.classList.add('phase-' + phaseType);
       phaseTint.style.background = color;
@@ -578,9 +578,9 @@
       // Add live countdown if duration > 2s
       if (ms > 2000) {
         const endTime = performance.now() + ms;
+        // Cache the countdown element outside the interval for efficiency
+        const countdownEl = inner.querySelector('.countdown-display');
         quads[qi].phaseCountdownInterval = setInterval(() => {
-          // Query for element inside interval to ensure valid reference
-          const countdownEl = inner.querySelector('.countdown-display');
           const remaining = Math.max(0, Math.ceil((endTime - performance.now()) / 1000));
           if (countdownEl) countdownEl.textContent = remaining + 's';
           if (remaining <= 0 || cycleAbort) {
