@@ -29,7 +29,7 @@
     @keyframes overlayPulse{0%,100%{transform:scale(1)} 50%{transform:scale(1.02)}}
     .nextTimer{position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,.85); border:3px solid rgba(255,255,255,.3); padding:1rem 2rem; border-radius:.8rem; font-weight:900; font-size:clamp(3rem, 8vw, 6rem); pointer-events:none; min-width:auto; box-shadow: 0 4px 20px rgba(0,0,0,.5); z-index:150; text-align:center;}
     .nextTimer .bar{position:absolute; left:0; bottom:0; height:5px; width:0%; background:#8ab4ff; border-radius:0 0 .6rem .6rem; transition:width .18s linear}
-    .nextTimer .next-hint{margin-left:.5rem; font-weight:800; opacity:.95; font-size:clamp(2rem, 5vw, 4rem);} /* NEW: Next-event emoji hint */
+    .nextTimer .next-hint{margin-left:.5rem; font-weight:800; opacity:.95; font-size:clamp(2rem, 5vw, 4rem);}
     .tally{position:absolute; right:.5rem; bottom:.5rem; padding:.2rem .45rem; border:1px solid var(--panelBorder); border-radius:.6rem; background:rgba(0,0,0,.58); font-size:1.05rem; letter-spacing:.15rem; font-weight: 600;}
     .chooseTint{position:absolute; inset:0; opacity:0; transition:opacity .18s ease, transform .18s ease; pointer-events:none; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.9)}
     .quadrant.choose-phase .chooseTint{opacity:1; pointer-events: auto;}
@@ -64,6 +64,7 @@
     .phaseTint.phase-action{background:radial-gradient(circle at center, rgba(255,171,64,.8), rgba(255,235,59,.6));}
     .phaseTint.phase-mcq{background:radial-gradient(circle at center, rgba(156,39,176,.8), rgba(124,77,255,.6));}
     .phaseTint.phase-transition{background:radial-gradient(circle at center, rgba(76,175,80,.6), rgba(139,195,74,.5));}
+    .phaseTint.phase-oneplayer{background:radial-gradient(circle at center, rgba(255,152,0,.7), rgba(255,193,7,.5));}
     .phaseTint.phase-ready{background:radial-gradient(circle at center, rgba(244,67,54,.7), rgba(233,30,99,.5)); animation:phaseFlash 1s ease-in-out infinite;}
     /* Edgy typography sets (applied by class) */
     .typo-velvet .inner, .typo-velvet .nextTimer, .typo-velvet .tally{font-family:"Bodoni 72","Didot","Playfair Display",Georgia,serif; letter-spacing:.01em}
@@ -548,8 +549,9 @@
       quads[qi].el.classList.add('bulge');
       if (FURY.on) quads[qi].el.classList.add('fx-shake');
       const phaseTint = quads[qi].phaseTint;
-      // Remove old phase classes
-      phaseTint.className = 'phaseTint';
+      // Remove old phase-specific classes only
+      const phaseClasses = ['phase-puff', 'phase-sniff', 'phase-action', 'phase-mcq', 'phase-transition', 'phase-oneplayer', 'phase-ready'];
+      phaseClasses.forEach(cls => phaseTint.classList.remove(cls));
       // Add new phase class if provided
       if (phaseType) phaseTint.classList.add('phase-' + phaseType);
       phaseTint.style.background = color;
@@ -563,14 +565,14 @@
       const inner = el.querySelector('.inner');
       if (icon){ 
         const secondsRemaining = Math.ceil(ms / 1000);
-        inner.innerHTML = `<div class="display-xxl">${icon}</div><div class="display-lg">${type.toUpperCase()}</div><div class="display-lg" style="margin-top:1rem; opacity:.7;">${secondsRemaining}s</div>`; 
+        inner.innerHTML = `<div class="display-xxl">${icon}</div><div class="display-lg">${type.toUpperCase()}</div><div class="display-lg countdown-display" style="margin-top:1rem; opacity:.7;">${secondsRemaining}s</div>`; 
       }
       el.classList.add('show');
       
       // Add live countdown if duration > 2s
       if (ms > 2000) {
         const endTime = performance.now() + ms;
-        const countdownEl = inner.querySelector('.display-lg[style*="margin-top"]');
+        const countdownEl = inner.querySelector('.countdown-display');
         const countdownInterval = setInterval(() => {
           const remaining = Math.max(0, Math.ceil((endTime - performance.now()) / 1000));
           if (countdownEl) countdownEl.textContent = remaining + 's';
@@ -807,7 +809,7 @@
         const q = quads[qi]; if (!q.chosen) return;
         const pal = q.vibe.palette; const clip = q.baseClip;
 
-        await preCue(qi, '1-PLAYER GAME', pal.base, 2000);
+        await preCue(qi, '1-PLAYER GAME', pal.base, 2000, 'oneplayer');
         await setClip(qi, clip, randomMidStart(clip));
         
         // Use grid-choice-overlay as a multi-purpose single-player challenge UI
