@@ -30,11 +30,14 @@
    - Twemoji: https://cdn.jsdelivr.net/npm/twemoji@latest/dist/twemoji.min.js
 
 2. **Upload Files**
-   - index.html
-   - newg.html
-   - newq.html
+   - index.html (full version)
+   - newq.html (simplified version)
+   - boom.html (quadrant timers)
+   - word-color-blocks.html
+   - game-selector.html
    - images/ directory (25 PNG files)
    - README.md
+   - CLOUD9_VERSIONS.md
    - 2PLAYER_FUNCTIONALITY.md (optional)
    - IMPLEMENTATION_SUMMARY.md (optional)
 

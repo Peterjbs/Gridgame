@@ -1613,6 +1613,14 @@
   </div>
   <script>
     document.addEventListener('DOMContentLoaded', () => {
+          // =============================================================================
+          // CLOUD 9 VIDEO PLAYER - FULL VERSION (index.html)
+          // =============================================================================
+          // NOTE: This file shares ~90% of code with newq.html (simplified version)
+          // When making changes, consider if they should apply to both files.
+          // See CODE_MAINTENANCE.md for guidelines on maintaining both versions.
+          // =============================================================================
+
           // --- CODE FIX & THEME REFORMAT COMPLETE ---
           // 1. Fixed a missing comma in the `configs` array in `setupMatchPairsTask`.
           // 2. Replaced broken image links in the challenge grid with challenge icons.
@@ -1767,6 +1775,14 @@
           ];
           let challengeScores = challengePlayers.map(() => 0);
           let currentChallengePlayerIndex = 0;
+
+          // =============================================================================
+          // SHARED UTILITY FUNCTIONS
+          // =============================================================================
+          // The following functions are identical in both index.html and newq.html.
+          // If you modify these functions, apply the same changes to both files.
+          // See CODE_MAINTENANCE.md for the complete list of shared functions.
+          // =============================================================================
 
           // Helper function to parse emojis in an element or the whole document
           function parseEmojis(element = document.body) {

@@ -5,7 +5,7 @@ A collection of interactive video-based grid games for 2 players.
 ## 🎮 Game Modes
 
 ### 1. Cloud 9 Video Player (Classic)
-**File:** `index.html`, `newg.html`, `newq.html`
+**File:** `index.html` (full version), `newq.html` (simplified version)
 
 The original grid-based challenge game featuring:
 - 2-player turn-based gameplay
@@ -129,9 +129,8 @@ This repository is configured for GitHub Pages deployment:
 | File | Description | Players | Status |
 |------|-------------|---------|--------|
 | `game-selector.html` | Landing page with game selection | - | ✅ New |
-| `index.html` | Main Cloud 9 game | 2 | ✅ Active |
-| `newg.html` | Cloud 9 alternative version | 2 | ✅ Active |
-| `newq.html` | Cloud 9 simplified version | 2 | ✅ Active |
+| `index.html` | Main Cloud 9 game (full version) | 2 | ✅ Active |
+| `newq.html` | Cloud 9 simplified version (no animations) | 2 | ✅ Active |
 | `boom.html` | Quadrant Timers mode | 1-2 | ✅ New |
 | `word-color-blocks.html` | Word + Color matching game | 2 | ✅ New |
 
@@ -163,13 +162,13 @@ Uses the modern File System Access API for local video selection:
 ```
 Gridgame/
 ├── game-selector.html      # Landing page
-├── index.html              # Main game
-├── newg.html              # Alt version
+├── index.html              # Main game (full version)
 ├── newq.html              # Simplified version
 ├── boom.html              # Quadrant timers
 ├── word-color-blocks.html # Word color game
 ├── images/                # Challenge tile images (1.png - 25.png)
-└── README.md              # This file
+├── README.md              # This file
+└── CLOUD9_VERSIONS.md     # Version comparison guide
 ```
 
 ### No Build Process
