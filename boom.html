@@ -1471,8 +1471,20 @@
       const readyP2El = document.getElementById('ready-p2');
       const btnStartGame = document.getElementById('btn-start-game');
       
+      // Reset ready gate UI
       let player1Ready = false;
       let player2Ready = false;
+      btnReady1.textContent = 'READY';
+      btnReady2.textContent = 'READY';
+      btnReady1.classList.remove('ready');
+      btnReady2.classList.remove('ready');
+      statusP1.textContent = 'NOT READY';
+      statusP2.textContent = 'NOT READY';
+      statusP1.classList.remove('ready');
+      statusP2.classList.remove('ready');
+      readyP1El.classList.remove('is-ready');
+      readyP2El.classList.remove('is-ready');
+      btnStartGame.classList.remove('show');
       
       const checkBothReady = () => {
         if (player1Ready && player2Ready) {
@@ -1706,7 +1718,7 @@
         const duration = await new Promise(res=>{ v.onloadedmetadata=()=>res(v.duration||0); v.onerror=()=>res(0); v.preload='metadata'; v.src=url; });
         videos.push({url, duration: duration||0, name:f.name});
       }
-      status.textContent = `Loaded ${videos.length} videos — press Start to begin. Goals: 5Puff, 8Sniff, 5Action, 1MCQ, 1Load. Fury is ON.`;
+      status.textContent = `Loaded ${videos.length} videos — press Start. Both players ready → select videos → play! Goals: 5Puff, 8Sniff, 5Action, 1MCQ, 1Load. Fury is ON.`;
     }, {passive:true});
 
     btnStart.addEventListener('click', ()=> { if (videos.length < 4){ status.textContent='Load at least 4 videos first.'; return; } startCycle(); });
