@@ -25,7 +25,7 @@ Gridgame/
 - **newg.html**: 100% duplicate of index.html (maintained for compatibility)
 - **newq.html**: Simplified version without animations
 
-**CRITICAL**: When making changes to Cloud 9 functionality, update ALL THREE files (index.html, newg.html, newq.html) consistently. See `CODE_MAINTENANCE.md` for detailed guidelines on maintaining shared code.
+**CRITICAL**: When making changes to Cloud 9 functionality, update ALL THREE files (index.html, newg.html, newq.html) consistently.
 
 ## Code Style and Conventions
 
@@ -150,9 +150,9 @@ Gridgame/
 
 - **README.md**: Main project documentation
 - **2PLAYER_FUNCTIONALITY.md**: Detailed 2-player mechanics
-- **CODE_MAINTENANCE.md**: Guidelines for maintaining shared code
 - **DEPLOYMENT_CHECKLIST.md**: Deployment verification steps
-- **CLOUD9_VERSIONS.md**: Comparison of Cloud 9 variants
+- **IMPLEMENTATION_SUMMARY.md**: Implementation details
+- **PR_SUMMARY.md**: Pull request summaries
 
 ## Key Implementation Details
 
