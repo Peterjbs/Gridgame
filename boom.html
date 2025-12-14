@@ -755,7 +755,7 @@
       await setClip(qi, clip, randomMidStart(clip));
 
       const el = q.overlays['mcq'];
-      el.querySelector('.inner').querySelector('.display-lg').textContent = "STUDIO CHALLENGE WITH BIG FAT BRENDA';
+      el.querySelector('.inner').querySelector('.display-lg').textContent = "STUDIO CHALLENGE WITH BIG FAT BRENDA";
       hideAll(qi); pulseQuad(qi, pal.base);
       el.classList.add('show');
       
@@ -785,7 +785,7 @@
         overlay.querySelector('.grid-choice-timer').style.display = 'block';
         
         // This is a placeholder for a 1-Player game that requires a 20s action.
-        let timeLeft = ;
+        let timeLeft = 20;
         let timerId = null;
         
         await new Promise(resolve => {
@@ -1036,7 +1036,219 @@
         return !cycleAbort && !loadRoundActive && !challengeActive && safe;
     }
 
-    
+    // --- 2-Player Challenge Loops ---
+    function startLoadRoundLoop() {
+        const checkInterval = setInterval(async () => {
+            if (!isEventReady()) return;
+            if (Math.random() > 0.05) return; // 5% chance per check (~every 20 checks = 2 min avg)
+            
+            loadRoundActive = true;
+            pauseAllTimers();
+            
+            const overlay = document.getElementById('loadRoundOverlay');
+            overlay.style.display = 'flex';
+            
+            // Populate both players' grids with random videos
+            const p1Slots = overlay.querySelectorAll('#load-p1 .load-slot video');
+            const p2Slots = overlay.querySelectorAll('#load-p2 .load-slot video');
+            
+            const setupGrid = (slots) => {
+                const vids = videos.slice();
+                slots.forEach(v => {
+                    if (vids.length === 0) return;
+                    const clip = vids.splice(Math.floor(Math.random() * vids.length), 1)[0];
+                    v.src = clip.url;
+                    v.onloadedmetadata = () => { v.currentTime = randomMidStart(clip); v.play().catch(()=>{}); };
+                });
+            };
+            
+            setupGrid(p1Slots);
+            setupGrid(p2Slots);
+            
+            // Setup shuffle buttons
+            const btnShuffle1 = overlay.querySelector('#load-p1 .btn-shuffle-vids');
+            const btnShuffle2 = overlay.querySelector('#load-p2 .btn-shuffle-vids');
+            btnShuffle1.onclick = () => setupGrid(p1Slots);
+            btnShuffle2.onclick = () => setupGrid(p2Slots);
+            
+            // Setup load buttons
+            const btnLoad1 = overlay.querySelector('#load-p1 .btn-load');
+            const btnLoad2 = overlay.querySelector('#load-p2 .btn-load');
+            
+            let winner = null;
+            const onLoad = (playerIdx) => {
+                if (winner !== null) return;
+                winner = playerIdx;
+                updateTally(playerIdx, 'load', true);
+                btnLoad1.disabled = true;
+                btnLoad2.disabled = true;
+                const winnerEl = overlay.querySelector('.load-round-winner');
+                winnerEl.textContent = `PLAYER ${playerIdx + 1} WINS!`;
+                winnerEl.style.display = 'flex';
+                setTimeout(() => {
+                    overlay.style.display = 'none';
+                    winnerEl.style.display = 'none';
+                    loadRoundActive = false;
+                    lastTwoPlayerGame = performance.now();
+                    resumeAllTimers();
+                }, 3000);
+            };
+            
+            btnLoad1.onclick = () => onLoad(0);
+            btnLoad2.onclick = () => onLoad(1);
+            
+        }, 6000); // Check every 6 seconds
+        
+        return () => clearInterval(checkInterval);
+    }
+
+    function startFirstClickChallenge() {
+        const checkInterval = setInterval(async () => {
+            if (!isEventReady()) return;
+            if (Math.random() > 0.03) return; // 3% chance per check
+            
+            challengeActive = true;
+            pauseAllTimers();
+            
+            // Show overlay on both quads
+            quads.forEach(q => {
+                const overlay = q.el.querySelector('.first-click-overlay');
+                overlay.classList.add('show');
+                const btn = overlay.querySelector('.btn-first-click');
+                const winResult = overlay.querySelector('.challenge-result.win');
+                const loseResult = overlay.querySelector('.challenge-result.lose');
+                
+                let winner = null;
+                const onClick = () => {
+                    if (winner !== null) return;
+                    const playerIdx = quads.indexOf(q);
+                    winner = playerIdx;
+                    
+                    // Show results
+                    quads.forEach((otherQ, idx) => {
+                        const otherOverlay = otherQ.el.querySelector('.first-click-overlay');
+                        const otherBtn = otherOverlay.querySelector('.btn-first-click');
+                        const otherWin = otherOverlay.querySelector('.challenge-result.win');
+                        const otherLose = otherOverlay.querySelector('.challenge-result.lose');
+                        
+                        otherBtn.style.display = 'none';
+                        if (idx === winner) {
+                            otherWin.style.display = 'block';
+                            otherQ.hasWonRecently = true; // Grant reward screen access
+                        } else {
+                            otherLose.style.display = 'block';
+                        }
+                    });
+                    
+                    setTimeout(() => {
+                        quads.forEach(q => {
+                            const overlay = q.el.querySelector('.first-click-overlay');
+                            overlay.classList.remove('show');
+                            const btn = overlay.querySelector('.btn-first-click');
+                            const win = overlay.querySelector('.challenge-result.win');
+                            const lose = overlay.querySelector('.challenge-result.lose');
+                            btn.style.display = 'block';
+                            win.style.display = 'none';
+                            lose.style.display = 'none';
+                        });
+                        challengeActive = false;
+                        lastTwoPlayerGame = performance.now();
+                        resumeAllTimers();
+                    }, 2000);
+                };
+                
+                btn.addEventListener('click', onClick, { once: true });
+            });
+            
+        }, 6000); // Check every 6 seconds
+        
+        return () => clearInterval(checkInterval);
+    }
+
+    function startOddClipOut() {
+        const checkInterval = setInterval(async () => {
+            if (!isEventReady()) return;
+            if (Math.random() > 0.04) return; // 4% chance per check
+            
+            challengeActive = true;
+            pauseAllTimers();
+            
+            // Use action-choice-overlay for "Odd Clip Out" challenge
+            const randomQuad = quads.find(q => q.chosen) || quads[0];
+            const overlay = randomQuad.el.querySelector('.action-choice-overlay');
+            const title = overlay.querySelector('.action-choice-title');
+            const list = overlay.querySelector('.action-choice-list');
+            const timer = overlay.querySelector('.action-choice-timer');
+            
+            title.textContent = 'ODD CLIP OUT - FIND THE MISMATCH';
+            timer.style.display = 'block';
+            
+            // Create 4 clips - 3 similar, 1 different
+            const clips = videos.slice(0, 4);
+            const oddIdx = Math.floor(Math.random() * 4);
+            
+            list.innerHTML = '';
+            let winner = null;
+            
+            clips.forEach((clip, idx) => {
+                const item = document.createElement('div');
+                item.className = 'action-choice-item';
+                item.textContent = toTitle(clip.name);
+                
+                const onClick = () => {
+                    if (winner !== null) return;
+                    const correct = idx === oddIdx;
+                    item.style.background = correct ? '#0A0' : '#A00';
+                    
+                    if (correct) {
+                        winner = randomQuad;
+                        const qIdx = quads.indexOf(randomQuad);
+                        randomQuad.hasWonRecently = true;
+                        
+                        setTimeout(() => {
+                            overlay.classList.remove('show');
+                            challengeActive = false;
+                            lastTwoPlayerGame = performance.now();
+                            resumeAllTimers();
+                        }, 1500);
+                    } else {
+                        setTimeout(() => {
+                            overlay.classList.remove('show');
+                            challengeActive = false;
+                            lastTwoPlayerGame = performance.now();
+                            resumeAllTimers();
+                        }, 1500);
+                    }
+                };
+                
+                item.addEventListener('click', onClick, { once: true });
+                list.appendChild(item);
+            });
+            
+            overlay.classList.add('show');
+            
+            // Timer countdown
+            let timeLeft = 20;
+            timer.textContent = timeLeft;
+            const countdown = setInterval(() => {
+                timeLeft--;
+                timer.textContent = timeLeft;
+                if (timeLeft <= 0 || winner !== null) {
+                    clearInterval(countdown);
+                    if (winner === null) {
+                        overlay.classList.remove('show');
+                        challengeActive = false;
+                        lastTwoPlayerGame = performance.now();
+                        resumeAllTimers();
+                    }
+                }
+            }, 1000);
+            
+        }, 6000); // Check every 6 seconds
+        
+        return () => clearInterval(checkInterval);
+    }
+
 
 
     // --- Setup & Initialization ---
