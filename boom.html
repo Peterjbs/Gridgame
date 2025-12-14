@@ -21,14 +21,15 @@
     .quadrant{position:relative; overflow:hidden; border:1px solid var(--panelBorder); transition: transform .25s ease, opacity .2s ease, filter .2s ease}
     .quadrant.dimmed{opacity:.22; filter:grayscale(.8) brightness(.55)}
     .quadrant .quad-video{width:100%; height:100%; object-fit:cover; background:black; transform-origin:center; transition: transform .25s ease}
-    .overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; pointer-events:none; opacity:0; transition: opacity .12s ease; z-index: 200;}
+    .overlay{position:absolute; inset:0; display:flex; align-items:center; justify-content:center; text-align:center; pointer-events:none; opacity:0; transition: opacity .25s ease; z-index: 200; backdrop-filter: blur(4px);}
     .overlay.show{opacity:1;}
-    .overlay .inner{padding:.55rem 1rem; color:white; text-shadow:0 2px 10px rgba(0,0,0,.8); text-align:center; border-radius:.9rem; background:rgba(0,0,0,.2); box-shadow: 0 8px 28px rgba(0,0,0,.45)}
-    .display-xxl{font-size:clamp(2.6rem, 8vw, 6.4rem); font-weight:900; letter-spacing:-.02em}
-    .display-lg{font-size:clamp(1rem, 3vw, 1.9rem); font-weight:800; opacity:.95}
-    .nextTimer{position:absolute; left:.5rem; bottom:.5rem; background:rgba(0,0,0,.58); border:1px solid var(--panelBorder); padding:.3rem .7rem .4rem; border-radius:.6rem; font-weight:700; font-size:1.4rem; pointer-events:none; min-width:9ch}
-    .nextTimer .bar{position:absolute; left:0; bottom:0; height:3px; width:0%; background:#8ab4ff; border-radius:0 0 .6rem .6rem; transition:width .18s linear}
-    .nextTimer .next-hint{margin-left:.5rem; font-weight:800; opacity:.95} /* NEW: Next-event emoji hint */
+    .overlay .inner{padding:2rem 3rem; color:white; text-shadow:0 4px 20px rgba(0,0,0,.9); text-align:center; border-radius:1.5rem; background:rgba(0,0,0,.6); box-shadow: 0 12px 40px rgba(0,0,0,.7), inset 0 2px 10px rgba(255,255,255,.1); border: 2px solid rgba(255,255,255,.2); min-width:50%; animation: overlayPulse 1.5s ease-in-out infinite;}
+    .display-xxl{font-size:clamp(4rem, 12vw, 8rem); font-weight:900; letter-spacing:-.02em; text-transform:uppercase; margin:1rem 0;}
+    .display-lg{font-size:clamp(2rem, 5vw, 3.5rem); font-weight:800; opacity:.95; margin:.5rem 0;}
+    @keyframes overlayPulse{0%,100%{transform:scale(1)} 50%{transform:scale(1.02)}}
+    .nextTimer{position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); background:rgba(0,0,0,.85); border:3px solid rgba(255,255,255,.3); padding:1rem 2rem; border-radius:.8rem; font-weight:900; font-size:clamp(3rem, 8vw, 6rem); pointer-events:none; min-width:auto; box-shadow: 0 4px 20px rgba(0,0,0,.5); z-index:150; text-align:center;}
+    .nextTimer .bar{position:absolute; left:0; bottom:0; height:5px; width:0%; background:#8ab4ff; border-radius:0 0 .6rem .6rem; transition:width .18s linear}
+    .nextTimer .next-hint{margin-left:.5rem; font-weight:800; opacity:.95; font-size:clamp(2rem, 5vw, 4rem);}
     .tally{position:absolute; right:.5rem; bottom:.5rem; padding:.2rem .45rem; border:1px solid var(--panelBorder); border-radius:.6rem; background:rgba(0,0,0,.58); font-size:1.05rem; letter-spacing:.15rem; font-weight: 600;}
     .chooseTint{position:absolute; inset:0; opacity:0; transition:opacity .18s ease, transform .18s ease; pointer-events:none; display:flex; flex-direction:column; align-items:center; justify-content:center; color:#fff; text-shadow:0 2px 12px rgba(0,0,0,.9)}
     .quadrant.choose-phase .chooseTint{opacity:1; pointer-events: auto;}
@@ -56,8 +57,15 @@
     .quadrant.bulge .corners::before{opacity:1}
     .quadrant.bulge{transform:scale(1.06); box-shadow:0 0 0 2px var(--pulseColor,transparent), 0 0 40px 10px rgba(255,255,255,.07), 0 0 28px 8px var(--pulseColor,transparent)}
     .quadrant.bulge .quad-video{transform:scale(1.02)}
-    .phaseTint{position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .12s ease; mix-blend-mode:overlay}
-    .phaseTint.show{opacity:.22}
+    .phaseTint{position:absolute; inset:0; pointer-events:none; opacity:0; transition:opacity .25s ease; mix-blend-mode:overlay; z-index:50;}
+    .phaseTint.show{opacity:.35}
+    .phaseTint.phase-puff{background:radial-gradient(circle at center, rgba(201,40,40,.8), rgba(255,107,0,.6));}
+    .phaseTint.phase-sniff{background:radial-gradient(circle at center, rgba(33,150,243,.8), rgba(0,188,212,.6));}
+    .phaseTint.phase-action{background:radial-gradient(circle at center, rgba(255,171,64,.8), rgba(255,235,59,.6));}
+    .phaseTint.phase-mcq{background:radial-gradient(circle at center, rgba(156,39,176,.8), rgba(124,77,255,.6));}
+    .phaseTint.phase-transition{background:radial-gradient(circle at center, rgba(76,175,80,.6), rgba(139,195,74,.5));}
+    .phaseTint.phase-oneplayer{background:radial-gradient(circle at center, rgba(255,152,0,.7), rgba(255,193,7,.5));}
+    .phaseTint.phase-ready{background:radial-gradient(circle at center, rgba(244,67,54,.7), rgba(233,30,99,.5)); animation:phaseFlash 1s ease-in-out infinite;}
     /* Edgy typography sets (applied by class) */
     .typo-velvet .inner, .typo-velvet .nextTimer, .typo-velvet .tally{font-family:"Bodoni 72","Didot","Playfair Display",Georgia,serif; letter-spacing:.01em}
     .typo-noir .inner, .typo-noir .nextTimer, .typo-noir .tally{font-family:"Futura","Avenir Next",-apple-system,sans-serif; text-transform:uppercase; letter-spacing:.06em}
@@ -73,6 +81,7 @@
     .fx-shake{animation: shake .35s cubic-bezier(.36,.07,.19,.97) both}
     @keyframes strobe{from{opacity:.3} to{opacity:1}}
     @keyframes shake{10%,90%{transform:translate3d(-1px,0,0)}20%,80%{transform:translate3d(2px,0,0)}30%,50%,70%{transform:translate3d(-4px,0,0)}40%,60%{transform:translate3d(4px,0,0)}}
+    @keyframes phaseFlash{0%,100%{opacity:.35} 50%{opacity:.55}}
 
     /* --- Grid Choice Styles --- */
     .grid-choice-overlay {
@@ -433,6 +442,7 @@
 
     const DUR = { ready:5000, light:12000, fill:12000, inhale:5000, hold:4000, exhale:5000 };
     const EMOJI = {ready:'👀', light:'🔥', fill:'🌬️🧪🤿', inhale:'🫁', hold:'✋', exhale:'💨', sniff:'⚡️', action:'📝', puff:'🔥', transition:'✨', choice:'🎲', mcq:'🧠', oneplayer:'🔎'};
+    const PHASE_CLASSES = ['phase-puff', 'phase-sniff', 'phase-action', 'phase-mcq', 'phase-transition', 'phase-oneplayer', 'phase-ready'];
     const CHALLENGE_DURATION_MS = 20000;
     const CHOOSE_MS = 30*1000;
     const TOTAL_GOALS = { puff: 5, action: 5, sniff: 8, mcq: 1 };
@@ -466,6 +476,7 @@
       hasWonRecently: false, // For reward gating
       nextScheduledEvent: null, // For transition preview
       transitionStartTime: 0,
+      phaseCountdownInterval: null, // Track countdown interval for cleanup
     });
     const quads = Array.from({length:2}).map((_,i)=> makeQuad(document.getElementById('q'+(i+1))));
 
@@ -501,7 +512,10 @@
     async function setClip(qi, clip, start){
       const q = quads[qi]; const v = q.video;
       const url = clip.url; // Use url directly if single clip, or first clip in sequence
-      if (!v.src || v.src !== url){ v.src = url; }
+      if (!v.src || v.src !== url){ 
+        v.src = url; 
+        v.load(); // Explicitly load to ensure clean state
+      }
       if (v.readyState < 1){ await new Promise(r=> v.addEventListener('loadedmetadata', ()=>r(), {once:true})); }
       const seekOnce = (time) => new Promise((resolve)=>{
         const dur = Number.isFinite(v.duration) && v.duration>0 ? v.duration : (Number.isFinite(clip.duration)?clip.duration:0);
@@ -531,29 +545,58 @@
       for(const k in overlays){ overlays[k].classList.remove('show'); }
       quads[qi].el.classList.remove('bulge','fx-shake');
       quads[qi].phaseTint.classList.remove('show');
+      // Clean up countdown interval if active
+      if (quads[qi].phaseCountdownInterval) {
+        clearInterval(quads[qi].phaseCountdownInterval);
+        quads[qi].phaseCountdownInterval = null;
+      }
     }
-    function pulseQuad(qi, color){
+    function pulseQuad(qi, color, phaseType = ''){
       setPhaseColor(qi, color);
       quads[qi].el.classList.add('bulge');
       if (FURY.on) quads[qi].el.classList.add('fx-shake');
-      quads[qi].phaseTint.style.background = color;
-      quads[qi].phaseTint.style.opacity = FURY.on ? '0.22' : '0.14';
-      quads[qi].phaseTint.classList.add('show');
+      const phaseTint = quads[qi].phaseTint;
+      // Remove old phase-specific classes only
+      PHASE_CLASSES.forEach(cls => phaseTint.classList.remove(cls));
+      // Add new phase class if provided
+      if (phaseType) phaseTint.classList.add('phase-' + phaseType);
+      phaseTint.style.background = color;
+      phaseTint.style.opacity = FURY.on ? '0.35' : '0.22';
+      phaseTint.classList.add('show');
     }
     async function showCue(qi, type, color, ms, icon){
       const el = quads[qi].overlays[type];
       if (!el || cycleAbort) return;
-      hideAll(qi); pulseQuad(qi, color);
+      hideAll(qi); pulseQuad(qi, color, type);
       const inner = el.querySelector('.inner');
-      if (icon){ inner.innerHTML = `<div class="display-xxl">${icon}</div><div class="display-lg">${type.toUpperCase()}</div>`; }
+      if (icon){ 
+        const secondsRemaining = Math.ceil(ms / 1000);
+        inner.innerHTML = `<div class="display-xxl">${icon}</div><div class="display-lg">${type.toUpperCase()}</div><div class="display-lg countdown-display" style="margin-top:1rem; opacity:.7;">${secondsRemaining}s</div>`; 
+      }
       el.classList.add('show');
+      
+      // Add live countdown if duration > 2s
+      if (ms > 2000) {
+        const endTime = performance.now() + ms;
+        // Cache the countdown element outside the interval for efficiency
+        const countdownEl = inner.querySelector('.countdown-display');
+        quads[qi].phaseCountdownInterval = setInterval(() => {
+          const remaining = Math.max(0, Math.ceil((endTime - performance.now()) / 1000));
+          if (countdownEl) countdownEl.textContent = remaining + 's';
+          if (remaining <= 0 || cycleAbort) {
+            clearInterval(quads[qi].phaseCountdownInterval);
+            quads[qi].phaseCountdownInterval = null;
+          }
+        }, 100);
+      }
+      
       await sleep(ms);
       el.classList.remove('show');
       hideAll(qi);
     }
-    async function preCue(qi, text, color, ms){
+    async function preCue(qi, text, color, ms, phaseType = 'ready'){
       const el = quads[qi].overlays['pre']; const inner = el.querySelector('.inner');
-      hideAll(qi); pulseQuad(qi, color);
+      hideAll(qi); pulseQuad(qi, color, phaseType);
       inner.innerHTML = `<div class="display-xxl">⏳</div><div class="display-lg">${text}</div>`;
       el.classList.add('show');
       await sleep(ms);
@@ -606,7 +649,7 @@
 
       const el = q.overlays['transition'];
       el.querySelector('.inner').querySelector('.display-lg').textContent = 'TRANSITION';
-      hideAll(qi); pulseQuad(qi, pal.base);
+      hideAll(qi); pulseQuad(qi, pal.base, 'transition');
       el.classList.add('show');
 
       await new Promise(resolve => {
@@ -647,7 +690,7 @@
       const q = quads[qi]; if (!q.chosen) return;
       const pal = q.vibe.palette; const clip = q.baseClip;
       
-      await preCue(qi, 'PUFF', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)));
+      await preCue(qi, 'PUFF', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)), 'puff');
       await setClip(qi, clip, randomMidStart(clip));
       await showCue(qi,'ready', pal.base, DUR.ready, EMOJI.ready);
       if (cycleAbort) return;
@@ -674,7 +717,7 @@
       const q = quads[qi]; if (!q.chosen) return;
       const pal = q.vibe.palette; const clip = q.baseClip;
       
-      await preCue(qi, 'SNIFF', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)));
+      await preCue(qi, 'SNIFF', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)), 'sniff');
       await setClip(qi, clip, randomMidStart(clip));
       const endAt = performance.now()+(q.vibe.sniff||10000);
       while(performance.now()<endAt && q.chosen && !cycleAbort){
@@ -691,7 +734,7 @@
       const q = quads[qi]; if (!q.chosen) return;
       const pal = q.vibe.palette; const clip = q.baseClip;
       
-      await preCue(qi, 'ACTION', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)));
+      await preCue(qi, 'ACTION', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)), 'action');
       await setClip(qi, clip, randomMidStart(clip));
 
       const el = q.overlays['action'];
@@ -700,7 +743,7 @@
 
       inner.querySelector('.display-lg').textContent = label;
 
-      hideAll(qi); pulseQuad(qi, pal.base);
+      hideAll(qi); pulseQuad(qi, pal.base, 'action');
       el.style.pointerEvents = 'auto';
       el.classList.add('show');
       
@@ -751,12 +794,12 @@
       const q = quads[qi]; if (!q.chosen) return;
       const pal = q.vibe.palette; const clip = q.baseClip;
       
-      await preCue(qi, 'MCQ', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)));
+      await preCue(qi, 'MCQ', pal.base, Math.max(400, (q.vibe.precue||800)*(FURY.on?FURY.precueScale:1)), 'mcq');
       await setClip(qi, clip, randomMidStart(clip));
 
       const el = q.overlays['mcq'];
       el.querySelector('.inner').querySelector('.display-lg').textContent = "STUDIO CHALLENGE WITH BIG FAT BRENDA";
-      hideAll(qi); pulseQuad(qi, pal.base);
+      hideAll(qi); pulseQuad(qi, pal.base, 'mcq');
       el.classList.add('show');
       
       // Placeholder for MCQ logic (clip duration, 10/20 questions, 5s penalty, etc.)
@@ -776,7 +819,7 @@
         const q = quads[qi]; if (!q.chosen) return;
         const pal = q.vibe.palette; const clip = q.baseClip;
 
-        await preCue(qi, '1-PLAYER GAME', pal.base, 2000);
+        await preCue(qi, '1-PLAYER GAME', pal.base, 2000, 'oneplayer');
         await setClip(qi, clip, randomMidStart(clip));
         
         // Use grid-choice-overlay as a multi-purpose single-player challenge UI
