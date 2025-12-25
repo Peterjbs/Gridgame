@@ -900,7 +900,7 @@
     /* Challenge Grid & Modal */
     #challenge-grid {
       display: grid;
-      grid-template-columns: repeat(3, 1fr);
+      grid-template-columns: repeat(5, 1fr);
       grid-auto-rows: minmax(0, 1fr);
       gap: 10px;
       flex-grow: 1;
@@ -977,6 +977,20 @@
       50% {
         transform: scale(1.05);
         box-shadow: 0 0 30px rgba(118, 75, 162, 0.8);
+      }
+    }
+
+    @keyframes bonusPulse {
+      0% {
+        transform: translate(-50%, -50%) scale(0.5);
+        opacity: 0;
+      }
+      50% {
+        transform: translate(-50%, -50%) scale(1.1);
+      }
+      100% {
+        transform: translate(-50%, -50%) scale(1);
+        opacity: 1;
       }
     }
 
@@ -1906,6 +1920,30 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
     </div>
   </div>
 
+  <div id="panel-film-uploader" class="panel right-panel">
+    <div class="panel-header">
+      <h2 id="title-film-uploader">Film Stats Uploader 📊</h2>
+    </div>
+    <h3>Upload Film Data</h3>
+    <p style="font-size: 0.9rem; margin-bottom: 0.5rem; opacity: 0.8;">Paste film titles and view counts (one per line, format: "Title|Views"):</p>
+    <textarea id="film-data-input" rows="8" placeholder="The Dark Knight|2500000
+Inception|1800000
+Pulp Fiction|1600000
+The Matrix|2200000
+Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></textarea>
+    <button id="save-film-data-btn">Save Film Data</button>
+    <div id="saved-film-data-list" style="margin-top: 1rem;">
+      <h3>Saved Films: <span id="film-count">0</span></h3>
+      <div id="film-data-display" style="max-height: 200px; overflow-y: auto; background: rgba(0,0,0,0.3); padding: 0.5rem; border-radius: 4px; margin-top: 0.5rem; font-size: 0.8rem;">
+        <p style="opacity: 0.6; font-style: italic;">No film data saved yet.</p>
+      </div>
+      <button id="clear-film-data-btn" class="mt-2" style="background-color: #e74c3c;">Clear All</button>
+    </div>
+    <p style="font-size: 0.8rem; margin-top: 1rem; opacity: 0.7; font-style: italic;">
+      💡 This data will be used in the "Higher or Lower" challenge
+    </p>
+  </div>
+
   <div class="panel-toggle-bar left-bar">
     <button class="panel-toggle-button" data-panel="challenge-panel" data-color="yellow" title="The Forecast">🏆</button>
   </div>
@@ -1922,6 +1960,8 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
       title="Atmospheric Bingo">🎲</button>
     <button class="panel-toggle-button" data-panel="panel-creative-challenges" data-color="indigo"
       title="Creative Challenges">💡</button>
+    <button class="panel-toggle-button" data-panel="panel-film-uploader" data-color="blue"
+      title="Film Stats Uploader">📊</button>
     <!-- Dream Factory removed - AI integration disabled -->
   </div>
   <script>
@@ -2114,9 +2154,43 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
               icon: '🎰'
             }
           ];
+          
+          // Random emoji challenges (20 total)
+          const emojiChallenges = [
+            { type: 'emoji1', name: 'Emoji Challenge', icon: '🎭' },
+            { type: 'emoji2', name: 'Emoji Challenge', icon: '🎪' },
+            { type: 'emoji3', name: 'Emoji Challenge', icon: '🎨' },
+            { type: 'emoji4', name: 'Emoji Challenge', icon: '🎸' },
+            { type: 'emoji5', name: 'Emoji Challenge', icon: '🎺' },
+            { type: 'emoji6', name: 'Emoji Challenge', icon: '🎮' },
+            { type: 'emoji7', name: 'Emoji Challenge', icon: '🎯' },
+            { type: 'emoji8', name: 'Emoji Challenge', icon: '🎲' },
+            { type: 'emoji9', name: 'Emoji Challenge', icon: '🎰' },
+            { type: 'emoji10', name: 'Emoji Challenge', icon: '🎳' },
+            { type: 'emoji11', name: 'Emoji Challenge', icon: '🎹' },
+            { type: 'emoji12', name: 'Emoji Challenge', icon: '🎬' },
+            { type: 'emoji13', name: 'Emoji Challenge', icon: '🎤' },
+            { type: 'emoji14', name: 'Emoji Challenge', icon: '🎧' },
+            { type: 'emoji15', name: 'Emoji Challenge', icon: '🎼' },
+            { type: 'emoji16', name: 'Emoji Challenge', icon: '🎵' },
+            { type: 'emoji17', name: 'Emoji Challenge', icon: '🎶' },
+            { type: 'emoji18', name: 'Emoji Challenge', icon: '🎟️' },
+            { type: 'emoji19', name: 'Emoji Challenge', icon: '🎭' },
+            { type: 'emoji20', name: 'Emoji Challenge', icon: '🎪' }
+          ];
+          
+          // Shuffle emoji challenges
+          const shuffledEmojiChallenges = [...emojiChallenges].sort(() => 0.5 - Math.random());
+          
           const challenges = Array.from({
-            length: 21
-          }, (_, i) => challengeTypes[i % challengeTypes.length]);
+            length: 41
+          }, (_, i) => {
+            if (i < 21) {
+              return challengeTypes[i % challengeTypes.length];
+            } else {
+              return shuffledEmojiChallenges[i - 21];
+            }
+          });
 
           const challengeUIColors = {
             trivia1: 'rgba(52, 152, 219, 0.5)',
@@ -2146,6 +2220,27 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
             videoQuarterPuzzle: 'rgba(156, 39, 176, 0.5)',
             creativeChallenge: 'rgba(103, 58, 183, 0.5)',
             slingo: 'rgba(255, 215, 0, 0.5)',
+            // Emoji challenges
+            emoji1: 'rgba(255, 99, 71, 0.5)',
+            emoji2: 'rgba(75, 192, 192, 0.5)',
+            emoji3: 'rgba(153, 102, 255, 0.5)',
+            emoji4: 'rgba(255, 159, 64, 0.5)',
+            emoji5: 'rgba(54, 162, 235, 0.5)',
+            emoji6: 'rgba(255, 206, 86, 0.5)',
+            emoji7: 'rgba(231, 233, 237, 0.5)',
+            emoji8: 'rgba(255, 99, 132, 0.5)',
+            emoji9: 'rgba(255, 205, 210, 0.5)',
+            emoji10: 'rgba(179, 157, 219, 0.5)',
+            emoji11: 'rgba(149, 117, 205, 0.5)',
+            emoji12: 'rgba(186, 85, 211, 0.5)',
+            emoji13: 'rgba(123, 104, 238, 0.5)',
+            emoji14: 'rgba(72, 209, 204, 0.5)',
+            emoji15: 'rgba(32, 178, 170, 0.5)',
+            emoji16: 'rgba(135, 206, 235, 0.5)',
+            emoji17: 'rgba(176, 224, 230, 0.5)',
+            emoji18: 'rgba(240, 128, 128, 0.5)',
+            emoji19: 'rgba(244, 164, 96, 0.5)',
+            emoji20: 'rgba(189, 183, 107, 0.5)',
           };
 
           const challengePlayers = [{
@@ -3578,6 +3673,13 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
               case 'slingo':
                 setupSlingoTask();
                 break;
+              
+              // Emoji challenges (simple trivia challenges)
+              default:
+                if (type.startsWith('emoji')) {
+                  setupEmojiChallengeTask();
+                }
+                break;
             }
           }
 
@@ -3610,6 +3712,61 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
               if (typeof challengeScores[ownerIndex] === 'number') {
                 challengeScores[ownerIndex] += 1;
                 renderChallengeHud();
+              }
+              
+              // Check for horizontal line bonus (5 columns = 5 tiles per row)
+              const challengeIndex = parseInt(activeTaskElement.dataset.challengeIndex);
+              const rowIndex = Math.floor(challengeIndex / 5);
+              const rowStart = rowIndex * 5;
+              const rowEnd = rowStart + 5;
+              
+              // Check if all tiles in this row are owned by the current player
+              let allOwnedByPlayer = true;
+              for (let i = rowStart; i < rowEnd && i < challenges.length; i++) {
+                const tile = document.querySelector(`.challenge-square[data-challenge-index='${i}']`);
+                if (!tile || tile.dataset.owner !== String(ownerIndex)) {
+                  allOwnedByPlayer = false;
+                  break;
+                }
+              }
+              
+              // Award horizontal line bonus
+              if (allOwnedByPlayer) {
+                const bonusPoints = 2000;
+                updateMainScore(bonusPoints);
+                
+                // Visual feedback
+                for (let i = rowStart; i < rowEnd && i < challenges.length; i++) {
+                  const tile = document.querySelector(`.challenge-square[data-challenge-index='${i}']`);
+                  if (tile) {
+                    tile.style.boxShadow = '0 0 30px rgba(255, 215, 0, 0.8)';
+                    tile.style.borderColor = '#ffd700';
+                    tile.style.borderWidth = '3px';
+                    tile.style.borderStyle = 'solid';
+                  }
+                }
+                
+                // Show bonus notification
+                const bonusNotif = document.createElement('div');
+                bonusNotif.style.cssText = `
+                  position: fixed;
+                  top: 50%;
+                  left: 50%;
+                  transform: translate(-50%, -50%);
+                  background: linear-gradient(135deg, #ffd700 0%, #ffed4e 100%);
+                  color: #000;
+                  padding: 2rem 3rem;
+                  border-radius: 20px;
+                  font-size: 2rem;
+                  font-weight: bold;
+                  z-index: 9999;
+                  box-shadow: 0 10px 40px rgba(255, 215, 0, 0.5);
+                  animation: bonusPulse 0.5s ease-in-out;
+                `;
+                bonusNotif.textContent = `🎉 HORIZONTAL LINE! +${bonusPoints} 🎉`;
+                document.body.appendChild(bonusNotif);
+                
+                setTimeout(() => bonusNotif.remove(), 2000);
               }
             }
             scoreMultiplier = parseFloat((scoreMultiplier + 0.25).toFixed(2));
@@ -4965,16 +5122,26 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
                   sequence.push(Math.floor(Math.random() * gridSize));
                 }
                 
+                // Select 9 random tile images
+                const tileImages = [];
+                for (let i = 0; i < gridSize; i++) {
+                  const imageNum = Math.floor(Math.random() * 34) + 1; // 1-34
+                  tileImages.push(`images/${imageNum}.png`);
+                }
+                
                 taskModalTitle.textContent = `Round ${round}/${maxRounds} - Watch the sequence!`;
                 taskModalBody.innerHTML = `
                   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-width: 400px; margin: 0 auto;">
                     ${Array(gridSize).fill(0).map((_, i) => `
                       <div class="avatar-tile" data-index="${i}" style="
                         aspect-ratio: 1;
-                        background: rgba(255,255,255,0.1);
+                        background-image: url('${tileImages[i]}');
+                        background-size: cover;
+                        background-position: center;
                         border-radius: 8px;
                         cursor: pointer;
                         transition: all 0.3s;
+                        border: 3px solid rgba(255,255,255,0.1);
                       "></div>
                     `).join('')}
                   </div>
@@ -4992,12 +5159,16 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
                   
                   const tileIndex = sequence[showIndex];
                   const tile = document.querySelector(`.avatar-tile[data-index="${tileIndex}"]`);
-                  tile.style.background = 'rgba(52, 152, 219, 0.8)';
+                  tile.style.borderColor = 'rgba(52, 152, 219, 1)';
+                  tile.style.borderWidth = '5px';
                   tile.style.transform = 'scale(1.1)';
+                  tile.style.boxShadow = '0 0 20px rgba(52, 152, 219, 0.8)';
                   
                   setTimeout(() => {
-                    tile.style.background = 'rgba(255,255,255,0.1)';
+                    tile.style.borderColor = 'rgba(255,255,255,0.1)';
+                    tile.style.borderWidth = '3px';
                     tile.style.transform = 'scale(1)';
+                    tile.style.boxShadow = 'none';
                   }, 500);
                   
                   showIndex++;
@@ -5014,9 +5185,13 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
                       const index = parseInt(tile.dataset.index);
                       playerSequence.push(index);
                       
-                      tile.style.background = 'rgba(46, 204, 113, 0.8)';
+                      tile.style.borderColor = 'rgba(46, 204, 113, 1)';
+                      tile.style.borderWidth = '5px';
+                      tile.style.boxShadow = '0 0 20px rgba(46, 204, 113, 0.8)';
                       setTimeout(() => {
-                        tile.style.background = 'rgba(255,255,255,0.1)';
+                        tile.style.borderColor = 'rgba(255,255,255,0.1)';
+                        tile.style.borderWidth = '3px';
+                        tile.style.boxShadow = 'none';
                       }, 300);
                       
                       // Check if correct so far
@@ -5179,13 +5354,23 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
           async function setupHigherLowerViewsTask() {
             taskModalTitle.textContent = "Higher or Lower 📊";
             
-            if (videoFiles.length < 2) {
-              taskModalBody.innerHTML = `<p class="text-red-500">You need at least 2 videos for this challenge.</p>`;
+            // Check if we have uploaded film data
+            const savedFilmData = JSON.parse(localStorage.getItem('filmViewsData') || '[]');
+            
+            let filmData = [];
+            if (savedFilmData.length >= 2) {
+              // Use uploaded film data
+              filmData = savedFilmData;
+            } else if (videoFiles.length >= 2) {
+              // Fallback to video files with random view counts
+              filmData = videoFiles.map((file, i) => ({
+                title: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+                views: Math.floor(Math.random() * 10000) + 100
+              }));
+            } else {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least 2 videos or uploaded film data for this challenge.</p>`;
               return;
             }
-
-            // Assign random "view counts" to videos for gameplay
-            const videoViewCounts = videoFiles.map(() => Math.floor(Math.random() * 10000) + 100);
             
             let correctAnswers = 0;
             let wrongAnswers = 0;
@@ -5207,25 +5392,25 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
                 return;
               }
               
-              // Pick 2 random videos
-              const indices = [...Array(videoFiles.length).keys()];
+              // Pick 2 random films
+              const indices = [...Array(filmData.length).keys()];
               const shuffled = indices.sort(() => 0.5 - Math.random());
-              const video1Index = shuffled[0];
-              const video2Index = shuffled[1];
+              const film1Index = shuffled[0];
+              const film2Index = shuffled[1];
               
-              const video1Views = videoViewCounts[video1Index];
-              const video2Views = videoViewCounts[video2Index];
+              const film1 = filmData[film1Index];
+              const film2 = filmData[film2Index];
               
               taskModalTitle.textContent = `Round ${correctAnswers + 1}/${maxRounds}`;
               taskModalBody.innerHTML = `
                 <div style="text-align: center;">
                   <div style="margin-bottom: 2rem;">
-                    <h3>${videoFiles[video1Index].name}</h3>
-                    <p style="font-size: 2rem; color: #3498db;">${video1Views.toLocaleString()} views</p>
+                    <h3>${film1.title}</h3>
+                    <p style="font-size: 2rem; color: #3498db;">${film1.views.toLocaleString()} views</p>
                   </div>
                   <div style="font-size: 2rem; margin: 1rem 0;">🆚</div>
                   <div style="margin-bottom: 2rem;">
-                    <h3>${videoFiles[video2Index].name}</h3>
+                    <h3>${film2.title}</h3>
                     <p style="font-size: 2rem;">??? views</p>
                   </div>
                   <div style="display: flex; gap: 1rem; justify-content: center;">
@@ -5235,8 +5420,8 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
                 </div>
               `;
               
-              document.getElementById('guess-higher').onclick = () => checkAnswer(video2Views > video1Views, video2Views);
-              document.getElementById('guess-lower').onclick = () => checkAnswer(video2Views < video1Views, video2Views);
+              document.getElementById('guess-higher').onclick = () => checkAnswer(film2.views > film1.views, film2.views);
+              document.getElementById('guess-lower').onclick = () => checkAnswer(film2.views < film1.views, film2.views);
               
               const checkAnswer = (isCorrect, actualViews) => {
                 if (isCorrect) {
@@ -5254,7 +5439,7 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
             taskModalBody.innerHTML = `
               <h3>Rules:</h3>
               <ul style="list-style: disc; margin-left: 2rem; margin-top: 1rem;">
-                <li>You'll see 2 video titles</li>
+                <li>You'll see 2 ${savedFilmData.length >= 2 ? 'film titles' : 'video titles'}</li>
                 <li>One shows its view count</li>
                 <li>Guess if the other has Higher or Lower views</li>
                 <li>Get 5 correct in a row</li>
@@ -6434,6 +6619,64 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
             renderSlingo();
           }
 
+          // Emoji Challenge - Quick trivia or simple task
+          async function setupEmojiChallengeTask() {
+            taskModalTitle.textContent = "Quick Challenge! ⚡";
+            
+            // Fetch a quick trivia question
+            const questions = await fetchTriviaQuestions(1);
+            
+            if (!questions || questions.length === 0) {
+              taskModalBody.innerHTML = `
+                <h3>Lightning Round!</h3>
+                <p>Name 3 countries starting with the letter 'S'!</p>
+                <input type="text" id="emoji-answer-input" class="task-input-field" placeholder="Type your answer..." style="width: 100%; margin: 1rem 0;">
+                <button id="emoji-submit-btn" class="modal-action-btn">Submit</button>
+              `;
+              
+              document.getElementById('emoji-submit-btn').onclick = () => {
+                const answer = document.getElementById('emoji-answer-input').value.trim();
+                if (answer.length > 0) {
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Great effort!</h2></div>`;
+                  setTimeout(() => {
+                    updateMainScore(500);
+                    markTaskComplete();
+                  }, 1000);
+                } else {
+                  alert('Please enter an answer!');
+                }
+              };
+              return;
+            }
+            
+            const q = questions[0];
+            taskModalBody.innerHTML = `
+              <h3>Quick Question!</h3>
+              <p class="text-xl mb-4">${q.question}</p>
+              <div class="task-option-grid">
+                ${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}
+              </div>
+            `;
+            
+            document.querySelectorAll('.task-option-btn').forEach(btn => {
+              btn.onclick = () => {
+                const selectedIndex = parseInt(btn.dataset.index);
+                const correctIndex = q.correctAnswerIndex;
+                
+                if (selectedIndex === correctIndex) {
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Correct!</h2></div>`;
+                  setTimeout(() => {
+                    updateMainScore(750);
+                    markTaskComplete();
+                  }, 1000);
+                } else {
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong!</h2></div>`;
+                  setTimeout(() => closeTaskModal(), 1500);
+                }
+              };
+            });
+          }
+
           // --- Initial Setup ---
           function populateVoices() {
             const voices = speechSynthesis.getVoices();
@@ -6491,6 +6734,68 @@ Do your best celebrity impression" style="margin-bottom: 1rem;"></textarea>
           });
           
           loadCreativeChallenges();
+          
+          // Film Data Uploader Management
+          function loadFilmData() {
+            const filmData = JSON.parse(localStorage.getItem('filmViewsData') || '[]');
+            const display = document.getElementById('film-data-display');
+            const count = document.getElementById('film-count');
+            count.textContent = filmData.length;
+            if (filmData.length === 0) {
+              display.innerHTML = '<p style="opacity: 0.6; font-style: italic;">No film data saved yet.</p>';
+            } else {
+              display.innerHTML = filmData.map((f, i) => 
+                `<div style="padding: 0.25rem 0; border-bottom: 1px solid rgba(255,255,255,0.1);">
+                  ${i + 1}. ${f.title} - ${f.views.toLocaleString()} views
+                </div>`
+              ).join('');
+            }
+          }
+          
+          document.getElementById('save-film-data-btn').addEventListener('click', () => {
+            const text = document.getElementById('film-data-input').value.trim();
+            if (!text) {
+              alert('Please enter at least one film entry!');
+              return;
+            }
+            
+            const lines = text.split('\n').filter(line => line.trim().length > 0);
+            const filmData = [];
+            let errors = 0;
+            
+            lines.forEach((line, index) => {
+              const parts = line.split('|');
+              if (parts.length === 2) {
+                const title = parts[0].trim();
+                const views = parseInt(parts[1].trim().replace(/,/g, ''));
+                if (title && !isNaN(views)) {
+                  filmData.push({ title, views });
+                } else {
+                  errors++;
+                }
+              } else {
+                errors++;
+              }
+            });
+            
+            if (filmData.length > 0) {
+              localStorage.setItem('filmViewsData', JSON.stringify(filmData));
+              loadFilmData();
+              alert(`Saved ${filmData.length} film(s)!${errors > 0 ? ` (${errors} entries had errors and were skipped)` : ''}`);
+              document.getElementById('film-data-input').value = '';
+            } else {
+              alert('No valid film data found! Use format: "Title|Views" (one per line)');
+            }
+          });
+          
+          document.getElementById('clear-film-data-btn').addEventListener('click', () => {
+            if (confirm('Are you sure you want to clear all saved film data?')) {
+              localStorage.removeItem('filmViewsData');
+              loadFilmData();
+            }
+          });
+          
+          loadFilmData();
           
           // Player Name Management
           document.getElementById('player1-name-input').addEventListener('input', (e) => {
