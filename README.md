@@ -13,9 +13,28 @@ The original grid-based challenge game featuring:
 - Video integration with local video selection
 - Score tracking and tile ownership
 - Various challenge types: Trivia, Match Pairs, Reflex Test, Bingo, and more
+- **NEW: DAB Tiles** - Random tiles display "DAB" with special purple gradient animation
+- **NEW: Slingo Minigame** - Full-featured bingo-style slot game with cascading reels
+- **FIXED: Emoji Clicker** - Click target emojis that appear over the video
 
 **Recent Updates:**
-- ✅ Removed broken game modes: Splash Click, Clip Sequencer, Memory Challenge
+- ✅ **DAB Tiles Feature** - 3-5 random tiles per game display "DAB" with animated gradient
+- ✅ **Slingo Minigame** - Complete implementation with:
+  - 5x5 bingo grid with B-I-N-G-O columns
+  - 5 independent slot reels
+  - Cascading mechanics (auto-mark matches, drop new symbols)
+  - WILD cards (mark any tile in column) and SUPER WILD cards (mark any tile anywhere)
+  - Auto-respin when WILD appears in complete column
+  - Free spin mechanic (1/8 chance per paid spin)
+  - 12 possible lines (5 rows + 5 columns + 2 diagonals)
+  - Payout system ($50-$50,000 based on 3-12 lines)
+  - Bank/credit system ($1,000 starting, $50 per spin, $100 for extra spin)
+  - Flying token animations and confetti effects
+  - Auto-play mode (stops on WILD/SUPER)
+  - Always-visible grid preview
+- ✅ **Emoji Clicker (Splash Click) Fixed** - Restored to challenge grid
+- ✅ **Paint Splatter Working** - Verified canvas-based paint covering game
+- ✅ Removed broken game modes: Clip Sequencer, Memory Challenge
 - ✅ Updated "Don't Blink" challenge to "Watch Closely"
 - ✅ Fixed emoji rendering with Twemoji library
 - ✅ Repositioned API key input box to top-right
@@ -107,16 +126,24 @@ This repository is configured for GitHub Pages deployment:
 
 ### December 2024 - Major Update
 
-#### Removed Broken Game Modes
-- ❌ Splash Click (non-functional)
-- ❌ Clip Sequencer (pool never appears at end)
-- ❌ Memory Challenge (selection step broken)
-
-#### Added New Features
+#### New Features Added
+- ✅ **DAB Tiles** - 3-5 random grid tiles display "DAB" with animated purple gradient
+- ✅ **Slingo Minigame** - Complete bingo-style slot game with:
+  - 5x5 grid, cascading reels, WILD/SUPER WILD cards
+  - Auto-respin, free spins, line detection (12 lines)
+  - Bank system with configurable payouts ($50-$50K)
+  - Token animations and confetti effects
+- ✅ **Emoji Clicker (Splash Click) Restored** - Fixed and re-added to challenge grid
 - ✅ **Word Color Blocks** - Brand new 2-player game
 - ✅ **Boom.html Integration** - Quadrant timers fully deployed
 - ✅ **Game Selector** - Landing page for easy game selection
-- ✅ **Wording Updates** - Changed "Don't Blink" to "Watch Closely"
+
+#### Removed Broken Game Modes
+- ❌ Clip Sequencer (pool never appears at end)
+- ❌ Memory Challenge (selection step broken)
+
+#### Wording Updates
+- ✅ Changed "Don't Blink" to "Watch Closely"
 
 #### Bug Fixes & Improvements
 - ✅ Emoji rendering with Twemoji (cross-platform consistency)
