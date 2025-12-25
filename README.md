@@ -4,7 +4,22 @@ A collection of interactive video-based grid games for 2 players.
 
 ## 🎮 Game Modes
 
-### 1. Cloud 9 Video Player (Classic)
+### 1. Solo Play Mode (NEW)
+**File:** `solo-play.html`
+
+A dedicated landing page for solo players featuring:
+- Quick access to all solo-friendly games
+- Clear instructions for single-player gameplay
+- Separate categorization of solo vs. multiplayer games
+- Instant start with video folder selection
+
+**How to Use:**
+1. Open `solo-play.html` in a browser
+2. Choose a solo-friendly game (Quadrant Timers, Cloud 9, etc.)
+3. Select your video folder when prompted
+4. Play immediately without needing a second player
+
+### 2. Cloud 9 Video Player (Classic)
 **File:** `index.html` (full version), `newq.html` (simplified version)
 
 The original grid-based challenge game featuring:
@@ -20,7 +35,7 @@ The original grid-based challenge game featuring:
 - ✅ Fixed emoji rendering with Twemoji library
 - ✅ Repositioned API key input box to top-right
 
-### 2. Quadrant Timers - Full Ferocity (NEW)
+### 3. Quadrant Timers - Full Ferocity (NEW)
 **File:** `boom.html`
 
 An intense two-quadrant video-based game mode with:
@@ -37,7 +52,7 @@ An intense two-quadrant video-based game mode with:
 4. Select your preferred theme (Velvet, Noir, Crimson, etc.)
 5. Watch as timed events trigger across quadrants
 
-### 3. Word Color Blocks (NEW)
+### 4. Word Color Blocks (NEW)
 **File:** `word-color-blocks.html`
 
 A brand new two-player word + color matching game featuring:
@@ -79,6 +94,7 @@ All games run entirely in the browser with no build process needed!
 1. **Clone or download** this repository
 2. **Open any HTML file** directly in your web browser:
    - For game selection menu: `game-selector.html`
+   - For solo play mode: `solo-play.html`
    - For classic challenges: `index.html`
    - For quadrant timers: `boom.html`
    - For word color blocks: `word-color-blocks.html`
@@ -99,6 +115,7 @@ This repository is configured for GitHub Pages deployment:
 
 **Direct Links:**
 - Game Selector: `/game-selector.html`
+- Solo Play: `/solo-play.html`
 - Classic Mode: `/index.html`
 - Boom Mode: `/boom.html`
 - Word Color Blocks: `/word-color-blocks.html`
@@ -113,6 +130,7 @@ This repository is configured for GitHub Pages deployment:
 - ❌ Memory Challenge (selection step broken)
 
 #### Added New Features
+- ✅ **Solo Play Mode** - Dedicated landing page for single-player gaming
 - ✅ **Word Color Blocks** - Brand new 2-player game
 - ✅ **Boom.html Integration** - Quadrant timers fully deployed
 - ✅ **Game Selector** - Landing page for easy game selection
@@ -129,6 +147,7 @@ This repository is configured for GitHub Pages deployment:
 | File | Description | Players | Status |
 |------|-------------|---------|--------|
 | `game-selector.html` | Landing page with game selection | - | ✅ New |
+| `solo-play.html` | Solo player dedicated landing page | 1 | ✅ New |
 | `index.html` | Main Cloud 9 game (full version) | 2 | ✅ Active |
 | `newq.html` | Cloud 9 simplified version (no animations) | 2 | ✅ Active |
 | `boom.html` | Quadrant Timers mode | 1-2 | ✅ New |
@@ -162,6 +181,7 @@ Uses the modern File System Access API for local video selection:
 ```
 Gridgame/
 ├── game-selector.html      # Landing page
+├── solo-play.html          # Solo player mode
 ├── index.html              # Main game (full version)
 ├── newq.html              # Simplified version
 ├── boom.html              # Quadrant timers
