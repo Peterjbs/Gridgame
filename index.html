@@ -900,7 +900,7 @@
     /* Challenge Grid & Modal */
     #challenge-grid {
       display: grid;
-      grid-template-columns: repeat(5, 1fr);
+      grid-template-columns: repeat(3, 1fr);
       grid-auto-rows: minmax(0, 1fr);
       gap: 10px;
       flex-grow: 1;
@@ -1333,6 +1333,44 @@
     .task-input-field {
       color: black;
       font-size: 1.1rem;
+      padding: 1rem; /* Larger touch target */
+      min-height: 3rem; /* Fat UI for iPad */
+    }
+
+    .voice-input-btn {
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 50%;
+      width: 3rem;
+      height: 3rem;
+      font-size: 1.5rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s;
+      margin-left: 0.5rem;
+    }
+
+    .voice-input-btn:hover {
+      background: #2980b9;
+    }
+
+    .voice-input-btn.listening {
+      background: #e74c3c;
+      animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.1); }
+    }
+
+    .input-with-voice {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
     }
 
     #task-modal-timer {
@@ -1692,6 +1730,16 @@
       border: 3px solid #e74c3c;
       box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
     }
+
+    .challenge-square[data-owner="2"] {
+      border: 3px solid #2ecc71;
+      box-shadow: 0 0 15px rgba(46, 204, 113, 0.4);
+    }
+
+    .challenge-square[data-owner="3"] {
+      border: 3px solid #f39c12;
+      box-shadow: 0 0 15px rgba(243, 156, 18, 0.4);
+    }
   </style>
 </head>
 
@@ -1758,10 +1806,40 @@
       <h2 id="title-challenge" class="title-yellow">The Forecast</h2>
     </div>
     <div style="margin-bottom: 1rem;">
-      <h3 style="font-size: 0.9rem; margin-bottom: 0.5rem;">Player Names:</h3>
+      <h3 style="font-size: 0.9rem; margin-bottom: 0.5rem;">Player Setup:</h3>
       <div style="display: flex; flex-direction: column; gap: 0.5rem;">
-        <input type="text" id="player1-name-input" value="Player 1" placeholder="Player 1 Name" style="padding: 0.5rem; background: rgba(52, 152, 219, 0.2); border: 1px solid #3498db; border-radius: 4px; color: white;">
-        <input type="text" id="player2-name-input" value="Player 2" placeholder="Player 2 Name" style="padding: 0.5rem; background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; border-radius: 4px; color: white;">
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <input type="checkbox" id="player1-active" checked disabled style="cursor: not-allowed;">
+          <input type="text" id="player1-name-input" value="Player 1" placeholder="Player 1 Name" style="flex: 1; padding: 0.5rem; background: rgba(52, 152, 219, 0.2); border: 1px solid #3498db; border-radius: 4px; color: white;">
+          <select id="player1-type" style="padding: 0.5rem; background: rgba(52, 152, 219, 0.2); border: 1px solid #3498db; border-radius: 4px; color: white;">
+            <option value="Human">Human</option>
+            <option value="AI">AI</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <input type="checkbox" id="player2-active" checked style="cursor: pointer;">
+          <input type="text" id="player2-name-input" value="Player 2" placeholder="Player 2 Name" style="flex: 1; padding: 0.5rem; background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; border-radius: 4px; color: white;">
+          <select id="player2-type" style="padding: 0.5rem; background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; border-radius: 4px; color: white;">
+            <option value="Human">Human</option>
+            <option value="AI">AI</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <input type="checkbox" id="player3-active" style="cursor: pointer;">
+          <input type="text" id="player3-name-input" value="Player 3" placeholder="Player 3 Name" style="flex: 1; padding: 0.5rem; background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; border-radius: 4px; color: white;">
+          <select id="player3-type" style="padding: 0.5rem; background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; border-radius: 4px; color: white;">
+            <option value="Human">Human</option>
+            <option value="AI">AI</option>
+          </select>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <input type="checkbox" id="player4-active" style="cursor: pointer;">
+          <input type="text" id="player4-name-input" value="Player 4" placeholder="Player 4 Name" style="flex: 1; padding: 0.5rem; background: rgba(243, 156, 18, 0.2); border: 1px solid #f39c12; border-radius: 4px; color: white;">
+          <select id="player4-type" style="padding: 0.5rem; background: rgba(243, 156, 18, 0.2); border: 1px solid #f39c12; border-radius: 4px; color: white;">
+            <option value="Human">Human</option>
+            <option value="AI">AI</option>
+          </select>
+        </div>
       </div>
     </div>
     <div id="challenge-status-bar">
@@ -2183,12 +2261,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           const shuffledEmojiChallenges = [...emojiChallenges].sort(() => 0.5 - Math.random());
           
           const challenges = Array.from({
-            length: 41
+            length: 24
           }, (_, i) => {
-            if (i < 21) {
+            if (i < 12) {
               return challengeTypes[i % challengeTypes.length];
             } else {
-              return shuffledEmojiChallenges[i - 21];
+              return shuffledEmojiChallenges[i - 12];
             }
           });
 
@@ -2246,16 +2324,86 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           const challengePlayers = [{
               name: 'Player 1',
               color: '#3498db',
-              badge: 'P1'
+              badge: 'P1',
+              type: 'Human',
+              active: true
             },
             {
               name: 'Player 2',
               color: '#e74c3c',
-              badge: 'P2'
+              badge: 'P2',
+              type: 'Human',
+              active: true
+            },
+            {
+              name: 'Player 3',
+              color: '#2ecc71',
+              badge: 'P3',
+              type: 'Human',
+              active: false
+            },
+            {
+              name: 'Player 4',
+              color: '#f39c12',
+              badge: 'P4',
+              type: 'Human',
+              active: false
             }
           ];
           let challengeScores = challengePlayers.map(() => 0);
           let currentChallengePlayerIndex = 0;
+          
+          // Track last attempted game type for each tile (for failure retry logic)
+          let tileLastGameType = {};
+
+          // Voice input support (Web Speech API)
+          let recognition = null;
+          if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+            const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+            recognition = new SpeechRecognition();
+            recognition.continuous = false;
+            recognition.interimResults = false;
+            recognition.lang = 'en-GB'; // UK English
+          }
+
+          function addVoiceInputToField(inputField) {
+            if (!recognition) return; // Browser doesn't support speech recognition
+            
+            const container = document.createElement('div');
+            container.className = 'input-with-voice';
+            
+            const voiceBtn = document.createElement('button');
+            voiceBtn.className = 'voice-input-btn';
+            voiceBtn.innerHTML = '🎤';
+            voiceBtn.type = 'button';
+            voiceBtn.title = 'Voice input';
+            
+            // Wrap input field
+            inputField.parentNode.insertBefore(container, inputField);
+            container.appendChild(inputField);
+            container.appendChild(voiceBtn);
+            
+            voiceBtn.addEventListener('click', () => {
+              voiceBtn.classList.add('listening');
+              
+              recognition.onresult = (event) => {
+                const transcript = event.results[0][0].transcript;
+                inputField.value = transcript;
+                voiceBtn.classList.remove('listening');
+              };
+              
+              recognition.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                voiceBtn.classList.remove('listening');
+              };
+              
+              recognition.onend = () => {
+                voiceBtn.classList.remove('listening');
+              };
+              
+              recognition.start();
+            });
+          }
 
           // =============================================================================
           // SHARED UTILITY FUNCTIONS
@@ -2338,6 +2486,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             if (challengePlayerList) {
               const fragment = document.createDocumentFragment();
               challengePlayers.forEach((player, index) => {
+                if (!player.active) return; // Skip inactive players
+                
                 const card = document.createElement('div');
                 card.className = 'challenge-player-card';
                 if (index === currentChallengePlayerIndex) {
@@ -2360,7 +2510,20 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
 
           function advanceChallengeTurn() {
-            currentChallengePlayerIndex = (currentChallengePlayerIndex + 1) % challengePlayers.length;
+            // Only cycle through active players
+            const activePlayers = challengePlayers.filter(p => p.active);
+            if (activePlayers.length === 0) return; // Safety check
+            
+            // Find current player in active list
+            let currentActiveIndex = activePlayers.findIndex((_, i) => {
+              const playerIndex = challengePlayers.indexOf(activePlayers[i]);
+              return playerIndex === currentChallengePlayerIndex;
+            });
+            
+            // Move to next active player
+            currentActiveIndex = (currentActiveIndex + 1) % activePlayers.length;
+            currentChallengePlayerIndex = challengePlayers.indexOf(activePlayers[currentActiveIndex]);
+            
             renderChallengeHud();
           }
 
@@ -2486,7 +2649,34 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
 
           // --- Free Trivia DB API ---
+          // UK-appropriate trivia categories for adult general knowledge
+          // Open Trivia DB category IDs: https://opentdb.com/api_category.php
+          const ukTriviaCategories = [
+            { id: 9, name: 'General Knowledge' },
+            { id: 11, name: 'Film' },
+            { id: 12, name: 'Music' },
+            { id: 21, name: 'Sports' },
+            { id: 22, name: 'Geography' },
+            { id: 23, name: 'History' },
+            { id: 17, name: 'Science & Nature' },
+            { id: 18, name: 'Science: Computers' },
+            { id: 14, name: 'Television' },
+            { id: 10, name: 'Books' },
+            { id: 26, name: 'Celebrities' },
+            { id: 25, name: 'Art' }
+          ];
+
+          function getRandomUKCategory() {
+            return ukTriviaCategories[Math.floor(Math.random() * ukTriviaCategories.length)];
+          }
+
           async function fetchTriviaQuestions(amount = 5, category = null, difficulty = null) {
+            // If no category specified, use random UK-appropriate category
+            if (!category) {
+              const randomCat = getRandomUKCategory();
+              category = randomCat.id;
+            }
+            
             let apiUrl = `https://opentdb.com/api.php?amount=${amount}`;
             if (category) apiUrl += `&category=${category}`;
             if (difficulty) apiUrl += `&difficulty=${difficulty}`;
@@ -3569,7 +3759,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
 
           async function openTask(index) {
-            const challenge = challenges[index];
+            let challenge = challenges[index];
             activeTaskElement = document.querySelector(`.challenge-square[data-challenge-index='${index}']`);
             isTaskCompleted = false;
             stopScoreDecay();
@@ -3578,13 +3768,39 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             taskModalBody.innerHTML = `<div class="text-center p-8"><h3 class="text-2xl mb-2">Preparing Challenge...</h3><p class="text-gray-400">Please wait a moment.</p></div>`;
             taskModalOverlay.classList.add('visible');
 
+            // Check if this tile was previously failed and has a last game type
+            const lastGameType = tileLastGameType[index];
+            
             if (Array.isArray(challenge)) {
+              // If tile failed previously, filter out the last game type
+              let availableChallenges = challenge;
+              if (lastGameType) {
+                availableChallenges = challenge.filter(c => c.type !== lastGameType);
+                // If all options were filtered, reset and use original
+                if (availableChallenges.length === 0) {
+                  availableChallenges = challenge;
+                }
+              }
+              
               taskModalTitle.textContent = "Choose Your Challenge!";
-              taskModalBody.innerHTML = `<div class="task-option-grid">${challenge.map(c => `<button class="task-option-btn" data-challenge-type="${c.type}">${c.icon} ${c.name}</button>`).join('')}</div>`;
+              taskModalBody.innerHTML = `<div class="task-option-grid">${availableChallenges.map(c => `<button class="task-option-btn" data-challenge-type="${c.type}">${c.icon} ${c.name}</button>`).join('')}</div>`;
               taskModalBody.querySelectorAll('.task-option-btn').forEach(btn => {
-                btn.onclick = () => startConcreteTask(btn.dataset.challengeType);
+                btn.onclick = () => {
+                  tileLastGameType[index] = btn.dataset.challengeType;
+                  startConcreteTask(btn.dataset.challengeType);
+                };
               });
             } else {
+              // Single challenge type - if failed previously, try to pick different one from challengeTypes
+              if (lastGameType && lastGameType === challenge.type) {
+                // Pick a different challenge type
+                const availableTypes = challengeTypes.filter(c => c.type !== lastGameType);
+                if (availableTypes.length > 0) {
+                  challenge = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+                }
+              }
+              
+              tileLastGameType[index] = challenge.type;
               startConcreteTask(challenge.type);
             }
           }
@@ -3846,7 +4062,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
 
             taskModalBody.innerHTML = `<h3>Loading questions...</h3><p>Please wait...</p>`;
             
-            const questions = await fetchTriviaQuestions(5, null, 'easy');
+            const questions = await fetchTriviaQuestions(5, null, 'medium');
 
             if (!questions) {
               taskModalBody.innerHTML = `<p class="text-red-500">Failed to load trivia questions. Please try again.</p>`;
@@ -3926,6 +4142,11 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 const q = questions[currentQ];
                 taskModalBody.innerHTML =
                   `<p class="text-xl mb-4">(${currentQ + 1}/3) ${q.question}</p><input type="text" id="typed-answer-input" class="w-full task-input-field" placeholder="Type your answer here..."><button id="submit-trivia3" class="modal-action-btn mt-4">Submit</button>`;
+                
+                // Add voice input to the text field
+                const inputField = document.getElementById('typed-answer-input');
+                if (inputField) addVoiceInputToField(inputField);
+                
                 document.getElementById('submit-trivia3').onclick = () => {
                   const userInput = document.getElementById('typed-answer-input').value.trim().toLowerCase();
                   const correctAnswer = q.answer.toLowerCase();
@@ -5603,7 +5824,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             taskModalBody.innerHTML = `<h3>Loading questions...</h3><p>Please wait...</p>`;
             
-            const questions = await fetchTriviaQuestions(10, null, 'easy');
+            const questions = await fetchTriviaQuestions(10, null, 'medium');
             
             if (!questions) {
               taskModalBody.innerHTML = `<p class="text-red-500">Failed to load questions. Please try again.</p>`;
@@ -6653,6 +6874,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 <button id="emoji-submit-btn" class="modal-action-btn">Submit</button>
               `;
               
+              // Add voice input
+              const inputField = document.getElementById('emoji-answer-input');
+              if (inputField) addVoiceInputToField(inputField);
+              
               document.getElementById('emoji-submit-btn').onclick = () => {
                 const answer = document.getElementById('emoji-answer-input').value.trim();
                 if (answer.length > 0) {
@@ -6816,7 +7041,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           
           loadFilmData();
           
-          // Player Name Management
+          // Player setup event listeners
           document.getElementById('player1-name-input').addEventListener('input', (e) => {
             challengePlayers[0].name = e.target.value || 'Player 1';
             renderChallengeHud();
@@ -6825,6 +7050,262 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           document.getElementById('player2-name-input').addEventListener('input', (e) => {
             challengePlayers[1].name = e.target.value || 'Player 2';
             renderChallengeHud();
+          });
+
+          document.getElementById('player3-name-input').addEventListener('input', (e) => {
+            challengePlayers[2].name = e.target.value || 'Player 3';
+            renderChallengeHud();
+          });
+
+          document.getElementById('player4-name-input').addEventListener('input', (e) => {
+            challengePlayers[3].name = e.target.value || 'Player 4';
+            renderChallengeHud();
+          });
+
+          document.getElementById('player1-type').addEventListener('change', (e) => {
+            challengePlayers[0].type = e.target.value;
+          });
+
+          document.getElementById('player2-type').addEventListener('change', (e) => {
+            challengePlayers[1].type = e.target.value;
+          });
+
+          document.getElementById('player3-type').addEventListener('change', (e) => {
+            challengePlayers[2].type = e.target.value;
+          });
+
+          document.getElementById('player4-type').addEventListener('change', (e) => {
+            challengePlayers[3].type = e.target.value;
+          });
+
+          document.getElementById('player2-active').addEventListener('change', (e) => {
+            challengePlayers[1].active = e.target.checked;
+            renderChallengeHud();
+          });
+
+          document.getElementById('player3-active').addEventListener('change', (e) => {
+            challengePlayers[2].active = e.target.checked;
+            renderChallengeHud();
+          });
+
+          document.getElementById('player4-active').addEventListener('change', (e) => {
+            challengePlayers[3].active = e.target.checked;
+            renderChallengeHud();
+          });
+
+          // Global keyboard handler for closing overlays with Backspace
+          document.addEventListener('keydown', (e) => {
+            if (e.key === 'Backspace') {
+              // Find the top-most visible overlay
+              const taskModal = document.getElementById('task-modal-overlay');
+              const breathingOverlay = document.getElementById('breathingOverlay');
+              const countdownOverlay = document.getElementById('countdownOverlay');
+              const completionOverlay = document.getElementById('completionOverlay');
+              const triviaOverlay = document.getElementById('trivia-game-overlay');
+              const movieOverlay = document.getElementById('movie-playback-overlay');
+              
+              // Check if task modal is visible (highest priority)
+              if (taskModal && taskModal.classList.contains('visible')) {
+                e.preventDefault(); // Prevent backspace navigation
+                closeTaskModal();
+                return;
+              }
+              
+              // Check other overlays
+              if (triviaOverlay && triviaOverlay.classList.contains('visible')) {
+                e.preventDefault();
+                triviaOverlay.classList.remove('visible');
+                return;
+              }
+              
+              if (movieOverlay && movieOverlay.classList.contains('visible')) {
+                e.preventDefault();
+                movieOverlay.classList.remove('visible');
+                return;
+              }
+              
+              if (breathingOverlay && breathingOverlay.classList.contains('visible')) {
+                e.preventDefault();
+                breathingOverlay.classList.remove('visible');
+                clearAllTimers();
+                return;
+              }
+              
+              if (countdownOverlay && countdownOverlay.classList.contains('visible')) {
+                e.preventDefault();
+                countdownOverlay.classList.remove('visible');
+                clearAllTimers();
+                return;
+              }
+              
+              if (completionOverlay && completionOverlay.classList.contains('visible')) {
+                e.preventDefault();
+                completionOverlay.classList.remove('visible');
+                return;
+              }
+            }
+          });
+
+          // Swipe gesture handler for closing overlays (right-to-left swipe)
+          let touchStartX = 0;
+          let touchStartY = 0;
+          let touchEndX = 0;
+          let touchEndY = 0;
+          
+          document.addEventListener('touchstart', (e) => {
+            touchStartX = e.changedTouches[0].screenX;
+            touchStartY = e.changedTouches[0].screenY;
+          }, { passive: true });
+          
+          document.addEventListener('touchend', (e) => {
+            touchEndX = e.changedTouches[0].screenX;
+            touchEndY = e.changedTouches[0].screenY;
+            handleSwipe();
+          }, { passive: true });
+          
+          function handleSwipe() {
+            const swipeThreshold = 100; // Minimum distance for swipe
+            const swipeDistanceX = touchEndX - touchStartX;
+            const swipeDistanceY = Math.abs(touchEndY - touchStartY);
+            
+            // Check for right-to-left swipe (negative X, minimal Y)
+            if (swipeDistanceX < -swipeThreshold && swipeDistanceY < 100) {
+              // Find and close the top-most visible overlay
+              const taskModal = document.getElementById('task-modal-overlay');
+              const breathingOverlay = document.getElementById('breathingOverlay');
+              const countdownOverlay = document.getElementById('countdownOverlay');
+              const completionOverlay = document.getElementById('completionOverlay');
+              const triviaOverlay = document.getElementById('trivia-game-overlay');
+              const movieOverlay = document.getElementById('movie-playback-overlay');
+              
+              if (taskModal && taskModal.classList.contains('visible')) {
+                closeTaskModal();
+                return;
+              }
+              
+              if (triviaOverlay && triviaOverlay.classList.contains('visible')) {
+                triviaOverlay.classList.remove('visible');
+                return;
+              }
+              
+              if (movieOverlay && movieOverlay.classList.contains('visible')) {
+                movieOverlay.classList.remove('visible');
+                return;
+              }
+              
+              if (breathingOverlay && breathingOverlay.classList.contains('visible')) {
+                breathingOverlay.classList.remove('visible');
+                clearAllTimers();
+                return;
+              }
+              
+              if (countdownOverlay && countdownOverlay.classList.contains('visible')) {
+                countdownOverlay.classList.remove('visible');
+                clearAllTimers();
+                return;
+              }
+              
+              if (completionOverlay && completionOverlay.classList.contains('visible')) {
+                completionOverlay.classList.remove('visible');
+                return;
+              }
+            }
+          }
+
+          // Make panels draggable on iPad
+          function makePanelDraggable(panel) {
+            let isDragging = false;
+            let currentX = 0;
+            let currentY = 0;
+            let initialX = 0;
+            let initialY = 0;
+            let xOffset = 0;
+            let yOffset = 0;
+            
+            // Load saved position
+            const savedPos = localStorage.getItem(`panel-position-${panel.id}`);
+            if (savedPos) {
+              const pos = JSON.parse(savedPos);
+              xOffset = pos.x;
+              yOffset = pos.y;
+              panel.style.transform = `translate(${xOffset}px, ${yOffset}px)`;
+            }
+            
+            const header = panel.querySelector('.panel-header');
+            if (!header) return;
+            
+            header.style.cursor = 'move';
+            header.style.touchAction = 'none';
+            
+            function dragStart(e) {
+              if (e.type === 'touchstart') {
+                initialX = e.touches[0].clientX - xOffset;
+                initialY = e.touches[0].clientY - yOffset;
+              } else {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+              }
+              
+              if (e.target === header || header.contains(e.target)) {
+                isDragging = true;
+              }
+            }
+            
+            function drag(e) {
+              if (!isDragging) return;
+              
+              e.preventDefault();
+              
+              if (e.type === 'touchmove') {
+                currentX = e.touches[0].clientX - initialX;
+                currentY = e.touches[0].clientY - initialY;
+              } else {
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+              }
+              
+              // Constrain to viewport bounds
+              const panelRect = panel.getBoundingClientRect();
+              const maxX = window.innerWidth - panelRect.width;
+              const maxY = window.innerHeight - panelRect.height;
+              
+              currentX = Math.max(0, Math.min(currentX, maxX));
+              currentY = Math.max(0, Math.min(currentY, maxY));
+              
+              xOffset = currentX;
+              yOffset = currentY;
+              
+              panel.style.transform = `translate(${currentX}px, ${currentY}px)`;
+              panel.style.transition = 'none';
+            }
+            
+            function dragEnd(e) {
+              if (isDragging) {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+                
+                // Save position
+                localStorage.setItem(`panel-position-${panel.id}`, JSON.stringify({
+                  x: xOffset,
+                  y: yOffset
+                }));
+                
+                panel.style.transition = '';
+              }
+            }
+            
+            header.addEventListener('mousedown', dragStart);
+            header.addEventListener('touchstart', dragStart, { passive: false });
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchend', dragEnd);
+          }
+          
+          // Apply draggable to all panels
+          document.querySelectorAll('.panel').forEach(panel => {
+            makePanelDraggable(panel);
           });
         });
   </script>
