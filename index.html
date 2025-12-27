@@ -949,37 +949,6 @@
       cursor: not-allowed;
     }
 
-    /* DAB Tile Styling */
-    .challenge-square.dab-tile {
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      animation: dabPulse 2s ease-in-out infinite;
-    }
-
-    .challenge-square.dab-tile .dab-text {
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 3rem;
-      font-weight: 900;
-      color: white;
-      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
-      letter-spacing: 0.1em;
-      z-index: 1;
-    }
-
-    @keyframes dabPulse {
-      0%, 100% {
-        transform: scale(1);
-        box-shadow: 0 0 20px rgba(102, 126, 234, 0.6);
-      }
-      50% {
-        transform: scale(1.05);
-        box-shadow: 0 0 30px rgba(118, 75, 162, 0.8);
-      }
-    }
-
     @keyframes bonusPulse {
       0% {
         transform: translate(-50%, -50%) scale(0.5);
@@ -1979,47 +1948,60 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           ];
           
-          // Random emoji challenges (20 total)
-          const emojiChallenges = [
-            { type: 'emoji1', name: 'Emoji Challenge', icon: '🎭' },
-            { type: 'emoji2', name: 'Emoji Challenge', icon: '🎪' },
-            { type: 'emoji3', name: 'Emoji Challenge', icon: '🎨' },
-            { type: 'emoji4', name: 'Emoji Challenge', icon: '🎸' },
-            { type: 'emoji5', name: 'Emoji Challenge', icon: '🎺' },
-            { type: 'emoji6', name: 'Emoji Challenge', icon: '🎮' },
-            { type: 'emoji7', name: 'Emoji Challenge', icon: '🎯' },
-            { type: 'emoji8', name: 'Emoji Challenge', icon: '🎲' },
-            { type: 'emoji9', name: 'Emoji Challenge', icon: '🎰' },
-            { type: 'emoji10', name: 'Emoji Challenge', icon: '🎳' },
-            { type: 'emoji11', name: 'Emoji Challenge', icon: '🎹' },
-            { type: 'emoji12', name: 'Emoji Challenge', icon: '🎬' },
-            { type: 'emoji13', name: 'Emoji Challenge', icon: '🎤' },
-            { type: 'emoji14', name: 'Emoji Challenge', icon: '🎧' },
-            { type: 'emoji15', name: 'Emoji Challenge', icon: '🎼' },
-            { type: 'emoji16', name: 'Emoji Challenge', icon: '🎵' },
-            { type: 'emoji17', name: 'Emoji Challenge', icon: '🎶' },
-            { type: 'emoji18', name: 'Emoji Challenge', icon: '🎟️' },
-            { type: 'emoji19', name: 'Emoji Challenge', icon: '🎭' },
-            { type: 'emoji20', name: 'Emoji Challenge', icon: '🎪' }
-          ];
-          
-          // Shuffle emoji challenges
-          const shuffledEmojiChallenges = [...emojiChallenges].sort(() => 0.5 - Math.random());
-          
-          // Shuffle challengeTypes for even distribution
-          const shuffledChallengeTypes = [...challengeTypes].sort(() => 0.5 - Math.random());
-          
-          const challenges = Array.from({
-            length: 24
-          }, (_, i) => {
-            if (i < 12) {
-              // First 12 tiles: use shuffled main challenges (even distribution)
-              return shuffledChallengeTypes[i % shuffledChallengeTypes.length];
-            } else {
-              // Last 12 tiles: use emoji challenges
-              return shuffledEmojiChallenges[i - 12];
+          // Function to distribute challenges evenly with minimal clumping
+          function distributeEvenly(challengeTypes, gridSize) {
+            const result = [];
+            const typeCount = challengeTypes.length;
+            
+            // Calculate how many times each challenge should appear
+            const timesPerChallenge = Math.floor(gridSize / typeCount);
+            const remainder = gridSize % typeCount;
+            
+            // Create a pool with the right number of each challenge
+            const pool = [];
+            challengeTypes.forEach((challenge, idx) => {
+              const count = timesPerChallenge + (idx < remainder ? 1 : 0);
+              for (let i = 0; i < count; i++) {
+                pool.push(challenge);
+              }
+            });
+            
+            // Shuffle the pool
+            for (let i = pool.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [pool[i], pool[j]] = [pool[j], pool[i]];
             }
-          });
+            
+            // Place challenges avoiding adjacent duplicates where possible
+            result.push(pool[0]);
+            const remaining = pool.slice(1);
+            
+            for (let i = 0; i < gridSize - 1; i++) {
+              const lastType = result[result.length - 1].type;
+              
+              // Try to find a different type
+              let foundDifferent = false;
+              for (let j = 0; j < remaining.length; j++) {
+                if (remaining[j].type !== lastType) {
+                  result.push(remaining[j]);
+                  remaining.splice(j, 1);
+                  foundDifferent = true;
+                  break;
+                }
+              }
+              
+              // If no different type found, just use the first one
+              if (!foundDifferent && remaining.length > 0) {
+                result.push(remaining[0]);
+                remaining.splice(0, 1);
+              }
+            }
+            
+            return result;
+          }
+          
+          // Distribute 24 challenges evenly across the grid
+          const challenges = distributeEvenly(challengeTypes, 24);
 
           const challengeUIColors = {
             trivia: 'rgba(52, 152, 219, 0.5)',
@@ -2046,29 +2028,28 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             paintSplatter: 'rgba(121, 85, 72, 0.5)',
             timestampMatch: 'rgba(96, 125, 139, 0.5)',
             videoQuarterPuzzle: 'rgba(156, 39, 176, 0.5)',
-            creativeChallenge: 'rgba(103, 58, 183, 0.5)',
-            // Emoji challenges
-            emoji1: 'rgba(255, 99, 71, 0.5)',
-            emoji2: 'rgba(75, 192, 192, 0.5)',
-            emoji3: 'rgba(153, 102, 255, 0.5)',
-            emoji4: 'rgba(255, 159, 64, 0.5)',
-            emoji5: 'rgba(54, 162, 235, 0.5)',
-            emoji6: 'rgba(255, 206, 86, 0.5)',
-            emoji7: 'rgba(231, 233, 237, 0.5)',
-            emoji8: 'rgba(255, 99, 132, 0.5)',
-            emoji9: 'rgba(255, 205, 210, 0.5)',
-            emoji10: 'rgba(179, 157, 219, 0.5)',
-            emoji11: 'rgba(149, 117, 205, 0.5)',
-            emoji12: 'rgba(186, 85, 211, 0.5)',
-            emoji13: 'rgba(123, 104, 238, 0.5)',
-            emoji14: 'rgba(72, 209, 204, 0.5)',
-            emoji15: 'rgba(32, 178, 170, 0.5)',
-            emoji16: 'rgba(135, 206, 235, 0.5)',
-            emoji17: 'rgba(176, 224, 230, 0.5)',
-            emoji18: 'rgba(240, 128, 128, 0.5)',
-            emoji19: 'rgba(244, 164, 96, 0.5)',
-            emoji20: 'rgba(189, 183, 107, 0.5)',
+            creativeChallenge: 'rgba(103, 58, 183, 0.5)'
           };
+          
+          // Image shuffle-bag system - ensures all 34 PNGs are used before repeating
+          let imageBag = [];
+          const TOTAL_IMAGES = 34;
+          
+          function getNextImage() {
+            if (imageBag.length === 0) {
+              // Refill the bag with all 34 images
+              imageBag = Array.from({ length: TOTAL_IMAGES }, (_, i) => i + 1);
+              // Shuffle the bag
+              for (let i = imageBag.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [imageBag[i], imageBag[j]] = [imageBag[j], imageBag[i]];
+              }
+            }
+            return imageBag.pop();
+          }
+          
+          // Pre-assign images for the grid
+          const gridImages = Array.from({ length: 24 }, () => getNextImage());
 
           const challengePlayers = [{
               name: 'Player 1',
@@ -3492,33 +3473,18 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             challengeGrid.innerHTML = '';
             resetChallengeGameState();
             
-            // Randomly select 3-5 tiles to be DAB tiles
-            const numDabTiles = Math.floor(Math.random() * 3) + 3; // 3 to 5 DAB tiles
-            const dabIndices = new Set();
-            while (dabIndices.size < numDabTiles) {
-              dabIndices.add(Math.floor(Math.random() * challenges.length));
-            }
-            
             challenges.forEach((challenge, index) => {
               const square = document.createElement('div');
               square.className = 'challenge-square';
               square.dataset.challengeIndex = index;
               square.dataset.owner = '';
               
-              // Check if this should be a DAB tile
-              if (dabIndices.has(index)) {
-                square.classList.add('dab-tile');
-                square.innerHTML = `
-                      <div class="dab-text">DAB</div>
-                      <div class="status-overlay"></div>
-                  `;
-              } else {
-                // FIX: Use image instead of emoji icon
-                square.innerHTML = `
-                      <div class="w-full h-full flex items-center justify-center" style="background-image: url('images/${index + 1}.png'); background-size: cover; background-position: center;"></div>
-                      <div class="status-overlay"></div>
-                  `;
-              }
+              // Use image from shuffle-bag - ensures all 34 images are used
+              const imageNum = gridImages[index];
+              square.innerHTML = `
+                    <div class="w-full h-full flex items-center justify-center" style="background-image: url('images/${imageNum}.png'); background-size: cover; background-position: center;"></div>
+                    <div class="status-overlay"></div>
+                `;
               
               square.addEventListener('click', () => {
                 if (!square.classList.contains('completed') && !square.classList.contains('failed')) {
@@ -3656,13 +3622,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 break;
               case 'splashClick':
                 setupSplashClickTask();
-                break;
-              
-              // Emoji challenges (simple trivia challenges)
-              default:
-                if (type.startsWith('emoji')) {
-                  setupEmojiChallengeTask();
-                }
                 break;
             }
           }
@@ -5315,10 +5274,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   sequence.push(Math.floor(Math.random() * gridSize));
                 }
                 
-                // Select 9 random tile images
+                // Select 9 images from shuffle-bag (ensures all 34 are used over time)
                 const tileImages = [];
                 for (let i = 0; i < gridSize; i++) {
-                  const imageNum = Math.floor(Math.random() * 34) + 1; // 1-34
+                  const imageNum = getNextImage();
                   tileImages.push(`images/${imageNum}.png`);
                 }
                 
@@ -6365,69 +6324,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
           }
 
-          // --- Slingo Minigame ---
-          // Emoji Challenge - Quick trivia or simple task
-          async function setupEmojiChallengeTask() {
-            taskModalTitle.textContent = "Quick Challenge! ⚡";
-            
-            // Fetch a quick trivia question
-            const questions = await fetchTriviaQuestions(1);
-            
-            if (!questions || questions.length === 0) {
-              taskModalBody.innerHTML = `
-                <h3>Lightning Round!</h3>
-                <p>Name 3 countries starting with the letter 'S'!</p>
-                <input type="text" id="emoji-answer-input" class="task-input-field" placeholder="Type your answer..." style="width: 100%; margin: 1rem 0;">
-                <button id="emoji-submit-btn" class="modal-action-btn">Submit</button>
-              `;
-              
-              // Add voice input
-              const inputField = document.getElementById('emoji-answer-input');
-              if (inputField) addVoiceInputToField(inputField);
-              
-              document.getElementById('emoji-submit-btn').onclick = () => {
-                const answer = document.getElementById('emoji-answer-input').value.trim();
-                if (answer.length > 0) {
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Great effort!</h2></div>`;
-                  setTimeout(() => {
-                    updateMainScore(500);
-                    markTaskComplete();
-                  }, 1000);
-                } else {
-                  alert('Please enter an answer!');
-                }
-              };
-              return;
-            }
-            
-            const q = questions[0];
-            taskModalBody.innerHTML = `
-              <h3>Quick Question!</h3>
-              <p class="text-xl mb-4">${q.question}</p>
-              <div class="task-option-grid">
-                ${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}
-              </div>
-            `;
-            
-            document.querySelectorAll('.task-option-btn').forEach(btn => {
-              btn.onclick = () => {
-                const selectedIndex = parseInt(btn.dataset.index);
-                const correctIndex = q.correctAnswerIndex;
-                
-                if (selectedIndex === correctIndex) {
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Correct!</h2></div>`;
-                  setTimeout(() => {
-                    updateMainScore(750);
-                    markTaskComplete();
-                  }, 1000);
-                } else {
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong!</h2></div>`;
-                  setTimeout(() => closeTaskModal(), 1500);
-                }
-              };
-            });
-          }
-
           // --- Initial Setup ---
           function populateVoices() {
             const voices = speechSynthesis.getVoices();
@@ -6600,9 +6496,18 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             renderChallengeHud();
           });
 
-          // Global keyboard handler for closing overlays with Backspace
+          // Global keyboard handler for closing overlays with Cmd+Backspace
           document.addEventListener('keydown', (e) => {
-            if (e.key === 'Backspace') {
+            // Only trigger on Cmd+Backspace (metaKey for Mac, Ctrl for Windows fallback)
+            if ((e.metaKey || e.ctrlKey) && e.key === 'Backspace') {
+              // Don't interfere with text editing in input fields
+              const activeElement = document.activeElement;
+              const isInputField = activeElement && (
+                activeElement.tagName === 'INPUT' || 
+                activeElement.tagName === 'TEXTAREA' || 
+                activeElement.isContentEditable
+              );
+              
               // Find the top-most visible overlay
               const taskModal = document.getElementById('task-modal-overlay');
               const breathingOverlay = document.getElementById('breathingOverlay');
@@ -6613,7 +6518,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               
               // Check if task modal is visible (highest priority)
               if (taskModal && taskModal.classList.contains('visible')) {
-                e.preventDefault(); // Prevent backspace navigation
+                e.preventDefault();
                 closeTaskModal();
                 return;
               }
