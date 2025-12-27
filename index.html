@@ -5150,12 +5150,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               `;
               
               const player = document.getElementById('memory-player');
+              const createdUrls = []; // Track URLs for cleanup
               
               for (let i = 0; i < 6; i++) {
                 document.getElementById('clip-number').textContent = i + 1;
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
                 const url = URL.createObjectURL(file);
+                createdUrls.push(url);
                 
                 player.src = url;
                 await new Promise(resolve => {
@@ -5176,6 +5178,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const clipThumbnails = await Promise.all(selectedIndices.map(async (videoIndex, i) => {
                 const file = videoFiles[videoIndex];
                 const url = URL.createObjectURL(file);
+                createdUrls.push(url);
                 const video = document.createElement('video');
                 video.src = url;
                 await new Promise(resolve => {
@@ -5265,12 +5268,16 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
                     
                     if (isCorrect) {
+                      // Clean up URLs
+                      createdUrls.forEach(url => URL.revokeObjectURL(url));
                       taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You got the order exactly right!</p></div>`;
                       setTimeout(() => {
                         updateMainScore(3000);
                         markTaskComplete();
                       }, 1500);
                     } else {
+                      // Clean up URLs
+                      createdUrls.forEach(url => URL.revokeObjectURL(url));
                       taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Incorrect!</h2><p>The order wasn't quite right.</p></div>`;
                       setTimeout(() => closeTaskModal(), 2000);
                     }
@@ -6307,8 +6314,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               challengeText = "Tell us your funniest cloud-related story!";
             }
             
-            // Get active players
-            const activePlayers = challengePlayers.filter(p => p.active);
+            // Get active players with their global indices
+            const activePlayers = challengePlayers
+              .map((p, globalIdx) => ({ player: p, globalIndex: globalIdx }))
+              .filter(item => item.player.active);
             
             taskModalBody.innerHTML = `
               <div style="text-align: center;">
@@ -6325,10 +6334,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 
                 <h3 style="margin-bottom: 1rem;">Who completed it better?</h3>
                 <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem; flex-wrap: wrap;">
-                  ${activePlayers.map((player, idx) => {
-                    const globalIndex = challengePlayers.indexOf(player);
-                    return `<button id="player${globalIndex}-win" class="modal-action-btn" style="background: ${player.color};">
-                      ${player.badge} Wins
+                  ${activePlayers.map(item => {
+                    return `<button id="player${item.globalIndex}-win" class="modal-action-btn" style="background: ${item.player.color};">
+                      ${item.player.badge} Wins
                     </button>`;
                   }).join('')}
                 </div>
@@ -6340,11 +6348,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             `;
             
             // Set up winner click handlers
-            activePlayers.forEach((player, idx) => {
-              const globalIndex = challengePlayers.indexOf(player);
-              document.getElementById(`player${globalIndex}-win`).onclick = () => {
-                currentChallengePlayerIndex = globalIndex;
-                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🏆 ${player.badge} Wins!</h2><p>They get the next turn!</p></div>`;
+            activePlayers.forEach(item => {
+              document.getElementById(`player${item.globalIndex}-win`).onclick = () => {
+                currentChallengePlayerIndex = item.globalIndex;
+                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🏆 ${item.player.badge} Wins!</h2><p>They get the next turn!</p></div>`;
                 setTimeout(() => {
                   closeTaskModal();
                   // Winner gets next turn, so don't advance
