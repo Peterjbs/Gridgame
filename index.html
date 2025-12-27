@@ -3804,6 +3804,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
 
           taskModalCloseBtn.addEventListener('click', closeTaskModal);
+          
+          // Add keyboard shortcut to close task modal (Escape key)
+          document.addEventListener('keydown', (event) => {
+            if (event.key === 'Escape' && taskModalOverlay.classList.contains('visible')) {
+              closeTaskModal();
+            }
+          });
 
           // --- Win/Loss Screen ---
           function showWinLossScreen(correctAnswers, totalQuestions, onComplete) {
@@ -3839,7 +3846,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
 
             taskModalBody.innerHTML = `<h3>Loading questions...</h3><p>Please wait...</p>`;
             
-            const questions = await fetchTriviaQuestions(5);
+            const questions = await fetchTriviaQuestions(5, null, 'easy');
 
             if (!questions) {
               taskModalBody.innerHTML = `<p class="text-red-500">Failed to load trivia questions. Please try again.</p>`;
@@ -5590,13 +5597,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
           }
 
-          // 6. Trivia Speed Quiz - 10 questions from Open Trivia DB in 1 minute
+          // 6. Trivia Speed Quiz - Answer 5 questions correctly in 45 seconds
           async function setupTriviaSpeedQuizTask() {
             taskModalTitle.textContent = "Trivia Speed Quiz ⚡";
             
             taskModalBody.innerHTML = `<h3>Loading questions...</h3><p>Please wait...</p>`;
             
-            const questions = await fetchTriviaQuestions(10);
+            const questions = await fetchTriviaQuestions(10, null, 'easy');
             
             if (!questions) {
               taskModalBody.innerHTML = `<p class="text-red-500">Failed to load questions. Please try again.</p>`;
@@ -5605,12 +5612,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             let correctAnswers = 0;
             let currentQ = 0;
-            let timeLeft = 60;
+            let timeLeft = 45;
             let quizOver = false;
             
             taskModalBody.innerHTML = `
-              <h3>Answer 10 questions correctly!</h3>
-              <p>Time limit: 60 seconds</p>
+              <h3>Answer 5 questions correctly!</h3>
+              <p>Time limit: 45 seconds</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Quiz</button>
             `;
             
@@ -5618,12 +5625,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const timerInterval = setInterval(() => {
                 timeLeft--;
                 const timerEl = document.getElementById('quiz-timer');
-                if (timerEl) timerEl.textContent = `Time: ${timeLeft}s`;
+                if (timerEl) timerEl.innerHTML = `Time: ${timeLeft}s`;
                 
                 if (timeLeft <= 0 && !quizOver) {
                   quizOver = true;
                   clearInterval(timerInterval);
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>${correctAnswers}/10 correct</p></div>`;
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>${correctAnswers}/5 correct</p><p>You needed 5 correct answers to win.</p></div>`;
                   setTimeout(() => closeTaskModal(), 2000);
                 }
               }, 1000);
@@ -5634,10 +5641,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const renderQuestion = () => {
                 if (quizOver) return;
                 
-                if (correctAnswers >= 10) {
+                if (correctAnswers >= 5) {
                   quizOver = true;
                   clearInterval(timerInterval);
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect Score!</h2><p>10/10 in ${60 - timeLeft}s</p></div>`;
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Success!</h2><p>5 correct in ${45 - timeLeft}s</p></div>`;
                   setTimeout(() => {
                     updateMainScore(3000);
                     markTaskComplete();
@@ -5646,18 +5653,18 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 }
                 
                 if (currentQ >= questions.length) {
-                  // Need more questions but didn't get 10 correct
+                  // Need more questions but didn't get 5 correct
                   quizOver = true;
                   clearInterval(timerInterval);
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>📝 Not enough!</h2><p>Only ${correctAnswers}/10 correct</p></div>`;
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>📝 Not enough!</h2><p>Only ${correctAnswers}/5 correct</p></div>`;
                   setTimeout(() => closeTaskModal(), 2000);
                   return;
                 }
                 
                 const q = questions[currentQ];
                 taskModalBody.innerHTML = `
-                  <div id="quiz-timer" style="text-align: center; font-size: 1.5rem; margin-bottom: 1rem;">Time: ${timeLeft}s</div>
-                  <div style="text-align: center; font-size: 1.2rem; margin-bottom: 0.5rem;">Score: ${correctAnswers}/10</div>
+                  <div id="quiz-timer" style="text-align: center; font-size: 1.5rem; margin-bottom: 1rem; font-weight: bold; color: #f59e0b;">Time: ${timeLeft}s</div>
+                  <div style="text-align: center; font-size: 1.2rem; margin-bottom: 0.5rem; font-weight: bold; color: #10b981;">Score: ${correctAnswers}/5</div>
                   <p class="text-xl mb-4">${q.question}</p>
                   <div class="task-option-grid">
                     ${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}
@@ -5838,6 +5845,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 tempVideo.onloadedmetadata = () => resolve();
               });
               
+              // Check if video is long enough (at least 20 minutes to ensure 10+ minute gap is possible)
+              if (tempVideo.duration < 1200) {
+                taskModalBody.innerHTML = `<p class="text-red-500">Video must be at least 20 minutes long for this challenge to ensure clips are sufficiently far apart.</p>`;
+                return;
+              }
+              
               const targetTime = Math.random() * (tempVideo.duration - 10);
               
               taskModalBody.innerHTML = `
@@ -5867,14 +5880,20 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               let gameOver = false;
               let currentJumpTime = 0;
               
-              // Jump around every 2 seconds
+              // Jump around every 2 seconds, ensuring clips are at least 10 minutes apart
               const jumpInterval = setInterval(() => {
                 if (gameOver) {
                   clearInterval(jumpInterval);
                   return;
                 }
                 
-                currentJumpTime = Math.random() * tempVideo.duration;
+                // Generate a jump time that is at least 600 seconds (10 minutes) away from target
+                let newJumpTime;
+                do {
+                  newJumpTime = Math.random() * tempVideo.duration;
+                } while (Math.abs(newJumpTime - targetTime) < 600);
+                
+                currentJumpTime = newJumpTime;
                 player.currentTime = currentJumpTime;
                 player.play();
               }, 2000);
