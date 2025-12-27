@@ -5625,7 +5625,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const timerInterval = setInterval(() => {
                 timeLeft--;
                 const timerEl = document.getElementById('quiz-timer');
-                if (timerEl) timerEl.textContent = `Time: ${timeLeft}s`;
+                if (timerEl) timerEl.innerHTML = `Time: ${timeLeft}s`;
                 
                 if (timeLeft <= 0 && !quizOver) {
                   quizOver = true;
@@ -5845,9 +5845,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 tempVideo.onloadedmetadata = () => resolve();
               });
               
-              // Check if video is long enough (at least 10 minutes)
-              if (tempVideo.duration < 600) {
-                taskModalBody.innerHTML = `<p class="text-red-500">Video must be at least 10 minutes long for this challenge.</p>`;
+              // Check if video is long enough (at least 20 minutes to ensure 10+ minute gap is possible)
+              if (tempVideo.duration < 1200) {
+                taskModalBody.innerHTML = `<p class="text-red-500">Video must be at least 20 minutes long for this challenge to ensure clips are sufficiently far apart.</p>`;
                 return;
               }
               
