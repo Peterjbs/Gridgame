@@ -2001,7 +2001,22 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
           
           // Distribute 24 challenges evenly across the grid
-          const challenges = distributeEvenly(challengeTypes, 24);
+          let challenges = distributeEvenly(challengeTypes, 24);
+          
+          // Add "pick the game" mechanics - convert some tiles to 3-choice options
+          // Let's make every 4th tile (6 total) a 3-choice tile
+          const threeChoiceIndices = [3, 7, 11, 15, 19, 23];
+          threeChoiceIndices.forEach(index => {
+            // Pick 3 distinct random challenges
+            const availableTypes = [...challengeTypes];
+            const threeChoices = [];
+            for (let i = 0; i < 3; i++) {
+              const randomIndex = Math.floor(Math.random() * availableTypes.length);
+              threeChoices.push(availableTypes[randomIndex]);
+              availableTypes.splice(randomIndex, 1); // Remove to ensure distinct
+            }
+            challenges[index] = threeChoices;
+          });
 
           const challengeUIColors = {
             trivia: 'rgba(52, 152, 219, 0.5)',

@@ -1557,9 +1557,60 @@
             },
             // AI challenges disabled - aiChallenge removed
           ];
-          const challenges = Array.from({
-            length: 21
-          }, (_, i) => challengeTypes[i % challengeTypes.length]);
+          
+          // Function to distribute challenges evenly with minimal clumping
+          function distributeEvenly(challengeTypes, gridSize) {
+            const result = [];
+            const typeCount = challengeTypes.length;
+            
+            // Calculate how many times each challenge should appear
+            const timesPerChallenge = Math.floor(gridSize / typeCount);
+            const remainder = gridSize % typeCount;
+            
+            // Create a pool with the right number of each challenge
+            const pool = [];
+            challengeTypes.forEach((challenge, idx) => {
+              const count = timesPerChallenge + (idx < remainder ? 1 : 0);
+              for (let i = 0; i < count; i++) {
+                pool.push(challenge);
+              }
+            });
+            
+            // Shuffle the pool
+            for (let i = pool.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [pool[i], pool[j]] = [pool[j], pool[i]];
+            }
+            
+            // Place challenges avoiding adjacent duplicates where possible
+            result.push(pool[0]);
+            const remaining = pool.slice(1);
+            
+            for (let i = 0; i < gridSize - 1; i++) {
+              const lastType = result[result.length - 1].type;
+              
+              // Try to find a different type
+              let foundDifferent = false;
+              for (let j = 0; j < remaining.length; j++) {
+                if (remaining[j].type !== lastType) {
+                  result.push(remaining[j]);
+                  remaining.splice(j, 1);
+                  foundDifferent = true;
+                  break;
+                }
+              }
+              
+              // If no different type found, just use the first one
+              if (!foundDifferent && remaining.length > 0) {
+                result.push(remaining[0]);
+                remaining.splice(0, 1);
+              }
+            }
+            
+            return result;
+          }
+          
+          const challenges = distributeEvenly(challengeTypes, 21);
 
           const challengeUIColors = {
             trivia1: 'rgba(52, 152, 219, 0.5)',
