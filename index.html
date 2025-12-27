@@ -994,249 +994,6 @@
       }
     }
 
-    /* Slingo Game Styles */
-    .slingo-container {
-      display: flex;
-      flex-direction: column;
-      gap: 1.5rem;
-      max-width: 600px;
-      margin: 0 auto;
-      padding: 1rem;
-    }
-
-    .slingo-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 1rem;
-      background: rgba(0, 0, 0, 0.5);
-      border-radius: 8px;
-    }
-
-    .slingo-stats {
-      display: flex;
-      gap: 2rem;
-      font-size: 1.1rem;
-      font-weight: bold;
-    }
-
-    .slingo-bank {
-      color: #fbbf24;
-    }
-
-    .slingo-spins {
-      color: #3b82f6;
-    }
-
-    .slingo-lines {
-      color: #10b981;
-    }
-
-    .slingo-grid {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 0.5rem;
-      background: rgba(20, 20, 20, 0.8);
-      padding: 1rem;
-      border-radius: 12px;
-      border: 3px solid rgba(255, 215, 0, 0.3);
-    }
-
-    .slingo-column-header {
-      font-size: 1.5rem;
-      font-weight: 900;
-      color: #ffd700;
-      text-align: center;
-      padding: 0.5rem;
-      background: rgba(255, 215, 0, 0.2);
-      border-radius: 4px;
-    }
-
-    .slingo-cell {
-      aspect-ratio: 1;
-      background: rgba(50, 50, 50, 0.8);
-      border: 2px solid rgba(255, 255, 255, 0.2);
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 1.5rem;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .slingo-cell.free {
-      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-      font-size: 1rem;
-    }
-
-    .slingo-cell.marked {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-      transform: scale(0.95);
-    }
-
-    .slingo-cell.marked::after {
-      content: '✓';
-      position: absolute;
-      inset: 0;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.5rem;
-      color: white;
-      text-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
-    }
-
-    .slingo-reels {
-      display: grid;
-      grid-template-columns: repeat(5, 1fr);
-      gap: 0.5rem;
-      padding: 1rem;
-      background: rgba(30, 30, 30, 0.8);
-      border-radius: 8px;
-    }
-
-    .slingo-reel {
-      background: rgba(50, 50, 50, 0.8);
-      border: 2px solid rgba(255, 215, 0, 0.3);
-      border-radius: 8px;
-      padding: 1rem;
-      aspect-ratio: 1;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2rem;
-      font-weight: bold;
-      color: #ffd700;
-      animation: reelSpin 0.5s ease-in-out;
-    }
-
-    @keyframes reelSpin {
-      0%, 100% {
-        transform: translateY(0);
-      }
-      50% {
-        transform: translateY(-10px);
-      }
-    }
-
-    .slingo-reel.wild {
-      background: linear-gradient(135deg, #8b5cf6 0%, #6366f1 100%);
-      animation: wildPulse 1s ease-in-out infinite;
-    }
-
-    .slingo-reel.super-wild {
-      background: linear-gradient(135deg, #ec4899 0%, #f43f5e 100%);
-      animation: superWildPulse 1s ease-in-out infinite;
-    }
-
-    @keyframes wildPulse {
-      0%, 100% {
-        box-shadow: 0 0 20px rgba(139, 92, 246, 0.6);
-      }
-      50% {
-        box-shadow: 0 0 40px rgba(139, 92, 246, 1);
-      }
-    }
-
-    @keyframes superWildPulse {
-      0%, 100% {
-        box-shadow: 0 0 20px rgba(236, 72, 153, 0.6);
-      }
-      50% {
-        box-shadow: 0 0 40px rgba(236, 72, 153, 1);
-      }
-    }
-
-    .slingo-controls {
-      display: flex;
-      gap: 1rem;
-      justify-content: center;
-      flex-wrap: wrap;
-    }
-
-    .slingo-button {
-      padding: 0.75rem 2rem;
-      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
-      color: white;
-      font-weight: bold;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.2s;
-      font-size: 1rem;
-    }
-
-    .slingo-button:hover:not(:disabled) {
-      transform: translateY(-2px);
-      box-shadow: 0 5px 20px rgba(59, 130, 246, 0.5);
-    }
-
-    .slingo-button:disabled {
-      opacity: 0.5;
-      cursor: not-allowed;
-    }
-
-    .slingo-button.primary {
-      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-      font-size: 1.2rem;
-    }
-
-    .slingo-button.success {
-      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-    }
-
-    .slingo-button.danger {
-      background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-    }
-
-    .slingo-token-animation {
-      position: absolute;
-      font-size: 2rem;
-      pointer-events: none;
-      animation: flyToCell 0.6s ease-out forwards;
-    }
-
-    @keyframes flyToCell {
-      0% {
-        transform: translate(0, 0) scale(1);
-        opacity: 1;
-      }
-      100% {
-        transform: translate(var(--tx), var(--ty)) scale(0.5);
-        opacity: 0;
-      }
-    }
-
-    .slingo-win-overlay {
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.9);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      z-index: 1000;
-      animation: fadeIn 0.3s ease-in;
-    }
-
-    .slingo-win-content {
-      background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
-      padding: 3rem;
-      border-radius: 20px;
-      text-align: center;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
-    }
-
-    .slingo-win-content h2 {
-      font-size: 3rem;
-      margin-bottom: 1rem;
-      color: white;
-      text-shadow: 2px 2px 8px rgba(0, 0, 0, 0.5);
-    }
 
     @keyframes fadeIn {
       from {
@@ -2116,11 +1873,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           const AI_REQUIRED_CHALLENGES = new Set(['aiChallenge', 'audioAnagram']);
 
           const challengeTypes = [{
-              type: 'trivia1',
-              name: 'Trivia',
-              icon: '?'
-            },
-            {
               type: 'matchPairs',
               name: 'Match Pairs',
               icon: '?'
@@ -2132,20 +1884,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               icon: '?'
             },
             {
-              type: 'trivia2',
-              name: 'Select All',
-              icon: '?'
-            },
-            {
               type: 'blowback',
               name: 'Blowback',
               icon: '?'
             },
-            // AI challenges disabled - audioAnagram removed
             {
-              type: 'trivia3',
-              name: 'Type It In',
-              icon: '?'
+              type: 'trivia',
+              name: 'Trivia Challenge',
+              icon: '❓'
             },
 
             {
@@ -2225,11 +1971,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               type: 'splashClick',
               name: 'Emoji Clicker',
               icon: '💦'
-            },
-            {
-              type: 'slingo',
-              name: 'Slingo',
-              icon: '🎰'
             }
           ];
           
@@ -2260,20 +2001,23 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           // Shuffle emoji challenges
           const shuffledEmojiChallenges = [...emojiChallenges].sort(() => 0.5 - Math.random());
           
+          // Shuffle challengeTypes for even distribution
+          const shuffledChallengeTypes = [...challengeTypes].sort(() => 0.5 - Math.random());
+          
           const challenges = Array.from({
             length: 24
           }, (_, i) => {
             if (i < 12) {
-              return challengeTypes[i % challengeTypes.length];
+              // First 12 tiles: use shuffled main challenges (even distribution)
+              return shuffledChallengeTypes[i % shuffledChallengeTypes.length];
             } else {
+              // Last 12 tiles: use emoji challenges
               return shuffledEmojiChallenges[i - 12];
             }
           });
 
           const challengeUIColors = {
-            trivia1: 'rgba(52, 152, 219, 0.5)',
-            trivia2: 'rgba(26, 188, 156, 0.5)',
-            trivia3: 'rgba(155, 89, 182, 0.5)',
+            trivia: 'rgba(52, 152, 219, 0.5)',
             matchPairs: 'rgba(241, 196, 15, 0.5)',
             blowback: 'rgba(149, 165, 166, 0.5)',
             memory: 'rgba(230, 126, 34, 0.5)',
@@ -2297,7 +2041,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             timestampMatch: 'rgba(96, 125, 139, 0.5)',
             videoQuarterPuzzle: 'rgba(156, 39, 176, 0.5)',
             creativeChallenge: 'rgba(103, 58, 183, 0.5)',
-            slingo: 'rgba(255, 215, 0, 0.5)',
             // Emoji challenges
             emoji1: 'rgba(255, 99, 71, 0.5)',
             emoji2: 'rgba(75, 192, 192, 0.5)',
@@ -3815,11 +3558,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             taskModalContent.style.backgroundColor = challengeUIColors[type] || 'rgba(31, 31, 31, 0.5)';
             switch (type) {
-              case 'trivia1':
-                setupTrivia1Task(options.category);
-                break;
-              case 'trivia3':
-                setupTrivia3Task();
+              case 'trivia':
+                setupTriviaTask(options.category);
                 break;
               case 'matchPairs':
                 setupMatchPairsTask();
@@ -3885,9 +3625,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 break;
               case 'splashClick':
                 setupSplashClickTask();
-                break;
-              case 'slingo':
-                setupSlingoTask();
                 break;
               
               // Emoji challenges (simple trivia challenges)
@@ -4056,8 +3793,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
 
           // --- Task Setup Functions ---
-          async function setupTrivia1Task(predefinedCategory = null) {
-            taskModalTitle.textContent = "Brain Storm!";
+          async function setupTriviaTask(predefinedCategory = null) {
+            taskModalTitle.textContent = "Trivia Challenge";
             const categoryName = predefinedCategory || challengeCategories[Math.floor(Math.random() * challengeCategories.length)][Math.floor(Math.random() * challengeCategories[0].length)];
 
             taskModalBody.innerHTML = `<h3>Loading questions...</h3><p>Please wait...</p>`;
@@ -4070,15 +3807,36 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
 
             let correctAnswers = 0;
-            let totalQuestions = questions.length;
+            let totalQuestions = 5;
 
-            taskModalBody.innerHTML = `<h3>Ready!</h3><p>Category: General Knowledge</p><button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>`;
+            taskModalBody.innerHTML = `
+              <h3>Trivia Challenge!</h3>
+              <p>Category: General Knowledge</p>
+              <p style="color: #10b981; margin-top: 0.5rem;">Answer 5 questions. Get at least 3 correct to win!</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>
+            `;
+            
             document.getElementById('start-challenge-btn').onclick = () => {
               let currentQ = 0;
 
               function renderQuestion() {
                 if (currentQ >= questions.length) {
-                  showWinLossScreen(correctAnswers, totalQuestions, () => markTaskComplete());
+                  // Check if player got at least 3 correct
+                  const passed = correctAnswers >= 3;
+                  taskModalBody.innerHTML = `
+                    <h2>${passed ? '🎉 You Passed!' : '❌ Not Enough Correct'}</h2>
+                    <p style="font-size: 1.5rem; margin: 1rem 0;">Score: ${correctAnswers}/${totalQuestions}</p>
+                    <p style="font-size: 1.2rem;">${passed ? 'You got at least 3 correct!' : 'You needed 3 correct answers.'}</p>
+                    <button id="finish-trivia-btn" class="modal-action-btn mt-4">${passed ? 'Claim Square' : 'Continue'}</button>
+                  `;
+                  document.getElementById('finish-trivia-btn').onclick = () => {
+                    if (passed) {
+                      updateMainScore(1500);
+                      markTaskComplete();
+                    } else {
+                      closeTaskModal();
+                    }
+                  };
                   return;
                 }
                 const q = questions[currentQ];
@@ -4091,10 +3849,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 const selectedIndex = parseInt(e.target.dataset.index);
                 const correctIndex = questions[currentQ].correctAnswerIndex;
                 if (selectedIndex === correctIndex) {
-                  updateMainScore(1000);
                   correctAnswers++;
-                } else {
-                  updateMainScore(-500);
                 }
                 document.querySelectorAll('.task-option-btn').forEach((btn, i) => {
                   btn.disabled = true;
@@ -4105,71 +3860,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   currentQ++;
                   renderQuestion();
                 }, 1500);
-              }
-              renderQuestion();
-            };
-          }
-
-          async function setupTrivia3Task() {
-            taskModalTitle.textContent = "Type the Answer";
-            
-            // Use hardcoded fill-in-the-blank questions as fallback
-            const questionBank = [
-              {question: "What is the capital of France?", answer: "Paris"},
-              {question: "What planet is known as the Red Planet?", answer: "Mars"},
-              {question: "Who painted the Mona Lisa?", answer: "Leonardo da Vinci"},
-              {question: "What is the largest ocean on Earth?", answer: "Pacific"},
-              {question: "What year did World War II end?", answer: "1945"},
-              {question: "What is the chemical symbol for gold?", answer: "Au"},
-              {question: "Who wrote Romeo and Juliet?", answer: "Shakespeare"},
-              {question: "What is the smallest prime number?", answer: "2"}
-            ];
-            
-            // Pick 3 random questions
-            const shuffled = questionBank.sort(() => 0.5 - Math.random());
-            const questions = shuffled.slice(0, 3);
-            let correctAnswers = 0;
-            
-            taskModalBody.innerHTML = `<h3>Ready!</h3><p>You'll be asked 3 questions.</p><button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>`;
-            document.getElementById('start-challenge-btn').onclick = () => {
-              let currentQ = 0;
-
-              function renderQuestion() {
-                if (currentQ >= questions.length) {
-                  showWinLossScreen(correctAnswers, questions.length, () => markTaskComplete());
-                  return;
-                }
-                const q = questions[currentQ];
-                taskModalBody.innerHTML =
-                  `<p class="text-xl mb-4">(${currentQ + 1}/3) ${q.question}</p><input type="text" id="typed-answer-input" class="w-full task-input-field" placeholder="Type your answer here..."><button id="submit-trivia3" class="modal-action-btn mt-4">Submit</button>`;
-                
-                // Add voice input to the text field
-                const inputField = document.getElementById('typed-answer-input');
-                if (inputField) addVoiceInputToField(inputField);
-                
-                document.getElementById('submit-trivia3').onclick = () => {
-                  const userInput = document.getElementById('typed-answer-input').value.trim().toLowerCase();
-                  const correctAnswer = q.answer.toLowerCase();
-                  // More strict matching: exact match or allow for minor variations in casing/spacing
-                  const isCorrect = userInput === correctAnswer || 
-                                   userInput.replace(/\s+/g, '') === correctAnswer.replace(/\s+/g, '');
-                  
-                  if (isCorrect) {
-                    updateMainScore(1000);
-                    correctAnswers++;
-                    currentQ++;
-                    setTimeout(renderQuestion, 500);
-                  } else {
-                    updateMainScore(-500);
-                    taskModalBody.innerHTML = `<p class="text-red-500 text-xl mb-4">Incorrect! The answer was: ${q.answer}</p><button id="continue-fail-btn" class="modal-action-btn">Continue</button>`;
-                    document.getElementById('continue-fail-btn').onclick = () => {
-                      showWinLossScreen(correctAnswers, questions.length, () => {
-                        closeTaskModal();
-                      });
-                    };
-                  }
-                };
-                document.getElementById('typed-answer-input').focus();
               }
               renderQuestion();
             };
@@ -4691,28 +4381,56 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             taskModalTitle.textContent = "Pressure Front";
             const currentPlayer = challengePlayers[currentChallengePlayerIndex];
             
+            // Preset options for duration and change interval
+            const presetOptions = [
+              { duration: 100, change: 5 },
+              { duration: 75, change: 5 },
+              { duration: 30, change: 5 },
+              { duration: 100, change: 10 },
+              { duration: 50, change: 10 }
+            ];
+            const defaultPreset = presetOptions[0];
+            
             taskModalBody.innerHTML = `
               <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
               <p>Set up your guess and watch the videos!</p>
               <div style="margin: 1rem 0;">
-                <label>Time Duration (seconds): <input type="number" id="pf-timer" value="30" min="10" max="120" style="width: 80px; pointer-events: auto;"></label>
+                <label>Preset Options: 
+                  <select id="pf-preset" style="padding: 0.5rem; pointer-events: auto; background: rgba(255,255,255,0.1); color: black; border-radius: 4px;">
+                    ${presetOptions.map((opt, i) => `<option value="${i}">Duration ${opt.duration}s, Change ${opt.change}s</option>`).join('')}
+                  </select>
+                </label>
               </div>
               <div style="margin: 1rem 0;">
-                <label>Video Change Interval (seconds): <input type="number" id="pf-interval" value="5" min="1" max="30" style="width: 80px; pointer-events: auto;"></label>
+                <label>Time Duration (seconds): <input type="number" id="pf-timer" value="${defaultPreset.duration}" min="10" max="120" style="width: 80px; pointer-events: auto; color: black;"></label>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Video Change Interval (seconds): <input type="number" id="pf-interval" value="${defaultPreset.change}" min="1" max="30" style="width: 80px; pointer-events: auto; color: black;"></label>
               </div>
               <div style="margin: 1rem 0;">
                 <label>Your guess emoji: </label>
                 <span class="pf-emoji-cycler text-2xl cursor-pointer" style="display: inline-block; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 5px;">🍆</span>
               </div>
               <div style="margin: 1rem 0;">
-                <label>Your guess count: <input type="number" id="pf-guess-count" value="5" min="0" max="100" style="width: 80px; pointer-events: auto;"></label>
+                <label>Your guess count: <input type="number" id="pf-guess-count" value="5" min="0" max="100" style="width: 80px; pointer-events: auto; color: black;"></label>
               </div>
               <button id="start-pf-btn" class="modal-action-btn">Start Game</button>
             `;
             
-            const guessEmojis = ['🍆', '🍑', '🧍', '👄'];
+            const guessEmojis = ['🍆', '🍑', '👤', '🙂'];
             const emojiCycler = taskModalBody.querySelector('.pf-emoji-cycler');
             parseEmojis(emojiCycler);
+            
+            // Preset selector handler
+            const presetSelector = document.getElementById('pf-preset');
+            const timerInput = document.getElementById('pf-timer');
+            const intervalInput = document.getElementById('pf-interval');
+            
+            presetSelector.addEventListener('change', () => {
+              const selectedPreset = presetOptions[parseInt(presetSelector.value)];
+              timerInput.value = selectedPreset.duration;
+              intervalInput.value = selectedPreset.change;
+            });
             
             // Ensure inputs are focusable
             const inputs = taskModalBody.querySelectorAll('input[type="number"]');
@@ -6402,463 +6120,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
 
           // --- Slingo Minigame ---
-          async function setupSlingoTask() {
-            taskModalTitle.textContent = "🎰 SLINGO 🎰";
-            
-            // Game state
-            const slingoState = {
-              bank: 1000,
-              spinCost: 50,
-              spinsRemaining: 15,
-              grid: [],
-              completedLines: 0,
-              reels: [null, null, null, null, null],
-              isAutoPlay: false,
-              freeSpinsEarned: 0
-            };
-            
-            // Initialize 5x5 grid
-            const columns = ['B', 'I', 'N', 'G', 'O'];
-            for (let col = 0; col < 5; col++) {
-              slingoState.grid[col] = [];
-              // Generate numbers for each column (B=1-15, I=16-30, N=31-45, G=46-60, O=61-75)
-              const availableNumbers = [];
-              const min = col * 15 + 1;
-              const max = col * 15 + 15;
-              for (let i = min; i <= max; i++) {
-                availableNumbers.push(i);
-              }
-              // Randomly select 5 numbers for this column
-              const shuffled = availableNumbers.sort(() => 0.5 - Math.random());
-              for (let row = 0; row < 5; row++) {
-                slingoState.grid[col][row] = {
-                  number: shuffled[row],
-                  marked: false,
-                  isFree: col === 2 && row === 2 // Center cell is free
-                };
-                if (slingoState.grid[col][row].isFree) {
-                  slingoState.grid[col][row].marked = true;
-                }
-              }
-            }
-            
-            const renderSlingo = () => {
-              taskModalBody.innerHTML = `
-                <div class="slingo-container">
-                  <div class="slingo-header">
-                    <div class="slingo-stats">
-                      <div class="slingo-bank">Bank: $${slingoState.bank}</div>
-                      <div class="slingo-spins">Spins: ${slingoState.spinsRemaining}</div>
-                      <div class="slingo-lines">Lines: ${slingoState.completedLines}</div>
-                    </div>
-                  </div>
-                  
-                  <div class="slingo-grid">
-                    ${columns.map((letter, colIndex) => `
-                      <div class="slingo-column-header">${letter}</div>
-                    `).join('')}
-                    ${Array(5).fill(0).map((_, rowIndex) => 
-                      columns.map((_, colIndex) => {
-                        const cell = slingoState.grid[colIndex][rowIndex];
-                        const classes = ['slingo-cell'];
-                        if (cell.marked) classes.push('marked');
-                        if (cell.isFree) classes.push('free');
-                        return `
-                          <div class="${classes.join(' ')}" data-col="${colIndex}" data-row="${rowIndex}">
-                            ${cell.isFree ? 'FREE' : cell.number}
-                          </div>
-                        `;
-                      }).join('')
-                    ).join('')}
-                  </div>
-                  
-                  <div class="slingo-reels" id="slingo-reels">
-                    ${slingoState.reels.map((reel, i) => {
-                      if (reel === null) {
-                        return `<div class="slingo-reel">?</div>`;
-                      } else if (reel === 'WILD') {
-                        return `<div class="slingo-reel wild">WILD</div>`;
-                      } else if (reel === 'SUPER') {
-                        return `<div class="slingo-reel super-wild">SUPER</div>`;
-                      } else {
-                        return `<div class="slingo-reel">${reel}</div>`;
-                      }
-                    }).join('')}
-                  </div>
-                  
-                  <div class="slingo-controls">
-                    <button id="slingo-spin-btn" class="slingo-button primary" ${slingoState.bank < slingoState.spinCost || slingoState.spinsRemaining <= 0 ? 'disabled' : ''}>
-                      Spin ($${slingoState.spinCost})
-                    </button>
-                    ${slingoState.spinsRemaining === 0 && slingoState.bank >= slingoState.spinCost * 2 ? `
-                      <button id="slingo-extra-spin-btn" class="slingo-button success">
-                        Buy Extra Spin ($${slingoState.spinCost * 2})
-                      </button>
-                    ` : ''}
-                    ${slingoState.spinsRemaining === 0 ? `
-                      <button id="slingo-cashout-btn" class="slingo-button danger">
-                        Cash Out
-                      </button>
-                    ` : ''}
-                    <button id="slingo-auto-btn" class="slingo-button" ${slingoState.spinsRemaining <= 0 ? 'disabled' : ''}>
-                      ${slingoState.isAutoPlay ? 'Stop Auto' : 'Auto Play'}
-                    </button>
-                  </div>
-                </div>
-              `;
-              
-              // Add event listeners
-              const spinBtn = document.getElementById('slingo-spin-btn');
-              if (spinBtn && !spinBtn.disabled) {
-                spinBtn.onclick = () => performSpin();
-              }
-              
-              const extraSpinBtn = document.getElementById('slingo-extra-spin-btn');
-              if (extraSpinBtn) {
-                extraSpinBtn.onclick = () => buyExtraSpin();
-              }
-              
-              const cashoutBtn = document.getElementById('slingo-cashout-btn');
-              if (cashoutBtn) {
-                cashoutBtn.onclick = () => cashOut();
-              }
-              
-              const autoBtn = document.getElementById('slingo-auto-btn');
-              if (autoBtn && !autoBtn.disabled) {
-                autoBtn.onclick = () => toggleAutoPlay();
-              }
-              
-              // Add click handlers for WILD card selection
-              document.querySelectorAll('.slingo-cell').forEach(cell => {
-                const colIndex = parseInt(cell.dataset.col);
-                const rowIndex = parseInt(cell.dataset.row);
-                const cellData = slingoState.grid[colIndex][rowIndex];
-                
-                if (!cellData.marked && slingoState.reels[colIndex] === 'WILD') {
-                  cell.style.cursor = 'pointer';
-                  cell.style.boxShadow = '0 0 20px rgba(139, 92, 246, 0.8)';
-                  cell.onclick = () => markCell(colIndex, rowIndex);
-                } else if (!cellData.marked && slingoState.reels.includes('SUPER')) {
-                  cell.style.cursor = 'pointer';
-                  cell.style.boxShadow = '0 0 20px rgba(236, 72, 153, 0.8)';
-                  cell.onclick = () => markCell(colIndex, rowIndex, true);
-                }
-              });
-            };
-            
-            const performSpin = async () => {
-              if (slingoState.bank < slingoState.spinCost || slingoState.spinsRemaining <= 0) return;
-              
-              slingoState.bank -= slingoState.spinCost;
-              slingoState.spinsRemaining--;
-              
-              // Check for free spin (1/8 chance)
-              if (Math.random() < 0.125) {
-                slingoState.freeSpinsEarned++;
-                slingoState.spinsRemaining++;
-              }
-              
-              // Spin each reel
-              for (let col = 0; col < 5; col++) {
-                const rand = Math.random();
-                if (rand < 0.1) {
-                  slingoState.reels[col] = 'SUPER';
-                } else if (rand < 0.25) {
-                  slingoState.reels[col] = 'WILD';
-                } else {
-                  // Generate a number for this column
-                  const min = col * 15 + 1;
-                  const max = col * 15 + 15;
-                  slingoState.reels[col] = Math.floor(Math.random() * 15) + min;
-                }
-              }
-              
-              renderSlingo();
-              
-              // Auto-mark matching numbers and handle cascading
-              await handleCascading();
-            };
-            
-            const handleCascading = async () => {
-              let hadMatches = false;
-              
-              // Mark any matching numbers
-              for (let col = 0; col < 5; col++) {
-                const reelValue = slingoState.reels[col];
-                if (typeof reelValue === 'number') {
-                  // Find this number in the column
-                  for (let row = 0; row < 5; row++) {
-                    const cell = slingoState.grid[col][row];
-                    if (cell.number === reelValue && !cell.marked) {
-                      cell.marked = true;
-                      hadMatches = true;
-                      animateTokenFly(col, row);
-                      
-                      // Cascade: generate new symbol for this reel
-                      await new Promise(resolve => setTimeout(resolve, 300));
-                      const rand = Math.random();
-                      if (rand < 0.1) {
-                        slingoState.reels[col] = 'SUPER';
-                      } else if (rand < 0.25) {
-                        slingoState.reels[col] = 'WILD';
-                      } else {
-                        const min = col * 15 + 1;
-                        const max = col * 15 + 15;
-                        slingoState.reels[col] = Math.floor(Math.random() * 15) + min;
-                      }
-                      renderSlingo();
-                      
-                      // Check for more matches
-                      await handleCascading();
-                      return;
-                    }
-                  }
-                }
-              }
-              
-              // Check for auto-respin on WILD in complete column
-              for (let col = 0; col < 5; col++) {
-                if (slingoState.reels[col] === 'WILD') {
-                  let columnComplete = true;
-                  for (let row = 0; row < 5; row++) {
-                    if (!slingoState.grid[col][row].marked) {
-                      columnComplete = false;
-                      break;
-                    }
-                  }
-                  if (columnComplete) {
-                    // Auto-respin this reel
-                    await new Promise(resolve => setTimeout(resolve, 500));
-                    const rand = Math.random();
-                    if (rand < 0.1) {
-                      slingoState.reels[col] = 'SUPER';
-                    } else if (rand < 0.25) {
-                      slingoState.reels[col] = 'WILD';
-                    } else {
-                      const min = col * 15 + 1;
-                      const max = col * 15 + 15;
-                      slingoState.reels[col] = Math.floor(Math.random() * 15) + min;
-                    }
-                    renderSlingo();
-                    await handleCascading();
-                    return;
-                  }
-                }
-              }
-              
-              // Check for lines
-              checkLines();
-              renderSlingo();
-              
-              // Continue auto-play if enabled and no WILD/SUPER
-              if (slingoState.isAutoPlay && slingoState.spinsRemaining > 0 && slingoState.bank >= slingoState.spinCost) {
-                const hasWildOrSuper = slingoState.reels.includes('WILD') || slingoState.reels.includes('SUPER');
-                if (!hasWildOrSuper) {
-                  await new Promise(resolve => setTimeout(resolve, 1000));
-                  await performSpin();
-                } else {
-                  slingoState.isAutoPlay = false;
-                  renderSlingo();
-                }
-              }
-            };
-            
-            const animateTokenFly = (col, row) => {
-              // Simple animation placeholder - could be enhanced
-              const cell = document.querySelector(`.slingo-cell[data-col="${col}"][data-row="${row}"]`);
-              if (cell) {
-                cell.style.animation = 'none';
-                setTimeout(() => {
-                  cell.style.animation = 'reelSpin 0.5s ease-in-out';
-                }, 10);
-              }
-            };
-            
-            const markCell = (col, row, isSuper = false) => {
-              const cell = slingoState.grid[col][row];
-              if (cell.marked) return;
-              
-              // For SUPER WILD, can mark any cell
-              // For WILD, can only mark cells in the same column
-              if (isSuper || slingoState.reels[col] === 'WILD') {
-                cell.marked = true;
-                // Clear the WILD/SUPER after use
-                if (isSuper) {
-                  const superIndex = slingoState.reels.indexOf('SUPER');
-                  if (superIndex !== -1) slingoState.reels[superIndex] = null;
-                } else {
-                  slingoState.reels[col] = null;
-                }
-                checkLines();
-                renderSlingo();
-              }
-            };
-            
-            const checkLines = () => {
-              let lines = 0;
-              
-              // Check rows
-              for (let row = 0; row < 5; row++) {
-                let complete = true;
-                for (let col = 0; col < 5; col++) {
-                  if (!slingoState.grid[col][row].marked) {
-                    complete = false;
-                    break;
-                  }
-                }
-                if (complete) lines++;
-              }
-              
-              // Check columns
-              for (let col = 0; col < 5; col++) {
-                let complete = true;
-                for (let row = 0; row < 5; row++) {
-                  if (!slingoState.grid[col][row].marked) {
-                    complete = false;
-                    break;
-                  }
-                }
-                if (complete) lines++;
-              }
-              
-              // Check diagonals
-              let diag1Complete = true;
-              let diag2Complete = true;
-              for (let i = 0; i < 5; i++) {
-                if (!slingoState.grid[i][i].marked) diag1Complete = false;
-                if (!slingoState.grid[i][4 - i].marked) diag2Complete = false;
-              }
-              if (diag1Complete) lines++;
-              if (diag2Complete) lines++;
-              
-              slingoState.completedLines = lines;
-            };
-            
-            const buyExtraSpin = () => {
-              if (slingoState.bank >= slingoState.spinCost * 2) {
-                slingoState.bank -= slingoState.spinCost * 2;
-                slingoState.spinsRemaining++;
-                renderSlingo();
-              }
-            };
-            
-            const toggleAutoPlay = () => {
-              slingoState.isAutoPlay = !slingoState.isAutoPlay;
-              renderSlingo();
-              if (slingoState.isAutoPlay) {
-                performSpin();
-              }
-            };
-            
-            const cashOut = () => {
-              // Calculate payout based on lines
-              let payout = 0;
-              if (slingoState.completedLines >= 3) {
-                const payouts = {
-                  3: 50,
-                  4: 100,
-                  5: 250,
-                  6: 500,
-                  7: 1000,
-                  8: 2000,
-                  9: 5000,
-                  10: 10000,
-                  11: 25000,
-                  12: 50000
-                };
-                payout = payouts[slingoState.completedLines] || 50000;
-              }
-              
-              const totalWin = slingoState.bank + payout;
-              const profit = totalWin - 1000; // Starting bank was 1000
-              
-              // Show confetti for wins
-              if (profit > 0) {
-                showConfetti();
-              }
-              
-              taskModalBody.innerHTML = `
-                <div class="slingo-win-content">
-                  <h2>${profit > 0 ? '🎉 WINNER! 🎉' : 'Game Over'}</h2>
-                  <p style="font-size: 2rem; margin: 1rem 0;">
-                    Lines: ${slingoState.completedLines}
-                  </p>
-                  <p style="font-size: 1.5rem; margin: 1rem 0;">
-                    Line Payout: $${payout}
-                  </p>
-                  <p style="font-size: 1.5rem; margin: 1rem 0;">
-                    Final Bank: $${totalWin}
-                  </p>
-                  <p style="font-size: 2rem; font-weight: bold; margin: 1rem 0; color: ${profit > 0 ? '#10b981' : '#ef4444'};">
-                    ${profit > 0 ? '+' : ''}$${profit}
-                  </p>
-                  ${profit > 0 ? `
-                    <button id="slingo-claim-btn" class="slingo-button success" style="margin-top: 2rem;">
-                      Claim Square & +${Math.floor(profit / 10)} Points
-                    </button>
-                  ` : `
-                    <button id="slingo-close-btn" class="slingo-button" style="margin-top: 2rem;">
-                      Close
-                    </button>
-                  `}
-                </div>
-              `;
-              
-              const claimBtn = document.getElementById('slingo-claim-btn');
-              if (claimBtn) {
-                claimBtn.onclick = () => {
-                  updateMainScore(Math.floor(profit / 10));
-                  markTaskComplete();
-                };
-              }
-              
-              const closeBtn = document.getElementById('slingo-close-btn');
-              if (closeBtn) {
-                closeBtn.onclick = () => {
-                  closeTaskModal();
-                };
-              }
-            };
-            
-            const showConfetti = () => {
-              // Simple confetti effect
-              for (let i = 0; i < 50; i++) {
-                setTimeout(() => {
-                  const confetti = document.createElement('div');
-                  confetti.textContent = ['🎉', '✨', '🎊', '⭐'][Math.floor(Math.random() * 4)];
-                  confetti.style.cssText = `
-                    position: fixed;
-                    left: ${Math.random() * 100}%;
-                    top: -50px;
-                    font-size: 2rem;
-                    pointer-events: none;
-                    z-index: 10000;
-                    animation: confettiFall ${2 + Math.random() * 2}s linear forwards;
-                  `;
-                  document.body.appendChild(confetti);
-                  setTimeout(() => confetti.remove(), 4000);
-                }, i * 50);
-              }
-            };
-            
-            // Add confetti animation CSS if not exists
-            if (!document.getElementById('confetti-style')) {
-              const style = document.createElement('style');
-              style.id = 'confetti-style';
-              style.textContent = `
-                @keyframes confettiFall {
-                  to {
-                    transform: translateY(100vh) rotate(360deg);
-                    opacity: 0;
-                  }
-                }
-              `;
-              document.head.appendChild(style);
-            }
-            
-            renderSlingo();
-          }
-
           // Emoji Challenge - Quick trivia or simple task
           async function setupEmojiChallengeTask() {
             taskModalTitle.textContent = "Quick Challenge! ⚡";
