@@ -1219,6 +1219,31 @@
       border: 3px solid #e74c3c;
       box-shadow: 0 0 15px rgba(231, 76, 60, 0.4);
     }
+    
+    /* iPad and touch device optimizations */
+    @media (hover: none) and (pointer: coarse) {
+      /* Increase touch target sizes for iPad */
+      .task-option-btn {
+        padding: 1.25rem;
+        font-size: 1.1rem;
+      }
+      
+      .modal-action-btn {
+        padding: 1rem 1.5rem;
+        min-height: 48px;
+      }
+      
+      .challenge-square {
+        /* Ensure adequate touch target size */
+        min-width: 48px;
+        min-height: 48px;
+      }
+      
+      /* Prevent double-tap zoom */
+      * {
+        touch-action: manipulation;
+      }
+    }
   </style>
 </head>
 
