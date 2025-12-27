@@ -2096,6 +2096,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let challengeScores = challengePlayers.map(() => 0);
           let currentChallengePlayerIndex = 0;
           
+          // Track turns for creative challenge cadence
+          let turnCounter = 0;
+          let nextCreativeChallengeTurn = Math.floor(Math.random() * 3) + 3; // Random 3-5 turns
+          
           // Track last attempted game type for each tile (for failure retry logic)
           let tileLastGameType = {};
 
@@ -2268,6 +2272,24 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             currentChallengePlayerIndex = challengePlayers.indexOf(activePlayers[currentActiveIndex]);
             
             renderChallengeHud();
+            
+            // Increment turn counter and check for creative challenge trigger
+            turnCounter++;
+            if (turnCounter >= nextCreativeChallengeTurn) {
+              // Trigger creative challenge
+              turnCounter = 0;
+              nextCreativeChallengeTurn = Math.floor(Math.random() * 3) + 3; // Next challenge in 3-5 turns
+              
+              // Delay slightly to let turn advance animation complete
+              setTimeout(() => {
+                showCreativeChallengePrompt();
+              }, 500);
+            }
+          }
+          
+          function showCreativeChallengePrompt() {
+            // Open creative challenge task
+            openTaskModal('creativeChallenge', {});
           }
 
           if (geminiKeySaveBtn) {
@@ -4459,29 +4481,70 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const guessEmoji = emojiCycler.textContent.trim();
               const guessCount = parseInt(document.getElementById('pf-guess-count').value);
               
-              taskModalBody.innerHTML = `
-                <h3>Player ${currentChallengePlayerIndex + 1} guessed: ${guessEmoji} × ${guessCount}</h3>
-                <div id="pf-timer-display" style="font-size: 2rem; margin: 1rem 0;">Time: ${duration}s</div>
-                <div id="pf-tally-container" style="display: flex; gap: 1rem; justify-content: center; margin: 1rem 0;"></div>
-                <p style="margin-top: 1rem;">Click the emojis to count occurrences!</p>
+              // Hide modal overlay to show video clearly
+              taskModalOverlay.style.pointerEvents = 'none';
+              taskModalBody.innerHTML = '';
+              
+              // Create overlay for tally in corner of video canvas
+              const gameOverlay = document.createElement('div');
+              gameOverlay.id = 'pf-game-overlay';
+              gameOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 250;
+                pointer-events: none;
               `;
               
-              const tallyContainer = document.getElementById('pf-tally-container');
+              // Tally container in top-right corner
+              const tallyContainer = document.createElement('div');
+              tallyContainer.style.cssText = `
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(0,0,0,0.8);
+                padding: 1rem;
+                border-radius: 8px;
+                pointer-events: auto;
+                z-index: 10;
+              `;
+              
+              // Add timer and guess info
+              const infoDiv = document.createElement('div');
+              infoDiv.style.cssText = 'text-align: center; margin-bottom: 1rem;';
+              infoDiv.innerHTML = `
+                <div style="color: #8b5cf6; font-weight: bold; margin-bottom: 0.5rem;">Player ${currentChallengePlayerIndex + 1}</div>
+                <div style="color: #10b981; margin-bottom: 0.5rem;">Guess: ${guessEmoji} × ${guessCount}</div>
+                <div id="pf-timer-display" style="color: #f59e0b; font-size: 1.5rem; font-weight: bold;">Time: ${duration}s</div>
+              `;
+              tallyContainer.appendChild(infoDiv);
+              parseEmojis(infoDiv);
+              
+              // Add emoji tally buttons
+              const tallyGrid = document.createElement('div');
+              tallyGrid.style.cssText = 'display: flex; gap: 0.5rem; flex-wrap: wrap; max-width: 200px;';
+              
               const tallyCounts = {};
               
               guessEmojis.forEach(emoji => {
                 tallyCounts[emoji] = 0;
                 const tallyDiv = document.createElement('div');
-                tallyDiv.style.cssText = 'text-align: center; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; user-select: none;';
-                tallyDiv.innerHTML = `<div style="font-size: 2rem;">${emoji}</div><div class="tally-count" style="font-size: 1.5rem; font-weight: bold;">0</div>`;
+                tallyDiv.style.cssText = 'text-align: center; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; user-select: none; flex: 1 1 45%;';
+                tallyDiv.innerHTML = `<div style="font-size: 1.5rem;">${emoji}</div><div class="tally-count" style="font-size: 1.2rem; font-weight: bold;">0</div>`;
                 
                 tallyDiv.addEventListener('click', () => {
                   tallyCounts[emoji]++;
                   tallyDiv.querySelector('.tally-count').textContent = tallyCounts[emoji];
                 });
                 
-                tallyContainer.appendChild(tallyDiv);
+                tallyGrid.appendChild(tallyDiv);
               });
+              
+              tallyContainer.appendChild(tallyGrid);
+              gameOverlay.appendChild(tallyContainer);
+              document.body.appendChild(gameOverlay);
               
               parseEmojis(tallyContainer);
               
@@ -4507,6 +4570,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   // Calculate winner
                   const actualCount = tallyCounts[guessEmoji];
                   const difference = Math.abs(actualCount - guessCount);
+                  
+                  // Remove overlay and show results in modal
+                  gameOverlay.remove();
+                  taskModalOverlay.style.pointerEvents = 'all';
                   
                   taskModalBody.innerHTML = `
                     <h2>Results</h2>
@@ -6067,6 +6134,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               challengeText = "Tell us your funniest cloud-related story!";
             }
             
+            // Get active players
+            const activePlayers = challengePlayers.filter(p => p.active);
+            
             taskModalBody.innerHTML = `
               <div style="text-align: center;">
                 <h3 style="margin-bottom: 2rem;">Your Challenge:</h3>
@@ -6081,13 +6151,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 </div>
                 
                 <h3 style="margin-bottom: 1rem;">Who completed it better?</h3>
-                <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem;">
-                  <button id="player1-win" class="modal-action-btn" style="background: rgba(52, 152, 219, 0.8);">
-                    Player 1 Wins
-                  </button>
-                  <button id="player2-win" class="modal-action-btn" style="background: rgba(231, 76, 60, 0.8);">
-                    Player 2 Wins
-                  </button>
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem; flex-wrap: wrap;">
+                  ${activePlayers.map((player, idx) => {
+                    const globalIndex = challengePlayers.indexOf(player);
+                    return `<button id="player${globalIndex}-win" class="modal-action-btn" style="background: ${player.color};">
+                      ${player.badge} Wins
+                    </button>`;
+                  }).join('')}
                 </div>
                 
                 <button id="skip-challenge" class="modal-action-btn" style="background: rgba(100,100,100,0.5);">
@@ -6096,23 +6166,19 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               </div>
             `;
             
-            document.getElementById('player1-win').onclick = () => {
-              currentChallengePlayerIndex = 0;
-              taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🏆 Player 1 Wins!</h2></div>`;
-              setTimeout(() => {
-                updateMainScore(1500);
-                markTaskComplete();
-              }, 1000);
-            };
-            
-            document.getElementById('player2-win').onclick = () => {
-              currentChallengePlayerIndex = 1;
-              taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🏆 Player 2 Wins!</h2></div>`;
-              setTimeout(() => {
-                updateMainScore(1500);
-                markTaskComplete();
-              }, 1000);
-            };
+            // Set up winner click handlers
+            activePlayers.forEach((player, idx) => {
+              const globalIndex = challengePlayers.indexOf(player);
+              document.getElementById(`player${globalIndex}-win`).onclick = () => {
+                currentChallengePlayerIndex = globalIndex;
+                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🏆 ${player.badge} Wins!</h2><p>They get the next turn!</p></div>`;
+                setTimeout(() => {
+                  closeTaskModal();
+                  // Winner gets next turn, so don't advance
+                  renderChallengeHud();
+                }, 1500);
+              };
+            });
             
             document.getElementById('skip-challenge').onclick = () => {
               closeTaskModal();
