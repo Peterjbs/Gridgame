@@ -1923,6 +1923,11 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               icon: '🔍'
             },
             {
+              type: 'clipOrderMemory',
+              name: 'Clip Order Memory',
+              icon: '🎬'
+            },
+            {
               type: 'avatarSequence',
               name: 'Avatar Sequence',
               icon: '🧠'
@@ -2032,6 +2037,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             weatherGamble: 'rgba(96, 125, 139, 0.5)',
             // NEW MINI GAMES
             videoClipDetective: 'rgba(255, 193, 7, 0.5)',
+            clipOrderMemory: 'rgba(156, 39, 176, 0.5)',
             avatarSequence: 'rgba(76, 175, 80, 0.5)',
             filmTitleScrambler: 'rgba(233, 30, 99, 0.5)',
             higherLowerViews: 'rgba(63, 81, 181, 0.5)',
@@ -3618,6 +3624,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               case 'videoClipDetective':
                 setupVideoClipDetectiveTask();
                 break;
+              case 'clipOrderMemory':
+                setupClipOrderMemoryTask();
+                break;
               case 'avatarSequence':
                 setupAvatarSequenceTask();
                 break;
@@ -5106,6 +5115,170 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   }
                 };
               });
+            };
+          }
+
+          // Clip Order Memory - Show 6 clips in order, player must recall the order
+          async function setupClipOrderMemoryTask() {
+            taskModalTitle.textContent = "Clip Order Memory 🎬";
+            
+            if (videoFiles.length < 6) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least 6 videos for this challenge.</p>`;
+              return;
+            }
+
+            taskModalBody.innerHTML = `
+              <h3>Memory Challenge!</h3>
+              <p>Watch 6 clips play in order.</p>
+              <p>Then, select them in the correct order!</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Watching</button>
+            `;
+
+            document.getElementById('start-challenge-btn').onclick = async () => {
+              // Pick 6 random videos
+              const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
+              const selectedIndices = shuffled.slice(0, 6);
+              const correctOrder = [...selectedIndices];
+              
+              // Play all 6 clips in sequence
+              taskModalBody.innerHTML = `
+                <div id="memory-video-container" style="width: 100%; max-width: 500px; margin: 0 auto;">
+                  <video id="memory-player" style="width: 100%; height: auto;" muted playsinline></video>
+                </div>
+                <p style="margin-top: 1rem; font-size: 1.2rem;">Clip <span id="clip-number">1</span>/6</p>
+                <p style="font-size: 0.9rem; color: #8b5cf6;">Remember the order!</p>
+              `;
+              
+              const player = document.getElementById('memory-player');
+              
+              for (let i = 0; i < 6; i++) {
+                document.getElementById('clip-number').textContent = i + 1;
+                const videoIndex = selectedIndices[i];
+                const file = videoFiles[videoIndex];
+                const url = URL.createObjectURL(file);
+                
+                player.src = url;
+                await new Promise(resolve => {
+                  player.onloadedmetadata = () => resolve();
+                });
+                
+                // Play 5-second clip
+                player.currentTime = Math.random() * Math.max(0, player.duration - 5);
+                await player.play();
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                player.pause();
+              }
+              
+              // Now show selection screen with video thumbnails
+              taskModalTitle.textContent = "Select the Order";
+              
+              // Create video thumbnails for selection
+              const clipThumbnails = await Promise.all(selectedIndices.map(async (videoIndex, i) => {
+                const file = videoFiles[videoIndex];
+                const url = URL.createObjectURL(file);
+                const video = document.createElement('video');
+                video.src = url;
+                await new Promise(resolve => {
+                  video.onloadedmetadata = () => {
+                    video.currentTime = Math.random() * Math.max(0, video.duration - 1);
+                    resolve();
+                  };
+                });
+                
+                // Wait for seek to complete
+                await new Promise(resolve => {
+                  video.onseeked = () => resolve();
+                });
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = 160;
+                canvas.height = 90;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                return {
+                  videoIndex,
+                  thumbnail: canvas.toDataURL(),
+                  originalIndex: i
+                };
+              }));
+              
+              // Shuffle clips for display
+              const shuffledClips = [...clipThumbnails].sort(() => 0.5 - Math.random());
+              
+              let userOrder = [];
+              
+              const renderSelectionScreen = () => {
+                taskModalBody.innerHTML = `
+                  <p style="margin-bottom: 1rem;">Click the clips in the order they were shown:</p>
+                  <div style="margin-bottom: 1rem;">
+                    <strong>Your Selection:</strong> ${userOrder.map((_, i) => i + 1).join(', ') || 'None yet'}
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                    ${shuffledClips.map((clip, i) => {
+                      const orderNum = userOrder.indexOf(clip.videoIndex);
+                      const isSelected = orderNum !== -1;
+                      return `
+                        <div class="clip-selection-tile" data-video-index="${clip.videoIndex}" style="
+                          position: relative;
+                          cursor: ${isSelected ? 'default' : 'pointer'};
+                          opacity: ${isSelected ? '0.5' : '1'};
+                          border: 2px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.3)'};
+                          border-radius: 8px;
+                          overflow: hidden;
+                        ">
+                          <img src="${clip.thumbnail}" style="width: 100%; display: block;" />
+                          ${isSelected ? `<div style="position: absolute; top: 5px; right: 5px; background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">${orderNum + 1}</div>` : ''}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                  <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button id="reset-order-btn" class="modal-action-btn" ${userOrder.length === 0 ? 'disabled' : ''}>Reset</button>
+                    <button id="confirm-order-btn" class="modal-action-btn" ${userOrder.length !== 6 ? 'disabled' : ''}>Confirm</button>
+                  </div>
+                `;
+                
+                // Add click handlers
+                document.querySelectorAll('.clip-selection-tile').forEach(tile => {
+                  const videoIndex = parseInt(tile.dataset.videoIndex);
+                  if (!userOrder.includes(videoIndex)) {
+                    tile.onclick = () => {
+                      userOrder.push(videoIndex);
+                      renderSelectionScreen();
+                    };
+                  }
+                });
+                
+                const resetBtn = document.getElementById('reset-order-btn');
+                if (resetBtn && !resetBtn.disabled) {
+                  resetBtn.onclick = () => {
+                    userOrder = [];
+                    renderSelectionScreen();
+                  };
+                }
+                
+                const confirmBtn = document.getElementById('confirm-order-btn');
+                if (confirmBtn && !confirmBtn.disabled) {
+                  confirmBtn.onclick = () => {
+                    // Check if order is correct
+                    const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
+                    
+                    if (isCorrect) {
+                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You got the order exactly right!</p></div>`;
+                      setTimeout(() => {
+                        updateMainScore(3000);
+                        markTaskComplete();
+                      }, 1500);
+                    } else {
+                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Incorrect!</h2><p>The order wasn't quite right.</p></div>`;
+                      setTimeout(() => closeTaskModal(), 2000);
+                    }
+                  };
+                }
+              };
+              
+              renderSelectionScreen();
             };
           }
 
