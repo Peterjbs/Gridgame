@@ -1608,6 +1608,7 @@
             }
             
             // Place challenges avoiding adjacent duplicates where possible
+            // First item placed, now place remaining gridSize-1 items
             result.push(pool[0]);
             const remaining = pool.slice(1);
             

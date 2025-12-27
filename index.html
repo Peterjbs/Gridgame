@@ -1998,6 +1998,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
             
             // Place challenges avoiding adjacent duplicates where possible
+            // First item placed, now place remaining gridSize-1 items
             result.push(pool[0]);
             const remaining = pool.slice(1);
             
