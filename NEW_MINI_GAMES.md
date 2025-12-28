@@ -42,7 +42,7 @@ This document describes the 10 new mini games added to the Cloud 9 Video Player 
 ---
 
 ### 3. Film Title Scrambler 🎬
-**Description:** Unscramble words to correctly form a movie title.
+**Description:** Unscramble letters in each word to correctly form a movie title.
 
 **Film Titles Include:**
 - The Dark Knight
@@ -53,15 +53,27 @@ This document describes the 10 new mini games added to the Cloud 9 Video Player 
 - And 10 more popular films
 
 **Gameplay:**
-1. Words from a film title are scrambled
-2. Drag and drop words into correct slots
-3. Click "Check Answer" to verify
-4. Correct answer awards tile and 2000 points
+1. Letters within each word are scrambled (not just word order)
+2. Type the correct letters for each word
+3. Real-time feedback shows progress (X/Y letters correct)
+4. Shows both current film AND previous film for added challenge
+5. Complete all words correctly to win
 
 **Features:**
-- Drag and drop interface
-- Can move words back to pool
-- Shows correct answer if wrong
+- **Typing-based input** (replaced drag-and-drop)
+- **Per-word letter scrambling** using Fisher-Yates shuffle
+- **Real-time validation** with visual feedback:
+  - Green checkmark for correct words
+  - Orange feedback showing partial progress
+- **Current + Previous Film display**:
+  - Previous film shown in purple section
+  - Current film shown in blue section
+- **Streak tracking** with fire emoji (🔥)
+- **Performance bonuses**:
+  - Speed bonus: <10s = +1000 pts, <20s = +500 pts
+  - Streak bonus: +500 pts per consecutive win
+- **Auto-advance** to next input on word completion
+- Base score: 2000 points + bonuses
 
 **Challenge Type:** `filmTitleScrambler`
 
@@ -352,9 +364,12 @@ Each game has a setup function:
 - 3 rounds (4, 5, 6 tiles)
 - Must complete all 3 rounds
 
-✅ **Film Title Scrambler:** Rearrange words to make film titles
+✅ **Film Title Scrambler:** Per-word letter unscrambling with typing input
 - 15 popular film titles included
-- Drag-and-drop interface
+- Letter-by-letter scrambling with Fisher-Yates shuffle
+- Typing-based interface with real-time feedback
+- Current + Previous film simultaneous display
+- Streak tracking and performance bonuses
 
 ✅ **Higher or Lower:** Guess which video has more views
 - 5 rounds required
