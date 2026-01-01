@@ -318,6 +318,10 @@
       transition: opacity 0.5s ease-in-out, background-color 0.5s ease-in-out;
       z-index: 100;
       pointer-events: none;
+      padding-top: env(safe-area-inset-top, 0);
+      padding-right: env(safe-area-inset-right, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-left: env(safe-area-inset-left, 0);
     }
 
     .overlay.visible {
@@ -344,6 +348,10 @@
       align-items: center;
       gap: clamp(1.5rem, 5vw, 3.5rem);
       padding: clamp(1.5rem, 6vw, 5rem);
+      padding-top: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-top, 0));
+      padding-right: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-right, 0));
+      padding-bottom: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-bottom, 0));
+      padding-left: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-left, 0));
       background: rgba(0, 0, 0, 0.55);
       backdrop-filter: blur(6px);
       z-index: 155;
@@ -497,6 +505,10 @@
       justify-content: center;
       align-items: center;
       pointer-events: all;
+      padding-top: env(safe-area-inset-top, 0);
+      padding-right: env(safe-area-inset-right, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-left: env(safe-area-inset-left, 0);
     }
 
     #story-maker-grid {
@@ -660,6 +672,8 @@
       position: fixed;
       top: 1rem;
       left: 1rem;
+      top: max(1rem, env(safe-area-inset-top, 1rem));
+      left: max(1rem, env(safe-area-inset-left, 1rem));
       z-index: 150;
       background: rgba(0, 0, 0, 0.6);
       padding: 0.5rem;
@@ -985,6 +999,10 @@
     #task-modal-content {
       background-color: #1f1f1f;
       padding: 2rem;
+      padding-top: max(2rem, env(safe-area-inset-top, 2rem));
+      padding-right: max(2rem, env(safe-area-inset-right, 2rem));
+      padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
+      padding-left: max(2rem, env(safe-area-inset-left, 2rem));
       border-radius: 1rem;
       width: 90%;
       max-width: 800px;
@@ -1021,10 +1039,86 @@
       cursor: pointer;
       line-height: 1;
       transition: color 0.2s;
+      z-index: 10;
+      padding: 0.5rem;
+      min-width: 44px;
+      min-height: 44px;
     }
 
     #task-modal-close:hover {
       color: white;
+    }
+
+    /* Toast Notification System */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 400;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      padding-top: env(safe-area-inset-top, 20px);
+      padding-right: env(safe-area-inset-right, 20px);
+    }
+
+    .toast {
+      background: rgba(31, 31, 31, 0.95);
+      color: white;
+      padding: 1rem 1.5rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+      min-width: 250px;
+      max-width: 400px;
+      pointer-events: auto;
+      animation: toastSlideIn 0.3s ease-out;
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      border-left: 4px solid #3498db;
+    }
+
+    .toast.success {
+      border-left-color: #27ae60;
+    }
+
+    .toast.error {
+      border-left-color: #e74c3c;
+    }
+
+    .toast.warning {
+      border-left-color: #f39c12;
+    }
+
+    .toast.info {
+      border-left-color: #3498db;
+    }
+
+    @keyframes toastSlideIn {
+      from {
+        transform: translateX(400px);
+        opacity: 0;
+      }
+      to {
+        transform: translateX(0);
+        opacity: 1;
+      }
+    }
+
+    .toast.removing {
+      animation: toastSlideOut 0.3s ease-in forwards;
+    }
+
+    @keyframes toastSlideOut {
+      from {
+        transform: translateX(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateX(400px);
+        opacity: 0;
+      }
     }
 
     .task-option-btn {
@@ -1532,6 +1626,8 @@
     </div>
   </div>
 
+  <div id="toast-container"></div>
+
   <div id="main-score-container">
     <span>Score: <span id="main-score-value">0</span></span>
     <span>Multiplier: <span id="main-score-multiplier">1.0</span>x</span>
@@ -1859,6 +1955,33 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let totalScore = 0;
           let scoreMultiplier = 1.0;
           let scoreDecayInterval = null;
+
+          // --- Toast Notification System ---
+          const toastContainer = document.getElementById('toast-container');
+          
+          function showToast(message, type = 'info', duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = {
+              success: '✓',
+              error: '✕',
+              warning: '⚠',
+              info: 'ℹ'
+            }[type] || 'ℹ';
+            
+            toast.innerHTML = `<span style="font-size: 1.2rem;">${icon}</span><span>${message}</span>`;
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+              toast.classList.add('removing');
+              setTimeout(() => {
+                if (toast.parentNode) {
+                  toast.parentNode.removeChild(toast);
+                }
+              }, 300);
+            }, duration);
+          }
 
           // --- THEME UPDATE: Cloud-themed categories ---
           const challengeCategories = [
@@ -2694,7 +2817,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               playVideoByIndex(0);
               populateRandomVideoSelector();
             } else {
-              alert("No video files found.");
+              showToast("No video files found.", "warning");
             }
           });
           mainVideo.onended = () => advanceVideo(1);
@@ -2709,7 +2832,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           const playPauseButton = document.getElementById('playPauseButton');
           playPauseButton.addEventListener('click', () => {
             if (!mainVideo.currentSrc) {
-              alert("Please select a video folder first using the 'Atmosphere Control' panel.");
+              showToast("Please select a video folder first using the 'Atmosphere Control' panel.", "info");
               document.querySelector('[data-panel="panel-playback-settings"]').click();
               return;
             }
@@ -2789,7 +2912,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           });
           document.getElementById('startBreathingGuideButton').addEventListener('click', () => {
-            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            if (videoFiles.length === 0) return showToast("Please upload videos first.", "warning");
             closeAllPanels();
             clearAllTimers();
             let breaths = parseInt(document.getElementById('breaths').value);
@@ -2834,7 +2957,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             inhale();
           });
           document.getElementById('startCountdownButton').addEventListener('click', () => {
-            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            if (videoFiles.length === 0) return showToast("Please upload videos first.", "warning");
             closeAllPanels();
             clearAllTimers();
             const countdownOverlay = document.getElementById('countdownOverlay');
@@ -2875,7 +2998,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           });
           document.getElementById('startGuessGameButton').addEventListener('click', () => {
-            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            if (videoFiles.length === 0) return showToast("Please upload videos first.", "warning");
             closeAllPanels();
             clearAllTimers();
             advanceVideo(1);
@@ -3140,7 +3263,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             btn.disabled = false;
             btn.textContent = 'Start Trivia';
             if (!result) {
-              alert('Failed to generate trivia questions. Please try again.');
+              showToast('Failed to generate trivia questions. Please try again.', 'error');
               return;
             }
             try {
@@ -3159,7 +3282,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               closeAllPanels();
               startPlayerTurn(0);
             } catch (e) {
-              alert('The AI generated invalid data. Please try again.');
+              showToast('The AI generated invalid data. Please try again.', 'error');
               console.error("Failed to parse trivia JSON:", result, e);
             }
           });
@@ -3339,10 +3462,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 startStoryMakerGame();
                 closeAllPanels();
               } catch (e) {
-                alert('AI generated invalid data. Please try again.');
+                showToast('AI generated invalid data. Please try again.', 'error');
               }
             } else {
-              alert('Failed to generate script. Please add your Gemini API key (top right) and try again.');
+              showToast('Failed to generate script. Please add your Gemini API key (top right) and try again.', 'error');
             }
           });
 
@@ -3845,7 +3968,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             advanceChallengeTurn();
           }
 
-          taskModalCloseBtn.addEventListener('click', closeTaskModal);
+          taskModalCloseBtn.addEventListener('pointerdown', closeTaskModal);
           
           // Add keyboard shortcut to close task modal (Escape key)
           document.addEventListener('keydown', (event) => {
@@ -3931,7 +4054,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 const q = questions[currentQ];
                 taskModalBody.innerHTML =
                   `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
-                document.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = handleAnswer);
+                document.querySelectorAll('.task-option-btn').forEach(btn => btn.addEventListener('pointerdown', handleAnswer));
               }
 
               function handleAnswer(e) {
@@ -3995,12 +4118,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 if (timeLeft <= 0) {
                   clearInterval(modalTimer);
                   updateMainScore(-1000);
-                  alert("Time's up!");
+                  showToast("Time's up!", "warning");
                   closeTaskModal();
                 }
               }, 1000);
               document.querySelectorAll('.emoji-cell').forEach(cell => {
-                cell.onclick = () => {
+                cell.addEventListener('pointerdown', () => {
                   if (!canClick || cell.classList.contains('flipped') || cell.classList.contains('matched') || flipped.length >= 2) return;
                   cell.classList.add('flipped');
                   flipped.push(cell);
@@ -4104,7 +4227,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 thumbDiv.className = 'memory-clip-thumbnail';
                 thumbDiv.dataset.index = data.index;
                 thumbDiv.innerHTML = `<video src="${data.url}#t=${data.startTime+1}" preload="metadata"></video>`;
-                thumbDiv.onclick = () => {
+                thumbDiv.addEventListener('pointerdown', () => {
                   document.querySelectorAll('.memory-clip-thumbnail').forEach(t => t.classList.add('disabled'));
                   if (parseInt(thumbDiv.dataset.index) === hiddenClipIndex) {
                     thumbDiv.style.outline = "4px solid #27ae60";
@@ -4139,7 +4262,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.getElementById('confirm-bingo-card').disabled = selectedPrompts.length !== 6;
               };
               document.querySelectorAll('#bingo-builder-master-list .bingo-item').forEach(item => {
-                item.onclick = () => {
+                item.addEventListener('pointerdown', () => {
                   const prompt = item.textContent;
                   if (item.classList.contains('selected')) {
                     item.classList.remove('selected');
@@ -4151,7 +4274,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   updatePreview();
                 };
               });
-              document.getElementById('confirm-bingo-card').onclick = () => {
+              document.getElementById('confirm-bingo-card').addEventListener('pointerdown', () => {
                 createBingoCardWidget(selectedPrompts, activeTaskElement);
                 closeTaskModal();
               };
@@ -4209,7 +4332,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   updateMainScore(1500);
                   markTaskComplete();
                 } else {
-                  alert("You have to write something!");
+                  showToast("You have to write something!", "warning");
                 }
               };
               document.getElementById('ai-challenge-response').focus();
@@ -4389,7 +4512,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
                   if (timeLeft <= 0) {
                     clearInterval(modalTimer);
-                    alert("Time's up!");
+                    showToast("Time's up!", "warning");
                     closeTaskModal();
                   }
                 }, 1000);
@@ -4401,7 +4524,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     updateMainScore(2000);
                     markTaskComplete();
                   } else {
-                    alert(`Incorrect! The word was: ${word}`);
+                    showToast(`Incorrect! The word was: ${word}`, "error");
                     closeTaskModal();
                   }
                 };
@@ -4443,7 +4566,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   gamePhase = 'ended';
                   symbolEl.classList.remove('visible');
                   if (activeTaskElement && !isTaskCompleted) { // If player hasn't clicked by now
-                    alert('Too slow!');
+                    showToast('Too slow!', 'warning');
                     closeTaskModal();
                   }
                 }, 1500); // Symbol is visible for 1.5s
@@ -4455,7 +4578,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   if(gamePhase === 'ended') return;
 
                   if (gamePhase === 'waiting') {
-                    alert('Too early!');
+                    showToast('Too early!', 'warning');
                     clearTimeout(showSymbolTimeout);
                     closeTaskModal();
                   } else if (gamePhase === 'active') {
@@ -4541,7 +4664,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             document.getElementById('start-pf-btn').onclick = () => {
               if (videoFiles.length === 0) {
-                alert("Please upload videos first.");
+                showToast("Please upload videos first.", "warning");
                 return;
               }
               
@@ -4708,7 +4831,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               };
               
               document.querySelectorAll('#minibingo-master-list .bingo-item').forEach(item => {
-                item.onclick = () => {
+                item.addEventListener('pointerdown', () => {
                   const prompt = item.textContent;
                   if (item.classList.contains('selected')) {
                     item.classList.remove('selected');
@@ -4723,7 +4846,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 };
               });
               
-              document.getElementById('confirm-minibingo-card').onclick = () => {
+              document.getElementById('confirm-minibingo-card').addEventListener('pointerdown', () => {
                 // Create the mini bingo card widget
                 const card = document.createElement('div');
                 card.className = 'bingo-card-widget';
@@ -4757,7 +4880,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                       
                       if (markedCount === 4) {
                         setTimeout(() => {
-                          alert('🎉 Mini Bingo! You marked all 4!');
+                          showToast('🎉 Mini Bingo! You marked all 4!', 'success');
                           card.remove();
                           updateMainScore(1000);
                           markTaskComplete();
@@ -5053,8 +5176,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               };
             };
             
-            document.getElementById('choose-sunny').onclick = () => handleChoice('sunny');
-            document.getElementById('choose-stormy').onclick = () => handleChoice('stormy');
+            document.getElementById('choose-sunny').addEventListener('pointerdown', () => handleChoice('sunny'));
+            document.getElementById('choose-stormy').addEventListener('pointerdown', () => handleChoice('stormy'));
           }
 
           // --- NEW MINI GAMES ---
@@ -5305,24 +5428,24 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.querySelectorAll('.clip-selection-tile').forEach(tile => {
                   const videoIndex = parseInt(tile.dataset.videoIndex);
                   if (!userOrder.includes(videoIndex)) {
-                    tile.onclick = () => {
+                    tile.addEventListener('pointerdown', () => {
                       userOrder.push(videoIndex);
                       renderSelectionScreen();
-                    };
+                    });
                   }
                 });
                 
                 const resetBtn = document.getElementById('reset-order-btn');
                 if (resetBtn && !resetBtn.disabled) {
-                  resetBtn.onclick = () => {
+                  resetBtn.addEventListener('pointerdown', () => {
                     userOrder = [];
                     renderSelectionScreen();
-                  };
+                  });
                 }
                 
                 const confirmBtn = document.getElementById('confirm-order-btn');
                 if (confirmBtn && !confirmBtn.disabled) {
-                  confirmBtn.onclick = () => {
+                  confirmBtn.addEventListener('pointerdown', () => {
                     // Check if order is correct
                     const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
                     
@@ -6625,14 +6748,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           document.getElementById('save-creative-challenges-btn').addEventListener('click', () => {
             const text = document.getElementById('creative-challenges-input').value.trim();
             if (!text) {
-              alert('Please enter at least one challenge!');
+              showToast('Please enter at least one challenge!', 'warning');
               return;
             }
             
             const challenges = text.split('\n').filter(line => line.trim().length > 0);
             localStorage.setItem('customCreativeChallenges', JSON.stringify(challenges));
             loadCreativeChallenges();
-            alert(`Saved ${challenges.length} challenge(s)!`);
+            showToast(`Saved ${challenges.length} challenge(s)!`, 'success');
             document.getElementById('creative-challenges-input').value = '';
           });
           
@@ -6665,7 +6788,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           document.getElementById('save-film-data-btn').addEventListener('click', () => {
             const text = document.getElementById('film-data-input').value.trim();
             if (!text) {
-              alert('Please enter at least one film entry!');
+              showToast('Please enter at least one film entry!', 'warning');
               return;
             }
             
@@ -6691,10 +6814,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             if (filmData.length > 0) {
               localStorage.setItem('filmViewsData', JSON.stringify(filmData));
               loadFilmData();
-              alert(`Saved ${filmData.length} film(s)!${errors > 0 ? ` (${errors} entries had errors and were skipped)` : ''}`);
+              showToast(`Saved ${filmData.length} film(s)!${errors > 0 ? ` (${errors} entries had errors and were skipped)` : ''}`, 'success');
               document.getElementById('film-data-input').value = '';
             } else {
-              alert('No valid film data found! Use format: "Title|Views" (one per line)');
+              showToast('No valid film data found! Use format: "Title|Views" (one per line)', 'error');
             }
           });
           
