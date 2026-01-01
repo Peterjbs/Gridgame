@@ -764,6 +764,7 @@
       margin-top: 0.5rem;
       border: none;
       font-weight: bold;
+      touch-action: manipulation;
     }
 
     .panel button:disabled,
@@ -995,6 +996,7 @@
       border: none;
       color: white;
       font-size: 1rem;
+      touch-action: manipulation;
     }
 
     .task-option-btn:hover:not(:disabled) {
@@ -1038,6 +1040,7 @@
       justify-content: center;
       transition: background 0.2s;
       margin-left: 0.5rem;
+      touch-action: manipulation;
     }
 
     .voice-input-btn:hover {
@@ -1574,6 +1577,9 @@
     <h3>Upload from Local Drive</h3>
     <input type="file" id="videoInput" multiple webkitdirectory directory
       class="block w-full text-sm text-gray-300 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:bg-gray-500 file:text-white hover:file:bg-gray-600 cursor-pointer mb-4">
+    <p id="video-input-help" style="font-size: 0.75rem; color: #9ca3af; margin-top: -0.5rem;">
+      Select a folder containing videos. On devices that don't support folder selection, select multiple video files.
+    </p>
     <h3>Stream Change</h3>
     <div class="grid grid-cols-2 gap-2 text-sm">
       <label>Every <input type="number" id="intervalSeconds" value="30" class="w-full mt-1"> seconds</label>
@@ -4170,10 +4176,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     <div class="sequencer-drop-zones">
                         ${Array(correctSequence.length).fill(0).map((_, i) => `<div class="sequencer-drop-zone" data-drop-index="${i}">${i+1}</div>`).join('')}
                     </div>
-                    <p>Drag the clips from the pool below into the correct order above.</p>
+                    <p>Tap a clip below, then tap a slot above to place it.</p>
                     <div class="sequencer-clips-pool">
                          ${shuffledSequence.map(index => `
-                            <div class="sequencer-draggable-clip" draggable="true" data-video-index="${index}">
+                            <div class="sequencer-draggable-clip" data-video-index="${index}">
                                 <video src="${URL.createObjectURL(videoFiles[index])}#t=0.5" preload="metadata" muted playsinline></video>
                             </div>
                          `).join('')}
@@ -4196,43 +4202,50 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               });
             });
 
-            const draggables = document.querySelectorAll('.sequencer-draggable-clip');
+            const clips = document.querySelectorAll('.sequencer-draggable-clip');
             const dropZones = document.querySelectorAll('.sequencer-drop-zone');
             let userSequence = Array(correctSequence.length).fill(null);
+            let selectedClip = null;
 
-            draggables.forEach(draggable => {
-              draggable.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', draggable.dataset.videoIndex);
-                setTimeout(() => draggable.style.opacity = '0.5', 0);
+            // Touch-first tap-to-select implementation
+            clips.forEach(clip => {
+              clip.style.touchAction = 'manipulation';
+              clip.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                // Deselect all clips first
+                clips.forEach(c => c.style.border = '2px solid transparent');
+                // Select this clip
+                clip.style.border = '2px solid #3498db';
+                selectedClip = clip;
               });
-              draggable.addEventListener('dragend', () => draggable.style.opacity = '1');
             });
 
             dropZones.forEach(zone => {
-              zone.addEventListener('dragover', e => {
+              zone.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
-                zone.classList.add('over');
-              });
-              zone.addEventListener('dragleave', () => zone.classList.remove('over'));
-              zone.addEventListener('drop', e => {
-                e.preventDefault();
-                zone.classList.remove('over');
-                const videoIndex = e.dataTransfer.getData('text/plain');
-                const draggableElement = document.querySelector(`.sequencer-draggable-clip[data-video-index='${videoIndex}']`);
-                if (draggableElement) {
+                if (selectedClip) {
                   const dropIndex = parseInt(zone.dataset.dropIndex);
+                  const videoIndex = parseInt(selectedClip.dataset.videoIndex);
+                  
                   // If another clip is already here, send it back to the pool
-                  if (zone.firstChild && zone.firstChild.dataset) {
-                    document.querySelector('.sequencer-clips-pool').appendChild(zone.firstChild);
+                  if (zone.firstChild && zone.firstChild.classList && zone.firstChild.classList.contains('sequencer-draggable-clip')) {
+                    const pool = document.querySelector('.sequencer-clips-pool');
+                    pool.appendChild(zone.firstChild);
                   }
+                  
+                  // Place selected clip in zone
                   zone.innerHTML = '';
-                  zone.appendChild(draggableElement);
-                  userSequence[dropIndex] = parseInt(videoIndex);
+                  zone.appendChild(selectedClip);
+                  userSequence[dropIndex] = videoIndex;
+                  
+                  // Deselect
+                  selectedClip.style.border = '2px solid transparent';
+                  selectedClip = null;
                 }
               });
             });
 
-            document.getElementById('check-sequence-btn').onclick = () => {
+            document.getElementById('check-sequence-btn').addEventListener('pointerdown', () => {
               const isCorrect = userSequence.every((val, index) => val === correctSequence[index]);
               const correctCount = userSequence.filter((val, index) => val === correctSequence[index]).length;
               
@@ -4838,10 +4851,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     <div class="sequencer-drop-zones">
                         ${Array(correctSequence.length).fill(0).map((_, i) => `<div class="sequencer-drop-zone" data-drop-index="${i}">${i+1}</div>`).join('')}
                     </div>
-                    <p>Drag the clips from the pool below into the correct order above.</p>
+                    <p>Tap a clip below, then tap a slot above to place it.</p>
                     <div class="sequencer-clips-pool">
                          ${shuffledSequence.map(index => `
-                            <div class="sequencer-draggable-clip" draggable="true" data-video-index="${index}">
+                            <div class="sequencer-draggable-clip" data-video-index="${index}">
                                 <video src="${URL.createObjectURL(videoFiles[index])}#t=0.5" preload="metadata" muted playsinline></video>
                             </div>
                          `).join('')}
@@ -4864,43 +4877,50 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               });
             });
 
-            const draggables = document.querySelectorAll('.sequencer-draggable-clip');
+            const clips = document.querySelectorAll('.sequencer-draggable-clip');
             const dropZones = document.querySelectorAll('.sequencer-drop-zone');
             let userSequence = Array(correctSequence.length).fill(null);
+            let selectedClip = null;
 
-            draggables.forEach(draggable => {
-              draggable.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', draggable.dataset.videoIndex);
-                setTimeout(() => draggable.style.opacity = '0.5', 0);
+            // Touch-first tap-to-select implementation
+            clips.forEach(clip => {
+              clip.style.touchAction = 'manipulation';
+              clip.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                // Deselect all clips first
+                clips.forEach(c => c.style.border = '2px solid transparent');
+                // Select this clip
+                clip.style.border = '2px solid #3498db';
+                selectedClip = clip;
               });
-              draggable.addEventListener('dragend', () => draggable.style.opacity = '1');
             });
 
             dropZones.forEach(zone => {
-              zone.addEventListener('dragover', e => {
+              zone.addEventListener('pointerdown', (e) => {
                 e.preventDefault();
-                zone.classList.add('over');
-              });
-              zone.addEventListener('dragleave', () => zone.classList.remove('over'));
-              zone.addEventListener('drop', e => {
-                e.preventDefault();
-                zone.classList.remove('over');
-                const videoIndex = e.dataTransfer.getData('text/plain');
-                const draggableElement = document.querySelector(`.sequencer-draggable-clip[data-video-index='${videoIndex}']`);
-                if (draggableElement) {
+                if (selectedClip) {
                   const dropIndex = parseInt(zone.dataset.dropIndex);
+                  const videoIndex = parseInt(selectedClip.dataset.videoIndex);
+                  
                   // If another clip is already here, send it back to the pool
-                  if (zone.firstChild && zone.firstChild.dataset) {
-                    document.querySelector('.sequencer-clips-pool').appendChild(zone.firstChild);
+                  if (zone.firstChild && zone.firstChild.classList && zone.firstChild.classList.contains('sequencer-draggable-clip')) {
+                    const pool = document.querySelector('.sequencer-clips-pool');
+                    pool.appendChild(zone.firstChild);
                   }
+                  
+                  // Place selected clip in zone
                   zone.innerHTML = '';
-                  zone.appendChild(draggableElement);
-                  userSequence[dropIndex] = parseInt(videoIndex);
+                  zone.appendChild(selectedClip);
+                  userSequence[dropIndex] = videoIndex;
+                  
+                  // Deselect
+                  selectedClip.style.border = '2px solid transparent';
+                  selectedClip = null;
                 }
               });
             });
 
-            document.getElementById('check-sequence-btn').onclick = () => {
+            document.getElementById('check-sequence-btn').addEventListener('pointerdown', () => {
               const isCorrect = userSequence.every((val, index) => val === correctSequence[index]);
               const correctCount = userSequence.filter((val, index) => val === correctSequence[index]).length;
               
