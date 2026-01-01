@@ -2026,12 +2026,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             return result;
           }
           
-          // Distribute 24 challenges evenly across the grid
-          let challenges = distributeEvenly(challengeTypes, 24);
+          // Distribute 45 challenges evenly across the grid (3x15)
+          let challenges = distributeEvenly(challengeTypes, 45);
           
           // Add "pick the game" mechanics - convert some tiles to 3-choice options
-          // Let's make every 4th tile (6 total) a 3-choice tile
-          const threeChoiceIndices = [3, 7, 11, 15, 19, 23];
+          // For 45 tiles, make every 4th tile (11 total, ~24%) a 3-choice tile
+          const threeChoiceIndices = [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43];
           threeChoiceIndices.forEach(index => {
             // Pick 3 distinct random challenges
             const availableTypes = [...challengeTypes];
@@ -2090,7 +2090,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
           
           // Pre-assign images for the grid
-          const gridImages = Array.from({ length: 24 }, () => getNextImage());
+          const gridImages = Array.from({ length: 45 }, () => getNextImage());
 
           const challengePlayers = [{
               name: 'Player 1',
@@ -3698,11 +3698,11 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 renderChallengeHud();
               }
               
-              // Check for horizontal line bonus (5 columns = 5 tiles per row)
+              // Check for horizontal line bonus (3 columns = 3 tiles per row)
               const challengeIndex = parseInt(activeTaskElement.dataset.challengeIndex);
-              const rowIndex = Math.floor(challengeIndex / 5);
-              const rowStart = rowIndex * 5;
-              const rowEnd = rowStart + 5;
+              const rowIndex = Math.floor(challengeIndex / 3);
+              const rowStart = rowIndex * 3;
+              const rowEnd = rowStart + 3;
               
               // Check if all tiles in this row are owned by the current player
               let allOwnedByPlayer = true;
