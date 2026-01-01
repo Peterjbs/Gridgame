@@ -4125,6 +4125,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const runPhase = () => {
                 if (isPaused) return;
                 
+                // Clear any existing timer to prevent race conditions
+                if (currentTimer) clearInterval(currentTimer);
+                
                 let count = remainingTime;
                 overlayTimer.textContent = count;
                 
