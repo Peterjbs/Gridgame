@@ -1089,7 +1089,8 @@
       aspect-ratio: 1/1;
       background: #444;
       border-radius: 8px;
-      font-size: 2.5rem;
+      font-size: clamp(34px, 6vw, 56px);
+      line-height: 1;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -1098,12 +1099,21 @@
       transform-style: preserve-3d;
       min-width: 60px;
       min-height: 60px;
+      padding: 0.25rem;
     }
 
     .emoji-cell .emoji-content {
       backface-visibility: hidden;
       transition: opacity 0.2s;
       opacity: 0;
+      font-size: clamp(34px, 6vw, 56px);
+      line-height: 1;
+    }
+    
+    .emoji-cell:not(.flipped) .emoji-content::before {
+      content: '❓';
+      font-size: clamp(34px, 6vw, 56px);
+      line-height: 1;
     }
 
     .emoji-cell.flipped {
@@ -1115,11 +1125,56 @@
       opacity: 1;
       transform: rotateY(180deg);
     }
+    
+    .emoji-cell.flipped .emoji-content::before {
+      content: none;
+    }
 
     .emoji-cell.matched {
       background-color: #27ae60;
       opacity: 0.5;
       cursor: default;
+    }
+    
+    /* Avatar Sequence Memory flip cards */
+    .avatar-tile-container {
+      aspect-ratio: 1;
+      perspective: 1000px;
+      cursor: pointer;
+    }
+    
+    .avatar-tile-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.4s;
+    }
+    
+    .avatar-tile-container.flipped .avatar-tile-inner {
+      transform: rotateY(180deg);
+    }
+    
+    .avatar-tile-front,
+    .avatar-tile-back {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      backface-visibility: hidden;
+      border-radius: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    
+    .avatar-tile-front {
+      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    }
+    
+    .avatar-tile-back {
+      background: #1a1a1a;
+      transform: rotateY(180deg);
+      font-size: clamp(2rem, 4vw, 3rem);
     }
 
     /* Bingo Builder */
@@ -3456,6 +3511,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               media.pause();
               if (media.src) {
                 media.src = '';
+                media.load();
               }
             });
             
@@ -3465,6 +3521,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               gridOverlay.querySelectorAll('video').forEach(video => {
                 video.pause();
                 video.src = '';
+                video.load();
               });
               gridOverlay.remove();
             }
@@ -3472,6 +3529,22 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             // Clean up timer display
             const timerDiv = document.getElementById('quarter-timer');
             if (timerDiv) timerDiv.remove();
+            
+            // Clean up "tap to start" button
+            const startButton = document.getElementById('tap-to-start-btn');
+            if (startButton) startButton.remove();
+            
+            // Clean up help overlay
+            const helpOverlay = document.getElementById('video-quarters-help-overlay');
+            if (helpOverlay) helpOverlay.remove();
+            
+            // Clean up paint canvas
+            const paintCanvas = document.getElementById('paint-canvas');
+            if (paintCanvas) paintCanvas.remove();
+            
+            // Clean up paint info panel
+            const paintInfoPanel = document.getElementById('paint-info-panel');
+            if (paintInfoPanel) paintInfoPanel.remove();
             
             // Clean up object URLs
             currentObjectURLs.forEach(url => {
@@ -3481,6 +3554,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             // B0.2: Revoke all tracked ObjectURLs (prevents memory leaks)
             revokeAllTrackedObjectURLs();
+            
+            // Clear all timers
+            currentTimers.forEach(timer => {
+              clearInterval(timer);
+              clearTimeout(timer);
+            });
+            currentTimers = [];
             
             // Clear modal content and hide
             taskModalBody.innerHTML = '';
@@ -3779,7 +3859,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               let canClick = true;
               let timeLeft = config.time;
               taskModalBody.innerHTML =
-                `<div class="flex justify-between items-center mb-4"><h3 id="pairs-timer" class="text-2xl font-bold">Time: ${timeLeft}</h3></div><div class="emoji-grid ${config.gridClass}">${gameEmojis.map((emoji, i) => `<div class="emoji-cell" data-index="${i}" style="font-size: ${config.emojiSize};"><div class="emoji-content">${emoji}</div></div>`).join('')}</div>`;
+                `<div class="flex justify-between items-center mb-4"><h3 id="pairs-timer" class="text-2xl font-bold">Time: ${timeLeft}</h3></div><div class="emoji-grid ${config.gridClass}">${gameEmojis.map((emoji, i) => `<div class="emoji-cell" data-index="${i}"><div class="emoji-content">${emoji}</div></div>`).join('')}</div>`;
               modalTimer = setInterval(() => {
                 timeLeft--;
                 const timerEl = document.getElementById('pairs-timer');
@@ -4128,7 +4208,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   updateMainScore(1500);
                   markTaskComplete();
                 } else {
-                  alert("You have to write something!");
+                  showToast("You have to write something!", "warning");
                 }
               };
               document.getElementById('ai-challenge-response').focus();
@@ -4315,7 +4395,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
                   if (timeLeft <= 0) {
                     clearInterval(modalTimer);
-                    alert("Time's up!");
+                    showToast("Time's up!", "warning");
                     closeTaskModal();
                   }
                 }, 1000);
@@ -4327,7 +4407,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     updateMainScore(2000);
                     markTaskComplete();
                   } else {
-                    alert(`Incorrect! The word was: ${word}`);
+                    showToast(`Incorrect! The word was: ${word}`, "error");
                     closeTaskModal();
                   }
                 };
@@ -4502,7 +4582,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             document.getElementById('start-pf-btn').onclick = () => {
               if (videoFiles.length === 0) {
-                alert("Please upload videos first.");
+                showToast("Please upload videos first.", "warning");
                 return;
               }
               
@@ -4684,7 +4764,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 // Check existing cards limit (max 6 cards)
                 const existingCards = document.querySelectorAll('.bingo-card-widget').length;
                 if (existingCards >= 6) {
-                  alert('Maximum 6 mini bingo cards allowed. Complete or close some cards first.');
+                  showToast('Maximum 6 mini bingo cards allowed. Complete or close some cards first.', "warning");
                   return;
                 }
                 
@@ -4730,7 +4810,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                       
                       if (markedCount === 4) {
                         setTimeout(() => {
-                          alert('🎉 Mini Bingo! You marked all 4!');
+                          showToast("🎉 Mini Bingo! You marked all 4!", "success");
                           card.remove();
                           updateMainScore(1000);
                           markTaskComplete();
@@ -4803,7 +4883,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   updateMainScore(1500);
                   markTaskComplete();
                 } else {
-                  alert("You have to write something!");
+                  showToast("You have to write something!", "warning");
                 }
               };
               document.getElementById('ai-challenge-response').focus();
@@ -4990,7 +5070,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
                   if (timeLeft <= 0) {
                     clearInterval(modalTimer);
-                    alert("Time's up!");
+                    showToast("Time's up!", "warning");
                     closeTaskModal();
                   }
                 }, 1000);
@@ -5002,7 +5082,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     updateMainScore(2000);
                     markTaskComplete();
                   } else {
-                    alert(`Incorrect! The word was: ${word}`);
+                    showToast(`Incorrect! The word was: ${word}`, "error");
                     closeTaskModal();
                   }
                 };
@@ -5019,52 +5099,147 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               return;
             }
 
-            taskModalBody.innerHTML = `<h3>Click the button ONLY when you see the 😈 symbol.</h3><p>Don't click too early!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
+            // Use same emoji array as Match Pairs (single source of truth)
+            const baseEmojis = ['🍆', '🍑', '💦', '👄', '👅', '💪', '⛓️', '🔥', '😈', '🦄', '🐷', '💨', '🚀', '🫃🏽'];
+            
+            taskModalBody.innerHTML = `<h3>Watch for the target emoji!</h3><p>Don't tap too early!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
 
             document.getElementById('start-challenge-btn').onclick = () => {
               const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
               const videoURL = URL.createObjectURL(videoFiles[randomVideoIndex]);
-              let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
-              let symbolTimer = null;
+              currentObjectURLs.push(videoURL);
+              
+              // Pick random target from emoji pool
+              const targetEmoji = baseEmojis[Math.floor(Math.random() * baseEmojis.length)];
+              const nonTargetEmojis = baseEmojis.filter(e => e !== targetEmoji);
+              
+              let gamePhase = 'countdown'; // 'countdown', 'flashing', 'target', 'ended'
+              let hasClicked = false;
+              let targetShowTime = null;
+              let reactionWindow = 900; // ms
 
               taskModalBody.innerHTML = `
-                    <div class="reflex-test-container">
-                        <video class="reflex-test-video" src="${videoURL}" muted autoplay loop></video>
-                        <div class="reflex-test-symbol">😈</div>
-                    </div>
-                    <button id="reflex-click-btn" class="modal-action-btn mt-4">CLICK HERE!</button>
-                `;
-
-              const symbolEl = document.querySelector('.reflex-test-symbol');
-
-              const showSymbolTimeout = setTimeout(() => {
-                gamePhase = 'active';
-                symbolEl.classList.add('visible');
-                symbolTimer = setTimeout(() => { // Symbol disappears
+                <div class="reflex-test-container">
+                  <video class="reflex-test-video" src="${videoURL}" muted autoplay loop playsinline></video>
+                  <div id="watch-display" style="
+                    position: absolute;
+                    top: 50%;
+                    left: 50%;
+                    transform: translate(-50%, -50%);
+                    font-size: 4rem;
+                    z-index: 10;
+                    background: rgba(0, 0, 0, 0.8);
+                    padding: 2rem;
+                    border-radius: 12px;
+                    text-align: center;
+                  ">
+                    <div id="watch-message">Watch for:</div>
+                    <div id="watch-emoji" style="font-size: 5rem; margin-top: 1rem;">${targetEmoji}</div>
+                  </div>
+                </div>
+              `;
+              
+              const displayEl = document.getElementById('watch-display');
+              const messageEl = document.getElementById('watch-message');
+              const emojiEl = document.getElementById('watch-emoji');
+              parseEmojis(emojiEl);
+              
+              // Countdown (2-3s)
+              const countdownDuration = 2000 + Math.random() * 1000;
+              const countdownHandle = setTimeout(() => {
+                gamePhase = 'flashing';
+                messageEl.style.display = 'none';
+                
+                // Flash loop (2-4s total, showing random non-target emoji every 180-260ms)
+                const flashDuration = 2000 + Math.random() * 2000;
+                const flashStartTime = Date.now();
+                
+                const flashNext = () => {
+                  if (Date.now() - flashStartTime >= flashDuration) {
+                    // Show target
+                    gamePhase = 'target';
+                    targetShowTime = Date.now();
+                    emojiEl.textContent = targetEmoji;
+                    parseEmojis(emojiEl);
+                    
+                    // Create tap button
+                    const tapButton = document.createElement('button');
+                    tapButton.textContent = 'TAP!';
+                    tapButton.className = 'modal-action-btn';
+                    tapButton.style.cssText = `
+                      position: absolute;
+                      bottom: 2rem;
+                      left: 50%;
+                      transform: translateX(-50%);
+                      font-size: 1.5rem;
+                      padding: 1rem 2rem;
+                      z-index: 11;
+                    `;
+                    displayEl.appendChild(tapButton);
+                    
+                    tapButton.addEventListener('pointerdown', handleClick);
+                    
+                    // Target visible for 350-600ms
+                    const targetDuration = 350 + Math.random() * 250;
+                    const targetHideHandle = setTimeout(() => {
+                      if (!hasClicked) {
+                        gamePhase = 'ended';
+                        displayEl.remove();
+                        showToast("Too slow!", "error");
+                        setTimeout(() => closeTaskModal(), 1500);
+                      }
+                    }, targetDuration);
+                    currentTimers.push(targetHideHandle);
+                    return;
+                  }
+                  
+                  // Show random non-target emoji
+                  const randomEmoji = nonTargetEmojis[Math.floor(Math.random() * nonTargetEmojis.length)];
+                  emojiEl.textContent = randomEmoji;
+                  parseEmojis(emojiEl);
+                  
+                  // Next flash in 180-260ms
+                  const nextFlashDelay = 180 + Math.random() * 80;
+                  const flashHandle = setTimeout(flashNext, nextFlashDelay);
+                  currentTimers.push(flashHandle);
+                };
+                
+                flashNext();
+              }, countdownDuration);
+              currentTimers.push(countdownHandle);
+              
+              const handleClick = () => {
+                if (hasClicked) return;
+                hasClicked = true;
+                
+                if (gamePhase === 'countdown' || gamePhase === 'flashing') {
+                  // Clicked too early
                   gamePhase = 'ended';
-                  symbolEl.classList.remove('visible');
-                  if (activeTaskElement && !isTaskCompleted) { // If player hasn't clicked by now
-                    alert('Too slow!');
-                    closeTaskModal();
+                  displayEl.remove();
+                  showToast("Too soon!", "warning");
+                  setTimeout(() => closeTaskModal(), 1500);
+                } else if (gamePhase === 'target') {
+                  // Calculate reaction time
+                  const reactionTime = Date.now() - targetShowTime;
+                  if (reactionTime <= reactionWindow) {
+                    gamePhase = 'ended';
+                    displayEl.remove();
+                    showToast(`Perfect! ${reactionTime}ms reaction time!`, "success");
+                    setTimeout(() => {
+                      updateMainScore(2000);
+                      markTaskComplete();
+                    }, 1500);
+                  } else {
+                    gamePhase = 'ended';
+                    displayEl.remove();
+                    showToast("Too slow!", "error");
+                    setTimeout(() => closeTaskModal(), 1500);
                   }
-                }, 1500); // Symbol is visible for 1.5s
-              }, Math.random() * 5000 + 3000); // Random delay 3-8s
-
-              currentTimers.push(showSymbolTimeout, symbolTimer);
-
-              document.getElementById('reflex-click-btn').onclick = () => {
-                  if(gamePhase === 'ended') return;
-
-                  if (gamePhase === 'waiting') {
-                    alert('Too early!');
-                    clearTimeout(showSymbolTimeout);
-                    closeTaskModal();
-                  } else if (gamePhase === 'active') {
-                    updateMainScore(2000);
-                    markTaskComplete();
-                  }
-                  gamePhase = 'ended'; // Prevent multiple clicks
+                }
               };
+              
+              // Also allow clicking on the emoji display area during flash phase
+              displayEl.addEventListener('pointerdown', handleClick);
             };
           }
 
@@ -5142,7 +5317,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             document.getElementById('start-pf-btn').onclick = () => {
               if (videoFiles.length === 0) {
-                alert("Please upload videos first.");
+                showToast("Please upload videos first.", "warning");
                 return;
               }
               
@@ -5711,7 +5886,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             taskModalBody.innerHTML = `
               <h3>Memorize the sequence!</h3>
-              <p>Grid tiles will flash in sequence.</p>
+              <p>Grid tiles will flip to reveal avatars in sequence.</p>
               <p>You must click them in the same order.</p>
               <p><strong>Complete 3 rounds to win!</strong></p>
               <button id="start-challenge-btn" class="modal-action-btn">Start</button>
@@ -5720,6 +5895,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             document.getElementById('start-challenge-btn').onclick = () => {
               let round = 1;
               const maxRounds = 3;
+              
+              // Emoji pool for avatars
+              const avatarEmojis = ['🐸', '🐷', '🐵', '🐱', '🐶', '🦊', '🐼', '🐨', '🐯'];
+              const colors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22', '#34495e', '#16a085'];
               
               const playRound = () => {
                 const sequenceLength = 3 + round; // 4, 5, 6
@@ -5731,77 +5910,89 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   sequence.push(Math.floor(Math.random() * gridSize));
                 }
                 
-                // Select 9 images from shuffle-bag (ensures all 34 are used over time)
-                const tileImages = [];
+                // Create tile model
+                const tiles = [];
                 for (let i = 0; i < gridSize; i++) {
-                  const imageNum = getNextImage();
-                  tileImages.push(`images/${imageNum}.png`);
+                  tiles.push({
+                    avatar: avatarEmojis[i],
+                    color: colors[i],
+                    state: 'down'
+                  });
                 }
                 
                 taskModalTitle.textContent = `Round ${round}/${maxRounds} - Watch the sequence!`;
                 taskModalBody.innerHTML = `
                   <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-width: 400px; margin: 0 auto;">
-                    ${Array(gridSize).fill(0).map((_, i) => `
-                      <div class="avatar-tile" data-index="${i}" style="
-                        aspect-ratio: 1;
-                        background-image: url('${tileImages[i]}');
-                        background-size: cover;
-                        background-position: center;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        transition: all 0.3s;
-                        border: 3px solid rgba(255,255,255,0.1);
-                      "></div>
+                    ${tiles.map((tile, i) => `
+                      <div class="avatar-tile-container" data-index="${i}">
+                        <div class="avatar-tile-inner">
+                          <div class="avatar-tile-front" style="background: ${tile.color};"></div>
+                          <div class="avatar-tile-back">${tile.avatar}</div>
+                        </div>
+                      </div>
                     `).join('')}
                   </div>
                 `;
                 
-                // Show sequence
+                // Parse emojis in avatar backs
+                document.querySelectorAll('.avatar-tile-back').forEach(el => parseEmojis(el));
+                
+                // Show sequence with flip animation
                 let showIndex = 0;
-                const showInterval = setInterval(() => {
+                const timingHandles = [];
+                
+                const showNextInSequence = () => {
                   if (showIndex >= sequence.length) {
-                    clearInterval(showInterval);
-                    // Now let player repeat
-                    startPlayerTurn();
+                    // Sequence done, start player turn after a short delay
+                    const delayHandle = setTimeout(() => startPlayerTurn(), 400);
+                    timingHandles.push(delayHandle);
                     return;
                   }
                   
                   const tileIndex = sequence[showIndex];
-                  const tile = document.querySelector(`.avatar-tile[data-index="${tileIndex}"]`);
-                  tile.style.borderColor = 'rgba(52, 152, 219, 1)';
-                  tile.style.borderWidth = '5px';
-                  tile.style.transform = 'scale(1.1)';
-                  tile.style.boxShadow = '0 0 20px rgba(52, 152, 219, 0.8)';
+                  const tileContainer = document.querySelector(`.avatar-tile-container[data-index="${tileIndex}"]`);
                   
-                  setTimeout(() => {
-                    tile.style.borderColor = 'rgba(255,255,255,0.1)';
-                    tile.style.borderWidth = '3px';
-                    tile.style.transform = 'scale(1)';
-                    tile.style.boxShadow = 'none';
-                  }, 500);
+                  // Flip to show avatar
+                  tileContainer.classList.add('flipped');
+                  tiles[tileIndex].state = 'up';
                   
-                  showIndex++;
-                }, 1000);
+                  // Flip back after 350-450ms
+                  const flipDuration = 350 + Math.random() * 100;
+                  const flipBackHandle = setTimeout(() => {
+                    tileContainer.classList.remove('flipped');
+                    tiles[tileIndex].state = 'down';
+                    
+                    // Gap before next flip (150-250ms)
+                    const gapDuration = 150 + Math.random() * 100;
+                    const nextHandle = setTimeout(() => {
+                      showIndex++;
+                      showNextInSequence();
+                    }, gapDuration);
+                    timingHandles.push(nextHandle);
+                  }, flipDuration);
+                  timingHandles.push(flipBackHandle);
+                };
                 
-                currentTimers.push(showInterval);
+                showNextInSequence();
+                
+                // Register all timing handles for cleanup
+                timingHandles.forEach(handle => currentTimers.push(handle));
                 
                 const startPlayerTurn = () => {
                   taskModalTitle.textContent = `Round ${round}/${maxRounds} - Your turn!`;
                   const playerSequence = [];
                   
-                  document.querySelectorAll('.avatar-tile').forEach(tile => {
-                    tile.onclick = () => {
-                      const index = parseInt(tile.dataset.index);
+                  document.querySelectorAll('.avatar-tile-container').forEach(tileContainer => {
+                    tileContainer.addEventListener('pointerdown', function handleTap() {
+                      const index = parseInt(this.dataset.index);
                       playerSequence.push(index);
                       
-                      tile.style.borderColor = 'rgba(46, 204, 113, 1)';
-                      tile.style.borderWidth = '5px';
-                      tile.style.boxShadow = '0 0 20px rgba(46, 204, 113, 0.8)';
-                      setTimeout(() => {
-                        tile.style.borderColor = 'rgba(255,255,255,0.1)';
-                        tile.style.borderWidth = '3px';
-                        tile.style.boxShadow = 'none';
-                      }, 300);
+                      // Flip briefly on tap (250ms)
+                      this.classList.add('flipped');
+                      const tapFlipHandle = setTimeout(() => {
+                        this.classList.remove('flipped');
+                      }, 250);
+                      currentTimers.push(tapFlipHandle);
                       
                       // Check if correct so far
                       if (sequence[playerSequence.length - 1] !== index) {
@@ -5826,7 +6017,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                           setTimeout(() => playRound(), 1500);
                         }
                       }
-                    };
+                    });
                   });
                 };
               };
@@ -6479,7 +6670,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             taskModalBody.innerHTML = `
               <h3>Cover the video with paint!</h3>
-              <p>Click/tap to splatter white paint</p>
+              <p>Tap and drag to splatter paint</p>
               <p>Goal: Cover 90% of the video in 30 seconds</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Painting</button>
             `;
@@ -6501,16 +6692,30 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 z-index: 320;
                 cursor: crosshair;
                 pointer-events: auto;
+                touch-action: none;
               `;
               document.body.appendChild(canvas);
               
               const ctx = canvas.getContext('2d');
+              
+              // Create low-res offscreen canvas for coverage calculation
+              const lowResSize = 20;
+              const lowResCanvas = document.createElement('canvas');
+              lowResCanvas.width = lowResSize;
+              lowResCanvas.height = lowResSize;
+              const lowResCtx = lowResCanvas.getContext('2d');
+              
               let coverage = 0;
               let timeLeft = 30;
               let gameOver = false;
+              let painting = false;
+              let lastX = 0;
+              let lastY = 0;
+              let paintInterval = null;
               
               // Info panel
               const infoPanel = document.createElement('div');
+              infoPanel.id = 'paint-info-panel';
               infoPanel.style.cssText = `
                 position: fixed;
                 top: 20px;
@@ -6530,43 +6735,83 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               `;
               document.body.appendChild(infoPanel);
               
+              // Improved splatter with droplets
               const splatter = (x, y) => {
-                const radius = 40 + Math.random() * 30;
-                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                // Main splat circle
+                const mainRadius = 35 + Math.random() * 25;
+                const baseHue = 0; // white base
+                const hueVariation = (Math.random() - 0.5) * 20;
+                const alpha = 0.65 + Math.random() * 0.25;
+                
+                ctx.fillStyle = `hsla(${baseHue + hueVariation}, 0%, 100%, ${alpha})`;
                 ctx.beginPath();
-                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.arc(x, y, mainRadius, 0, Math.PI * 2);
                 ctx.fill();
                 
-                // Drips
-                for (let i = 0; i < 3; i++) {
-                  const dripX = x + (Math.random() - 0.5) * radius;
-                  const dripHeight = Math.random() * 50;
-                  ctx.fillRect(dripX, y + radius, 3, dripHeight);
-                }
+                // Update low-res canvas
+                const scaleX = lowResSize / canvas.width;
+                const scaleY = lowResSize / canvas.height;
+                lowResCtx.fillStyle = 'white';
+                lowResCtx.beginPath();
+                lowResCtx.arc(x * scaleX, y * scaleY, mainRadius * scaleX, 0, Math.PI * 2);
+                lowResCtx.fill();
                 
-                // Calculate coverage using low-res sampling grid (20x20)
-                const sampleSize = 20;
-                const stepX = canvas.width / sampleSize;
-                const stepY = canvas.height / sampleSize;
-                let paintedSamples = 0;
-                
-                for (let sy = 0; sy < sampleSize; sy++) {
-                  for (let sx = 0; sx < sampleSize; sx++) {
-                    const px = Math.floor(sx * stepX + stepX / 2);
-                    const py = Math.floor(sy * stepY + stepY / 2);
-                    const imageData = ctx.getImageData(px, py, 1, 1);
-                    if (imageData.data[3] > 0) {
-                      paintedSamples++;
-                    }
+                // Scattered droplets (6-14)
+                const dropletCount = 6 + Math.floor(Math.random() * 9);
+                for (let i = 0; i < dropletCount; i++) {
+                  const angle = Math.random() * Math.PI * 2;
+                  const distance = mainRadius + Math.random() * mainRadius * 1.5;
+                  const dropX = x + Math.cos(angle) * distance;
+                  const dropY = y + Math.sin(angle) * distance;
+                  const dropRadius = 3 + Math.random() * 8;
+                  const dropAlpha = 0.5 + Math.random() * 0.4;
+                  
+                  ctx.fillStyle = `hsla(${baseHue + hueVariation}, 0%, 100%, ${dropAlpha})`;
+                  
+                  // Occasionally make ellipse/streak droplets
+                  if (Math.random() < 0.3) {
+                    ctx.save();
+                    ctx.translate(dropX, dropY);
+                    ctx.rotate(angle);
+                    ctx.beginPath();
+                    ctx.ellipse(0, 0, dropRadius * 1.5, dropRadius * 0.6, 0, 0, Math.PI * 2);
+                    ctx.fill();
+                    ctx.restore();
+                    
+                    // Update low-res
+                    lowResCtx.fillStyle = 'white';
+                    lowResCtx.beginPath();
+                    lowResCtx.arc(dropX * scaleX, dropY * scaleY, dropRadius * scaleX, 0, Math.PI * 2);
+                    lowResCtx.fill();
+                  } else {
+                    ctx.beginPath();
+                    ctx.arc(dropX, dropY, dropRadius, 0, Math.PI * 2);
+                    ctx.fill();
+                    
+                    // Update low-res
+                    lowResCtx.fillStyle = 'white';
+                    lowResCtx.beginPath();
+                    lowResCtx.arc(dropX * scaleX, dropY * scaleY, dropRadius * scaleX, 0, Math.PI * 2);
+                    lowResCtx.fill();
                   }
                 }
                 
-                coverage = (paintedSamples / (sampleSize * sampleSize)) * 100;
+                // Calculate coverage from low-res canvas
+                const imageData = lowResCtx.getImageData(0, 0, lowResSize, lowResSize);
+                let paintedPixels = 0;
+                for (let i = 0; i < imageData.data.length; i += 4) {
+                  if (imageData.data[i + 3] > 0) {
+                    paintedPixels++;
+                  }
+                }
+                
+                coverage = (paintedPixels / (lowResSize * lowResSize)) * 100;
                 document.getElementById('paint-coverage').textContent = `Coverage: ${Math.floor(coverage)}%`;
                 
                 if (coverage >= 90 && !gameOver) {
                   gameOver = true;
                   clearInterval(timerInterval);
+                  if (paintInterval) clearInterval(paintInterval);
                   canvas.remove();
                   infoPanel.remove();
                   taskModalOverlay.style.pointerEvents = 'all';
@@ -6578,9 +6823,60 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 }
               };
               
-              canvas.addEventListener('click', (e) => {
-                if (!gameOver) splatter(e.clientX, e.clientY);
-              });
+              // Autofire painting
+              const startPainting = (x, y) => {
+                lastX = x;
+                lastY = y;
+                painting = true;
+                splatter(x, y);
+                
+                if (paintInterval) clearInterval(paintInterval);
+                paintInterval = setInterval(() => {
+                  if (painting && !gameOver) {
+                    splatter(lastX, lastY);
+                  }
+                }, 50 + Math.random() * 30); // 50-80ms
+                
+                currentTimers.push(paintInterval);
+              };
+              
+              const updatePosition = (x, y) => {
+                lastX = x;
+                lastY = y;
+              };
+              
+              const stopPainting = () => {
+                painting = false;
+                if (paintInterval) {
+                  clearInterval(paintInterval);
+                  paintInterval = null;
+                }
+              };
+              
+              // Pointer events (with passive: false for preventDefault)
+              canvas.addEventListener('pointerdown', (e) => {
+                if (!gameOver) {
+                  e.preventDefault();
+                  startPainting(e.clientX, e.clientY);
+                }
+              }, { passive: false });
+              
+              canvas.addEventListener('pointermove', (e) => {
+                if (!gameOver && painting) {
+                  e.preventDefault();
+                  updatePosition(e.clientX, e.clientY);
+                }
+              }, { passive: false });
+              
+              canvas.addEventListener('pointerup', (e) => {
+                e.preventDefault();
+                stopPainting();
+              }, { passive: false });
+              
+              canvas.addEventListener('pointercancel', (e) => {
+                e.preventDefault();
+                stopPainting();
+              }, { passive: false });
               
               const timerInterval = setInterval(() => {
                 timeLeft--;
@@ -6589,6 +6885,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 if (timeLeft <= 0 && !gameOver) {
                   gameOver = true;
                   clearInterval(timerInterval);
+                  if (paintInterval) clearInterval(paintInterval);
+                  stopPainting();
                   canvas.remove();
                   infoPanel.remove();
                   taskModalOverlay.style.pointerEvents = 'all';
@@ -6727,7 +7025,81 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               <p>Win by locking all 4 corners on the correct clip!</p>
               <p>60 second time limit!</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Puzzle</button>
+              <button id="help-info-btn" class="modal-action-btn" style="margin-left: 1rem; background: #6366f1;">Help ℹ️</button>
             `;
+            
+            // Help/Info overlay handler
+            document.getElementById('help-info-btn').addEventListener('pointerdown', () => {
+              const helpOverlay = document.createElement('div');
+              helpOverlay.id = 'video-quarters-help-overlay';
+              helpOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                background: rgba(0, 0, 0, 0.85);
+                z-index: 270;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                pointer-events: auto;
+              `;
+              
+              const helpContent = document.createElement('div');
+              helpContent.style.cssText = `
+                position: relative;
+                background: rgba(30, 30, 30, 0.95);
+                padding: 2rem;
+                border-radius: 12px;
+                max-width: 500px;
+                color: #fff;
+                z-index: 271;
+              `;
+              helpContent.innerHTML = `
+                <h2 style="margin-bottom: 1rem;">How to Play</h2>
+                <ul style="line-height: 1.8;">
+                  <li>• Four video quadrants will cycle through different clips</li>
+                  <li>• ONE video appears in ALL 4 quadrants</li>
+                  <li>• Other videos only appear in 2-3 quadrants (decoys)</li>
+                  <li>• TAP a quadrant to LOCK it when you see the common video</li>
+                  <li>• TAP again to UNLOCK if you change your mind</li>
+                  <li>• Lock all 4 quadrants on the correct video to win!</li>
+                </ul>
+              `;
+              
+              const closeButton = document.createElement('button');
+              closeButton.textContent = '✕ Close';
+              closeButton.className = 'modal-action-btn';
+              closeButton.style.cssText = `
+                margin-top: 1.5rem;
+                width: 100%;
+                z-index: 272;
+              `;
+              helpContent.appendChild(closeButton);
+              
+              helpOverlay.appendChild(helpContent);
+              document.body.appendChild(helpOverlay);
+              
+              const closeHelp = () => {
+                if (helpOverlay && helpOverlay.parentNode) {
+                  helpOverlay.remove();
+                }
+              };
+              
+              // Close button handler
+              closeButton.addEventListener('pointerdown', (e) => {
+                e.stopPropagation();
+                closeHelp();
+              });
+              
+              // Backdrop close (clicking outside content)
+              helpOverlay.addEventListener('pointerdown', (e) => {
+                if (e.target === helpOverlay) {
+                  closeHelp();
+                }
+              });
+            });
             
             document.getElementById('start-challenge-btn').onclick = () => {
               // Pick 6 random videos
@@ -6760,6 +7132,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               // Shuffle each quarter's sequence
               quarters.forEach(q => q.sort(() => 0.5 - Math.random()));
               
+              // Create fixed object URL pool (6 URLs total, one for each video)
+              const urlPool = [];
+              videoPool.forEach(vidIdx => {
+                const url = URL.createObjectURL(videoFiles[vidIdx]);
+                urlPool.push({ videoIndex: vidIdx, url: url });
+                currentObjectURLs.push(url);
+              });
+              
               taskModalOverlay.style.pointerEvents = 'none';
               
               // Create 2x2 grid overlay
@@ -6777,6 +7157,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 grid-template-rows: 1fr 1fr;
                 gap: 2px;
                 background: #000;
+                pointer-events: auto;
               `;
               
               const cornerPositions = [
@@ -6785,6 +7166,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 { name: 'Bottom-Left', x: 0, y: 50 },
                 { name: 'Bottom-Right', x: 50, y: 50 }
               ];
+              
+              let needsUserInteraction = false;
               
               for (let q = 0; q < 4; q++) {
                 const quarterDiv = document.createElement('div');
@@ -6811,6 +7194,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 video.loop = false;
                 video.playsinline = true;
                 
+                // Add error listener
+                video.addEventListener('error', () => {
+                  showToast("Video failed to load. Try different clips.", "error");
+                });
+                
+                quarterDiv.appendChild(video);
+                
                 const statusLabel = document.createElement('div');
                 statusLabel.style.cssText = `
                   position: absolute;
@@ -6824,15 +7214,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   color: #fff;
                 `;
                 statusLabel.textContent = `${cornerPositions[q].name}: UNLOCKED`;
+                quarterDiv.appendChild(statusLabel);
                 
-                cornerStates.push({
-                  locked: false,
-                  currentVideoIndex: null,
-                  sequenceIndex: 0,
-                  div: cornerDiv,
-                  video: video,
-                  label: statusLabel
-                });
+                gridOverlay.appendChild(quarterDiv);
               }
               
               document.body.appendChild(gridOverlay);
@@ -6856,6 +7240,21 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               timerDiv.textContent = 'Time: 60s';
               document.body.appendChild(timerDiv);
               
+              // "Tap to start" button
+              const startButton = document.createElement('button');
+              startButton.textContent = 'Tap to start videos';
+              startButton.className = 'modal-action-btn';
+              startButton.style.cssText = `
+                position: fixed;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                z-index: 280;
+                display: none;
+              `;
+              startButton.id = 'tap-to-start-btn';
+              document.body.appendChild(startButton);
+              
               let timeLeft = 60;
               let gameOver = false;
               const lockedState = {}; // q -> { locked: bool, videoIndex: number, isTransitioning: bool }
@@ -6876,12 +7275,15 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 const quarterDiv = document.querySelector(`[data-quarter="${q}"]`);
                 const video = quarterDiv.querySelector('video');
                 const videoIndex = quarters[q][cycleIndex[q] % quarters[q].length];
-                const file = videoFiles[videoIndex];
                 
-                const url = URL.createObjectURL(file);
-                currentObjectURLs.push(url);
+                // Find URL from pool
+                const urlEntry = urlPool.find(entry => entry.videoIndex === videoIndex);
+                if (!urlEntry) {
+                  cycleIndex[q]++;
+                  return;
+                }
                 
-                video.src = url;
+                video.src = urlEntry.url;
                 quarterDiv.dataset.currentVideo = videoIndex;
                 lockedState[q].videoIndex = videoIndex;
                 
@@ -6893,12 +7295,20 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   video.onloadedmetadata = () => {
                     clearTimeout(timeout);
                     video.currentTime = Math.random() * Math.max(0, video.duration - 5);
-                    video.play().catch(() => {});
-                    resolve();
+                    
+                    // Try to play, show button if it fails
+                    video.play().then(() => {
+                      resolve();
+                    }).catch(() => {
+                      needsUserInteraction = true;
+                      startButton.style.display = 'block';
+                      resolve();
+                    });
                   };
                   
                   video.onerror = () => {
                     clearTimeout(timeout);
+                    showToast("Video failed to load. Try different clips.", "error");
                     reject(new Error('Video load error'));
                   };
                 }).catch(() => {
@@ -6908,6 +7318,15 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 
                 cycleIndex[q]++;
               };
+              
+              // Start button handler
+              startButton.addEventListener('pointerdown', () => {
+                const videos = gridOverlay.querySelectorAll('video');
+                videos.forEach(v => {
+                  v.play().catch(() => {});
+                });
+                startButton.style.display = 'none';
+              });
               
               // Start cycling all corners
               const cycleAllCorners = async () => {
@@ -6925,9 +7344,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               
               cycleAllCorners();
               
-              // Click to toggle lock/unlock
+              // Click to toggle lock/unlock (using pointerdown)
               document.querySelectorAll('[data-quarter]').forEach(div => {
-                div.onclick = () => {
+                div.addEventListener('pointerdown', () => {
                   const q = parseInt(div.dataset.quarter);
                   if (gameOver || lockedState[q].isTransitioning) return;
                   
@@ -6961,12 +7380,17 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                       // Check if all locked on correct video
                       const allCorrect = Object.values(lockedState).every(s => s.videoIndex === correctVideoIndex);
                       
-                      // Pause all videos
-                      document.querySelectorAll('[data-quarter] video').forEach(v => v.pause());
+                      // Cleanup
+                      document.querySelectorAll('[data-quarter] video').forEach(v => {
+                        v.pause();
+                        v.src = '';
+                        v.load();
+                      });
                       
                       if (allCorrect) {
                         gridOverlay.remove();
                         timerDiv.remove();
+                        if (startButton && startButton.parentNode) startButton.remove();
                         taskModalOverlay.style.pointerEvents = 'all';
                         taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You found the common clip in all corners!</p></div>`;
                         setTimeout(() => {
@@ -6976,13 +7400,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                       } else {
                         gridOverlay.remove();
                         timerDiv.remove();
+                        if (startButton && startButton.parentNode) startButton.remove();
                         taskModalOverlay.style.pointerEvents = 'all';
                         taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Not quite!</h2><p>Not all corners were locked on the same common clip.</p></div>`;
                         setTimeout(() => closeTaskModal(), 2500);
                       }
                     }
                   }
-                };
+                });
               });
               
               const timerInterval = setInterval(() => {
@@ -6993,11 +7418,16 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   gameOver = true;
                   clearInterval(timerInterval);
                   
-                  // Pause all videos
-                  document.querySelectorAll('[data-quarter] video').forEach(v => v.pause());
+                  // Cleanup
+                  document.querySelectorAll('[data-quarter] video').forEach(v => {
+                    v.pause();
+                    v.src = '';
+                    v.load();
+                  });
                   
                   gridOverlay.remove();
                   timerDiv.remove();
+                  if (startButton && startButton.parentNode) startButton.remove();
                   taskModalOverlay.style.pointerEvents = 'all';
                   
                   const lockedCount = Object.values(lockedState).filter(s => s.locked).length;
