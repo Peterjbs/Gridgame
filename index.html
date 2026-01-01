@@ -2301,50 +2301,11 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let intervalCountdownInterval = null;
           let panelInactivityTimer = null;
           
-          // --- ObjectURL Tracking System ---
-          let trackedObjectURLs = [];
-          
-          function createTrackedObjectURL(blob) {
-            const url = URL.createObjectURL(blob);
-            trackedObjectURLs.push(url);
-            return url;
-          }
-          
-          function revokeTrackedObjectURL(url) {
-            const index = trackedObjectURLs.indexOf(url);
-            if (index > -1) {
-              URL.revokeObjectURL(url);
-              trackedObjectURLs.splice(index, 1);
-            }
-          }
-          
-          function revokeAllTrackedObjectURLs() {
-            trackedObjectURLs.forEach(url => URL.revokeObjectURL(url));
-            trackedObjectURLs = [];
-          }
-          
           const playerColors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c'];
           
-          // --- ObjectURL Manager ---
-          const objectURLManager = {
-            urls: new Set(),
-            create(file) {
-              const url = URL.createObjectURL(file);
-              this.urls.add(url);
-              return url;
-            },
-            revoke(url) {
-              if (this.urls.has(url)) {
-                URL.revokeObjectURL(url);
-                this.urls.delete(url);
-              }
-            },
-            revokeAll() {
-              this.urls.forEach(url => URL.revokeObjectURL(url));
-              this.urls.clear();
-            }
-          };
-          // Central ObjectURL manager (B0.2)
+          // --- Central ObjectURL Manager (Canonical) ---
+          // Tracks all blob URLs created for videos/images to prevent memory leaks
+          // All minigame code should use these functions for ObjectURL management
           let trackedObjectURLs = new Set();
           
           function createTrackedObjectURL(blob) {
@@ -2548,28 +2509,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             selectorToggleBtn.innerHTML = '🎞️';
             parseEmojis(selectorToggleBtn);
           };
-          
-          // B0.3: Toast notification system
-          function showToast(message, type = 'info', duration = 3000) {
-            const container = document.getElementById('toast-container');
-            if (!container) return;
-            
-            const toast = document.createElement('div');
-            toast.className = `toast toast-${type}`;
-            toast.textContent = message;
-            
-            container.appendChild(toast);
-            
-            // Auto-remove after duration
-            setTimeout(() => {
-              toast.style.animation = 'toastSlideOut 0.3s ease-in';
-              setTimeout(() => {
-                if (toast.parentNode === container) {
-                  container.removeChild(toast);
-                }
-              }, 300);
-            }, duration);
-          }
           
           const formatTime = (seconds) => {
             if (isNaN(seconds)) return "0:00";
@@ -3468,15 +3407,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             if (!isTaskCompleted && activeTaskElement) {
               markTaskFailed();
             }
-            // Pause and cleanup all videos in modal
-            taskModalBody.querySelectorAll('video').forEach(video => {
-              video.pause();
-              video.src = '';
-            });
-            // Revoke all object URLs
-            objectURLManager.revokeAll();
-            taskModalOverlay.classList.remove('visible');
-            taskModalBody.innerHTML = '';
             
             // B0.1: Comprehensive cleanup
             // Clear all timers and intervals
@@ -3486,7 +3416,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               modalTimer = null;
             }
             
-            // Pause and detach any task video elements
+            // Pause and detach any task video elements (query before clearing innerHTML)
             const taskVideos = taskModalBody.querySelectorAll('video');
             taskVideos.forEach(video => {
               video.pause();
@@ -3498,12 +3428,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             const taskOverlays = taskModalBody.querySelectorAll('.overlay, .game-overlay');
             taskOverlays.forEach(overlay => overlay.remove());
             
-            // B0.2: Revoke all tracked ObjectURLs
+            // B0.2: Revoke all tracked ObjectURLs (prevents memory leaks)
             revokeAllTrackedObjectURLs();
             
-            // Clear modal content
-            taskModalOverlay.classList.remove('visible');
+            // Clear modal content and hide
             taskModalBody.innerHTML = '';
+            taskModalOverlay.classList.remove('visible');
             taskModalOverlay.style.pointerEvents = 'all';
             
             activeTaskElement = null;
@@ -4358,7 +4288,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 return new Promise((resolve) => {
                   round++;
                   const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
-                  const videoURL = objectURLManager.create(videoFiles[randomVideoIndex]);
+                  const videoURL = createTrackedObjectURL(videoFiles[randomVideoIndex]);
                   let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
                   let symbolTimer = null;
                   let startTime = 0;
@@ -5491,7 +5421,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               for (let i = 0; i < 6; i++) {
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = objectURLManager.create(file);
+                const url = createTrackedObjectURL(file);
                 
                 const video = document.createElement('video');
                 video.src = url;
@@ -5529,7 +5459,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.getElementById('clip-number').textContent = i + 1;
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = objectURLManager.create(file);
                 const url = createTrackedObjectURL(file);
                 
                 // Pause any existing playback before changing source
@@ -6957,11 +6886,11 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                       const oldUrl = state.video.src;
                       state.video.src = '';
                       if (oldUrl.startsWith('blob:')) {
-                        objectURLManager.revoke(oldUrl);
+                        revokeTrackedObjectURL(oldUrl);
                       }
                     }
                     
-                    const url = objectURLManager.create(file);
+                    const url = createTrackedObjectURL(file);
                     state.currentVideoIndex = videoIndex;
                     state.video.src = url;
                     
