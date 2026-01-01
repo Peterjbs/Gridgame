@@ -638,12 +638,12 @@
     .bingo-card-widget {
       position: fixed;
       z-index: 160;
-      background: rgba(20, 20, 20, 0.85);
-      border-radius: 10px;
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
-      width: 280px;
-      min-width: 200px;
-      min-height: 200px;
+      background: rgba(20, 20, 20, 0.9);
+      border-radius: 6px;
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.6);
+      width: 200px;
+      min-width: 160px;
+      min-height: 160px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -651,23 +651,25 @@
     }
 
     .bingo-card-header {
-      padding: 5px 10px;
-      background: rgba(0, 0, 0, 0.5);
+      padding: 3px 6px;
+      background: rgba(0, 0, 0, 0.6);
       cursor: move;
       display: flex;
       justify-content: space-between;
       align-items: center;
       color: white;
       font-weight: bold;
+      font-size: 0.85rem;
     }
 
     .bingo-card-close-btn {
       cursor: pointer;
-      font-size: 1.2rem;
-      padding: 0 5px;
+      font-size: 1rem;
+      padding: 0 3px;
       background: none;
       border: none;
       color: #aaa;
+      line-height: 1;
     }
 
     .bingo-card-close-btn:hover {
@@ -675,18 +677,19 @@
     }
 
     .bingo-grid-container {
-      padding: 10px;
+      padding: 6px;
       flex-grow: 1;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
+      gap: 3px;
     }
 
     .bingo-grid-container .cell {
       background: #444;
-      border-radius: 5px;
+      border-radius: 3px;
       cursor: pointer;
-      font-size: 0.7rem;
+      font-size: 0.6rem;
+      padding: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -694,10 +697,11 @@
       transition: background-color 0.2s;
       overflow: hidden;
       word-break: break-word;
+      line-height: 1.1;
     }
 
     .bingo-grid-container .cell.marked {
-      border: 3px solid white;
+      border: 2px solid white;
     }
 
     /* General Panel Styles */
@@ -1115,20 +1119,22 @@
     #my-bingo-card-preview {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
-      margin-top: 1rem;
+      gap: 3px;
+      margin-top: 0.5rem;
     }
 
     #my-bingo-card-preview .cell {
       background: #444;
-      border-radius: 5px;
+      border-radius: 3px;
       aspect-ratio: 3/2;
-      font-size: 0.7rem;
+      font-size: 0.6rem;
+      padding: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
       word-break: break-word;
+      line-height: 1.1;
     }
 
     /* Memory Game */
@@ -2244,6 +2250,29 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let videoChangeInterval = null;
           let intervalCountdownInterval = null;
           let panelInactivityTimer = null;
+          
+          // --- ObjectURL Tracking System ---
+          let trackedObjectURLs = [];
+          
+          function createTrackedObjectURL(blob) {
+            const url = URL.createObjectURL(blob);
+            trackedObjectURLs.push(url);
+            return url;
+          }
+          
+          function revokeTrackedObjectURL(url) {
+            const index = trackedObjectURLs.indexOf(url);
+            if (index > -1) {
+              URL.revokeObjectURL(url);
+              trackedObjectURLs.splice(index, 1);
+            }
+          }
+          
+          function revokeAllTrackedObjectURLs() {
+            trackedObjectURLs.forEach(url => URL.revokeObjectURL(url));
+            trackedObjectURLs = [];
+          }
+          
           const playerColors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c'];
           
           // Central ObjectURL manager (B0.2)
@@ -2899,9 +2928,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             bingoSelections.forEach((playerPrompts, i) => {
               const card = document.createElement('div');
               card.className = 'bingo-card-widget';
-              card.style.top = `${20 + i * 20}px`;
-              card.style.left = `${20 + i * 20}px`;
-              card.innerHTML = `<div class="bingo-card-header" style="background-color:${playerColors[i]}"><span>Player ${i+1}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+              card.style.top = `${15 + i * 15}px`;
+              card.style.left = `${15 + i * 15}px`;
+              const playerName = challengePlayers[i] ? challengePlayers[i].name : `Player ${i+1}`;
+              card.innerHTML = `<div class="bingo-card-header" style="background-color:${playerColors[i]}"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
               const gridContainer = card.querySelector('.bingo-grid-container');
               playerPrompts.forEach(prompt => {
                 const cell = document.createElement('div');
@@ -3806,7 +3836,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             card.style.top = `${Math.random() * 50 + 20}vh`;
             card.style.left = `${Math.random() * 50 + 20}vw`;
 
-            card.innerHTML = `<div class="bingo-card-header"><span>Bingo Card</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            const playerName = currentPlayer ? currentPlayer.name : 'Bingo Card';
+            card.innerHTML = `<div class="bingo-card-header"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
             const gridContainer = card.querySelector('.bingo-grid-container');
             prompts.forEach(prompt => {
               const cell = document.createElement('div');
@@ -4049,7 +4081,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               `;
               
               const player = document.getElementById('memory-player');
-              const createdUrls = []; // Track URLs for cleanup
               
               for (let i = 0; i < 6; i++) {
                 document.getElementById('clip-number').textContent = i + 1;
@@ -4167,16 +4198,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
                     
                     if (isCorrect) {
-                      // Clean up URLs
-                      createdUrls.forEach(url => URL.revokeObjectURL(url));
                       taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You got the order exactly right!</p></div>`;
                       setTimeout(() => {
                         updateMainScore(3000);
                         markTaskComplete();
                       }, 1500);
                     } else {
-                      // Clean up URLs
-                      createdUrls.forEach(url => URL.revokeObjectURL(url));
                       taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Incorrect!</h2><p>The order wasn't quite right.</p></div>`;
                       setTimeout(() => closeTaskModal(), 2000);
                     }
@@ -4318,128 +4345,290 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
           }
 
-          // 3. Film Title Scrambler - Rearrange words to make film title
+          // 3. Film Title Scrambler - Type to unscramble letters in each word
+          // Global state for tracking films
+          let filmScramblerState = {
+            currentFilm: null,
+            previousFilm: null,
+            streak: 0,
+            startTime: null
+          };
+
           async function setupFilmTitleScramblerTask() {
             taskModalTitle.textContent = "Film Title Scrambler 🎬";
             
-            // Hardcoded film titles for now
-            const filmTitles = [
-              "The Dark Knight",
-              "Pulp Fiction",
-              "Fight Club",
-              "The Matrix",
-              "Inception",
-              "The Shawshank Redemption",
-              "Forrest Gump",
-              "The Godfather",
-              "Star Wars",
-              "Jurassic Park",
-              "Back to the Future",
-              "The Lion King",
-              "Toy Story",
-              "Finding Nemo",
-              "The Avengers"
-            ];
+            // Helper function to extract clean title from video filename
+            function getVideoTitle(videoIndex) {
+              if (videoFiles.length === 0 || videoIndex < 0 || videoIndex >= videoFiles.length) {
+                return null;
+              }
+              const filename = videoFiles[videoIndex].name;
+              // Remove file extension
+              let title = filename.replace(/\.[^/.]+$/, "");
+              // Replace underscores, hyphens, and dots with spaces
+              title = title.replace(/[_\-\.]+/g, " ");
+              // Capitalize first letter of each word
+              title = title.split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ')
+                .trim();
+              return title;
+            }
             
-            const selectedTitle = filmTitles[Math.floor(Math.random() * filmTitles.length)];
-            const words = selectedTitle.split(' ');
-            const scrambledWords = [...words].sort(() => 0.5 - Math.random());
+            // Helper function to scramble letters in a word
+            function scrambleWord(word) {
+              const letters = word.split('');
+              // Fisher-Yates shuffle to ensure proper scrambling
+              for (let i = letters.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [letters[i], letters[j]] = [letters[j], letters[i]];
+              }
+              // Make sure it's actually different from original (for words > 2 letters)
+              const scrambled = letters.join('');
+              return scrambled === word && word.length > 2 ? scrambleWord(word) : scrambled;
+            }
             
-            taskModalBody.innerHTML = `
-              <h3>Unscramble the film title!</h3>
-              <p style="margin: 1rem 0;">Drag the words into the correct order:</p>
-              <div id="word-slots" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; min-height: 60px; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 1rem;">
-                ${words.map((_, i) => `<div class="word-slot" data-position="${i}" style="min-width: 100px; padding: 0.5rem 1rem; border: 2px dashed #666; border-radius: 4px; text-align: center;"></div>`).join('')}
+            // Get current and previous video titles
+            let currentFilm = null;
+            let previousFilm = null;
+            
+            if (videoFiles.length > 0 && currentVideoIndex >= 0) {
+              // Get current video title
+              currentFilm = getVideoTitle(currentVideoIndex);
+              
+              // Get previous video title (wrap around if at start)
+              const previousIndex = (currentVideoIndex - 1 + videoFiles.length) % videoFiles.length;
+              previousFilm = getVideoTitle(previousIndex);
+            }
+            
+            // If no videos available, show error
+            if (!currentFilm) {
+              taskModalBody.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                  <h3>❌ No Videos Available</h3>
+                  <p>Please upload videos to play this challenge.</p>
+                </div>
+              `;
+              return;
+            }
+            
+            // Update state
+            filmScramblerState.previousFilm = filmScramblerState.currentFilm;
+            filmScramblerState.currentFilm = currentFilm;
+            filmScramblerState.startTime = Date.now();
+            
+            // Prepare current and previous film data
+            const films = [];
+            if (filmScramblerState.previousFilm && previousFilm) {
+              films.push({
+                title: previousFilm,
+                label: "Previous Video",
+                color: "rgba(155, 89, 182, 0.3)"
+              });
+            }
+            films.push({
+              title: currentFilm,
+              label: "Current Video (Now Playing)",
+              color: "rgba(52, 152, 219, 0.3)"
+            });
+            
+            // Build UI with word-by-word inputs
+            let html = `
+              <div style="text-align: center; margin-bottom: 1rem;">
+                <h3>Unscramble the letters in each word!</h3>
+                <p style="color: #aaa; font-size: 0.9rem;">Type the correct letters for each scrambled word</p>
+                ${filmScramblerState.streak > 0 ? `<p style="color: #f39c12; font-size: 1.1rem; font-weight: bold;">🔥 Streak: ${filmScramblerState.streak}</p>` : ''}
               </div>
-              <div id="word-pool" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
-                ${scrambledWords.map((word, i) => `
-                  <div class="word-tile" draggable="true" data-word="${word}" style="
-                    padding: 0.5rem 1rem;
-                    background: rgba(52, 152, 219, 0.8);
-                    border-radius: 4px;
-                    cursor: grab;
-                    user-select: none;
-                  ">${word}</div>
-                `).join('')}
-              </div>
-              <button id="check-answer-btn" class="modal-action-btn" style="margin-top: 1rem;">Check Answer</button>
             `;
             
-            const userAnswer = Array(words.length).fill(null);
-            
-            // Drag and drop logic
-            const wordTiles = document.querySelectorAll('.word-tile');
-            const wordSlots = document.querySelectorAll('.word-slot');
-            
-            wordTiles.forEach(tile => {
-              tile.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('word', tile.dataset.word);
-                e.dataTransfer.setData('fromSlot', tile.parentElement.classList.contains('word-slot') ? tile.parentElement.dataset.position : 'pool');
-                setTimeout(() => tile.style.opacity = '0.5', 0);
+            // Create sections for each film
+            const filmData = [];
+            films.forEach((film, filmIndex) => {
+              const words = film.title.split(' ');
+              const scrambledWords = words.map(word => scrambleWord(word));
+              
+              filmData.push({
+                title: film.title,
+                words: words,
+                scrambledWords: scrambledWords,
+                userInputs: Array(words.length).fill(''),
+                completed: Array(words.length).fill(false)
               });
-              tile.addEventListener('dragend', () => {
-                tile.style.opacity = '1';
+              
+              html += `
+                <div style="background: ${film.color}; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;" data-film-index="${filmIndex}">
+                  <h4 style="margin-bottom: 1rem; color: #fff;">${film.label}</h4>
+                  <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
+                    ${scrambledWords.map((scrambled, wordIndex) => `
+                      <div style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+                        <div style="
+                          background: rgba(0,0,0,0.4);
+                          padding: 0.5rem 1rem;
+                          border-radius: 4px;
+                          font-family: monospace;
+                          font-size: 1.2rem;
+                          letter-spacing: 2px;
+                          color: #ecf0f1;
+                          min-width: 80px;
+                          text-align: center;
+                        ">${scrambled}</div>
+                        <input
+                          type="text"
+                          class="word-input"
+                          data-film-index="${filmIndex}"
+                          data-word-index="${wordIndex}"
+                          data-correct-word="${words[wordIndex]}"
+                          maxlength="${words[wordIndex].length}"
+                          placeholder="${'_'.repeat(words[wordIndex].length)}"
+                          style="
+                            width: ${Math.max(80, words[wordIndex].length * 15)}px;
+                            padding: 0.5rem;
+                            font-size: 1rem;
+                            text-align: center;
+                            border: 2px solid #555;
+                            border-radius: 4px;
+                            background: rgba(255,255,255,0.1);
+                            color: #fff;
+                            text-transform: uppercase;
+                          "
+                        />
+                        <div class="feedback" data-film-index="${filmIndex}" data-word-index="${wordIndex}" style="min-height: 20px; font-size: 0.9rem;"></div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            });
+            
+            html += `
+              <div style="text-align: center; margin-top: 1rem;">
+                <button id="check-all-btn" class="modal-action-btn">Check All Words</button>
+                <button id="submit-final-btn" class="modal-action-btn" style="display: none; background: #27ae60;">Submit Final Answer</button>
+              </div>
+              <div id="overall-feedback" style="margin-top: 1rem; text-align: center; font-size: 1.1rem;"></div>
+            `;
+            
+            taskModalBody.innerHTML = html;
+            
+            // Store film data for validation
+            const allFilmData = filmData;
+            
+            // Add input event listeners for real-time feedback
+            const inputs = document.querySelectorAll('.word-input');
+            inputs.forEach(input => {
+              input.addEventListener('input', (e) => {
+                const filmIndex = parseInt(e.target.dataset.filmIndex);
+                const wordIndex = parseInt(e.target.dataset.wordIndex);
+                const correctWord = e.target.dataset.correctWord;
+                const userInput = e.target.value.toUpperCase();
+                const feedback = document.querySelector(`.feedback[data-film-index="${filmIndex}"][data-word-index="${wordIndex}"]`);
+                
+                // Update stored input
+                allFilmData[filmIndex].userInputs[wordIndex] = userInput;
+                
+                // Provide letter-by-letter feedback
+                if (userInput.length === 0) {
+                  feedback.textContent = '';
+                  e.target.style.borderColor = '#555';
+                } else if (userInput === correctWord.toUpperCase()) {
+                  feedback.textContent = '✓ Correct!';
+                  feedback.style.color = '#2ecc71';
+                  e.target.style.borderColor = '#2ecc71';
+                  allFilmData[filmIndex].completed[wordIndex] = true;
+                } else {
+                  // Show partial progress
+                  let correctCount = 0;
+                  for (let i = 0; i < Math.min(userInput.length, correctWord.length); i++) {
+                    if (userInput[i] === correctWord[i].toUpperCase()) {
+                      correctCount++;
+                    }
+                  }
+                  feedback.textContent = `${correctCount}/${correctWord.length} letters correct`;
+                  feedback.style.color = '#f39c12';
+                  e.target.style.borderColor = '#f39c12';
+                  allFilmData[filmIndex].completed[wordIndex] = false;
+                }
+              });
+              
+              // Auto-advance to next input on completion
+              input.addEventListener('keyup', (e) => {
+                const correctWord = e.target.dataset.correctWord;
+                if (e.target.value.toUpperCase() === correctWord.toUpperCase() && e.target.value.length === correctWord.length) {
+                  // Find next empty input
+                  const allInputs = Array.from(inputs);
+                  const currentIndex = allInputs.indexOf(e.target);
+                  for (let i = currentIndex + 1; i < allInputs.length; i++) {
+                    if (allInputs[i].value === '') {
+                      allInputs[i].focus();
+                      break;
+                    }
+                  }
+                }
               });
             });
             
-            wordSlots.forEach(slot => {
-              slot.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                slot.style.borderColor = '#fff';
+            // Check all words button
+            document.getElementById('check-all-btn').onclick = () => {
+              let allCorrect = true;
+              let totalWords = 0;
+              let correctWords = 0;
+              
+              allFilmData.forEach((filmData, filmIndex) => {
+                filmData.words.forEach((word, wordIndex) => {
+                  totalWords++;
+                  const userInput = filmData.userInputs[wordIndex].toUpperCase();
+                  const isCorrect = userInput === word.toUpperCase();
+                  if (isCorrect) {
+                    correctWords++;
+                  } else {
+                    allCorrect = false;
+                  }
+                });
               });
-              slot.addEventListener('dragleave', () => {
-                slot.style.borderColor = '#666';
-              });
-              slot.addEventListener('drop', (e) => {
-                e.preventDefault();
-                slot.style.borderColor = '#666';
-                const word = e.dataTransfer.getData('word');
-                const fromSlot = e.dataTransfer.getData('fromSlot');
-                const tile = document.querySelector(`.word-tile[data-word="${word}"]`);
+              
+              const overallFeedback = document.getElementById('overall-feedback');
+              if (allCorrect) {
+                const timeElapsed = ((Date.now() - filmScramblerState.startTime) / 1000).toFixed(1);
+                filmScramblerState.streak++;
                 
-                // If slot already has a word, send it back to pool
-                if (slot.firstChild) {
-                  document.getElementById('word-pool').appendChild(slot.firstChild);
+                let bonusPoints = 0;
+                if (timeElapsed < 10) {
+                  bonusPoints = 1000;
+                  overallFeedback.innerHTML = `<p style="color: #2ecc71; font-weight: bold;">🎉 Perfect! All ${totalWords} words correct in ${timeElapsed}s!</p><p style="color: #f39c12;">⚡ Speed bonus: +${bonusPoints} points!</p>`;
+                } else if (timeElapsed < 20) {
+                  bonusPoints = 500;
+                  overallFeedback.innerHTML = `<p style="color: #2ecc71; font-weight: bold;">🎉 Perfect! All ${totalWords} words correct in ${timeElapsed}s!</p><p style="color: #f39c12;">⚡ Speed bonus: +${bonusPoints} points!</p>`;
+                } else {
+                  overallFeedback.innerHTML = `<p style="color: #2ecc71; font-weight: bold;">🎉 Perfect! All ${totalWords} words correct in ${timeElapsed}s!</p>`;
                 }
                 
-                // If tile was in another slot, clear that position
-                if (fromSlot !== 'pool') {
-                  userAnswer[parseInt(fromSlot)] = null;
-                }
+                document.getElementById('check-all-btn').style.display = 'none';
+                document.getElementById('submit-final-btn').style.display = 'inline-block';
                 
-                slot.appendChild(tile);
-                userAnswer[parseInt(slot.dataset.position)] = word;
-              });
-            });
-            
-            // Also allow dropping back to pool
-            document.getElementById('word-pool').addEventListener('dragover', (e) => e.preventDefault());
-            document.getElementById('word-pool').addEventListener('drop', (e) => {
-              e.preventDefault();
-              const word = e.dataTransfer.getData('word');
-              const fromSlot = e.dataTransfer.getData('fromSlot');
-              const tile = document.querySelector(`.word-tile[data-word="${word}"]`);
-              
-              if (fromSlot !== 'pool') {
-                userAnswer[parseInt(fromSlot)] = null;
-              }
-              
-              document.getElementById('word-pool').appendChild(tile);
-            });
-            
-            document.getElementById('check-answer-btn').onclick = () => {
-              const playerTitle = userAnswer.join(' ');
-              if (playerTitle === selectedTitle) {
-                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Correct!</h2><p>"${selectedTitle}"</p></div>`;
-                setTimeout(() => {
-                  updateMainScore(2000);
-                  markTaskComplete();
-                }, 1500);
+                document.getElementById('submit-final-btn').onclick = () => {
+                  const totalScore = 2000 + bonusPoints + (filmScramblerState.streak > 1 ? (filmScramblerState.streak - 1) * 500 : 0);
+                  taskModalBody.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                      <h2>🎉 Excellent Work!</h2>
+                      ${filmScramblerState.streak > 1 ? `<p style="color: #f39c12; font-size: 1.3rem; font-weight: bold;">🔥 ${filmScramblerState.streak} Win Streak! +${(filmScramblerState.streak - 1) * 500} bonus</p>` : ''}
+                      <p style="font-size: 1.2rem; margin-top: 1rem;">Total Score: ${totalScore} points</p>
+                    </div>
+                  `;
+                  setTimeout(() => {
+                    updateMainScore(totalScore);
+                    markTaskComplete();
+                  }, 1500);
+                };
               } else {
-                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong!</h2><p>It was: "${selectedTitle}"</p><p>You said: "${playerTitle}"</p></div>`;
-                setTimeout(() => closeTaskModal(), 3000);
+                filmScramblerState.streak = 0;
+                overallFeedback.innerHTML = `<p style="color: #e74c3c;">📝 ${correctWords}/${totalWords} words correct. Keep trying!</p>`;
               }
             };
+            
+            // Focus first input
+            if (inputs.length > 0) {
+              inputs[0].focus();
+            }
           }
 
           // 4. Higher or Lower Views - Guess which video has more views
