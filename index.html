@@ -5431,24 +5431,23 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           async function setupFilmTitleScramblerTask() {
             taskModalTitle.textContent = "Film Title Scrambler 🎬";
             
-            // Hardcoded film titles for now
-            const filmTitles = [
-              "The Dark Knight",
-              "Pulp Fiction",
-              "Fight Club",
-              "The Matrix",
-              "Inception",
-              "The Shawshank Redemption",
-              "Forrest Gump",
-              "The Godfather",
-              "Star Wars",
-              "Jurassic Park",
-              "Back to the Future",
-              "The Lion King",
-              "Toy Story",
-              "Finding Nemo",
-              "The Avengers"
-            ];
+            // Helper function to extract clean title from video filename
+            function getVideoTitle(videoIndex) {
+              if (videoFiles.length === 0 || videoIndex < 0 || videoIndex >= videoFiles.length) {
+                return null;
+              }
+              const filename = videoFiles[videoIndex].name;
+              // Remove file extension
+              let title = filename.replace(/\.[^/.]+$/, "");
+              // Replace underscores, hyphens, and dots with spaces
+              title = title.replace(/[_\-\.]+/g, " ");
+              // Capitalize first letter of each word
+              title = title.split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ')
+                .trim();
+              return title;
+            }
             
             // Helper function to scramble letters in a word
             function scrambleWord(word) {
@@ -5463,24 +5462,47 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               return scrambled === word && word.length > 2 ? scrambleWord(word) : scrambled;
             }
             
-            // Select new film and update state
-            const newFilm = filmTitles[Math.floor(Math.random() * filmTitles.length)];
+            // Get current and previous video titles
+            let currentFilm = null;
+            let previousFilm = null;
+            
+            if (videoFiles.length > 0 && currentVideoIndex >= 0) {
+              // Get current video title
+              currentFilm = getVideoTitle(currentVideoIndex);
+              
+              // Get previous video title (wrap around if at start)
+              const previousIndex = (currentVideoIndex - 1 + videoFiles.length) % videoFiles.length;
+              previousFilm = getVideoTitle(previousIndex);
+            }
+            
+            // If no videos available, show error
+            if (!currentFilm) {
+              taskModalBody.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                  <h3>❌ No Videos Available</h3>
+                  <p>Please upload videos to play this challenge.</p>
+                </div>
+              `;
+              return;
+            }
+            
+            // Update state
             filmScramblerState.previousFilm = filmScramblerState.currentFilm;
-            filmScramblerState.currentFilm = newFilm;
+            filmScramblerState.currentFilm = currentFilm;
             filmScramblerState.startTime = Date.now();
             
             // Prepare current and previous film data
             const films = [];
-            if (filmScramblerState.previousFilm) {
+            if (filmScramblerState.previousFilm && previousFilm) {
               films.push({
-                title: filmScramblerState.previousFilm,
-                label: "Previous Film",
+                title: previousFilm,
+                label: "Previous Video",
                 color: "rgba(155, 89, 182, 0.3)"
               });
             }
             films.push({
-              title: filmScramblerState.currentFilm,
-              label: "Current Film (Now Playing)",
+              title: currentFilm,
+              label: "Current Video (Now Playing)",
               color: "rgba(52, 152, 219, 0.3)"
             });
             
