@@ -5087,6 +5087,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           async function setupVideoClipDetectiveTask() {
             taskModalTitle.textContent = "Video Clip Detective 🔍";
             
+            const THUMBNAIL_CAPTURE_DELAY_MS = 500; // Time to wait before capturing thumbnail
+            
             if (videoFiles.length < 6) {
               taskModalBody.innerHTML = `<p class="text-red-500">You need at least 6 videos for this challenge.</p>`;
               return;
@@ -5173,7 +5175,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 await player.play();
                 
                 // Capture thumbnail while playing
-                await new Promise(resolve => setTimeout(resolve, 500));
+                await new Promise(resolve => setTimeout(resolve, THUMBNAIL_CAPTURE_DELAY_MS));
                 const canvas = document.createElement('canvas');
                 canvas.width = 160;
                 canvas.height = 90;
@@ -5187,7 +5189,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   player.currentTime = Math.max(0, player.currentTime - 2.5);
                   await new Promise(resolve => setTimeout(resolve, 2500));
                 } else {
-                  await new Promise(resolve => setTimeout(resolve, playDuration - 500));
+                  await new Promise(resolve => setTimeout(resolve, playDuration - THUMBNAIL_CAPTURE_DELAY_MS));
                 }
                 
                 player.pause();
@@ -6381,10 +6383,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               
               let timeLeft = 60;
               let gameOver = false;
-              const lockedState = {}; // q -> { locked: bool, videoIndex: number }
+              const lockedState = {}; // q -> { locked: bool, videoIndex: number, isTransitioning: bool }
               
               for (let q = 0; q < 4; q++) {
-                lockedState[q] = { locked: false, videoIndex: null };
+                lockedState[q] = { locked: false, videoIndex: null, isTransitioning: false };
               }
               
               // Cycle videos in each quarter
@@ -6408,12 +6410,25 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 quarterDiv.dataset.currentVideo = videoIndex;
                 lockedState[q].videoIndex = videoIndex;
                 
-                await new Promise(resolve => {
+                await new Promise((resolve, reject) => {
+                  const timeout = setTimeout(() => {
+                    reject(new Error('Video load timeout'));
+                  }, 5000);
+                  
                   video.onloadedmetadata = () => {
+                    clearTimeout(timeout);
                     video.currentTime = Math.random() * Math.max(0, video.duration - 5);
-                    video.play();
+                    video.play().catch(() => {});
                     resolve();
                   };
+                  
+                  video.onerror = () => {
+                    clearTimeout(timeout);
+                    reject(new Error('Video load error'));
+                  };
+                }).catch(() => {
+                  // Skip this video if it fails to load
+                  cycleIndex[q]++;
                 });
                 
                 cycleIndex[q]++;
@@ -6439,7 +6454,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               document.querySelectorAll('[data-quarter]').forEach(div => {
                 div.onclick = () => {
                   const q = parseInt(div.dataset.quarter);
-                  if (gameOver) return;
+                  if (gameOver || lockedState[q].isTransitioning) return;
                   
                   const statusLabel = div.querySelector('div');
                   const video = div.querySelector('video');
@@ -6452,8 +6467,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     statusLabel.style.color = '#fff';
                     statusLabel.style.background = 'rgba(0,0,0,0.8)';
                     
-                    // Resume cycling
-                    playNextClip(q);
+                    // Resume cycling will happen in next cycle
                   } else {
                     // LOCK
                     lockedState[q].locked = true;
