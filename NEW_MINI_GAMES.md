@@ -42,21 +42,18 @@ This document describes the 10 new mini games added to the Cloud 9 Video Player 
 ---
 
 ### 3. Film Title Scrambler 🎬
-**Description:** Unscramble letters in each word to correctly form a movie title.
+**Description:** Unscramble letters in each word to correctly form video titles from your uploaded videos.
 
-**Film Titles Include:**
-- The Dark Knight
-- Pulp Fiction
-- The Matrix
-- Inception
-- The Godfather
-- And 10 more popular films
+**Video Titles:**
+- Uses actual filenames from uploaded videos
+- Automatically cleans and formats titles (removes extensions, replaces separators)
+- Shows current video and previous video simultaneously
 
 **Gameplay:**
 1. Letters within each word are scrambled (not just word order)
 2. Type the correct letters for each word
 3. Real-time feedback shows progress (X/Y letters correct)
-4. Shows both current film AND previous film for added challenge
+4. Shows both current video AND previous video for added challenge
 5. Complete all words correctly to win
 
 **Features:**
@@ -65,9 +62,9 @@ This document describes the 10 new mini games added to the Cloud 9 Video Player 
 - **Real-time validation** with visual feedback:
   - Green checkmark for correct words
   - Orange feedback showing partial progress
-- **Current + Previous Film display**:
-  - Previous film shown in purple section
-  - Current film shown in blue section
+- **Current + Previous Video display**:
+  - Previous video shown in purple section
+  - Current video shown in blue section
 - **Streak tracking** with fire emoji (🔥)
 - **Performance bonuses**:
   - Speed bonus: <10s = +1000 pts, <20s = +500 pts
@@ -364,11 +361,12 @@ Each game has a setup function:
 - 3 rounds (4, 5, 6 tiles)
 - Must complete all 3 rounds
 
-✅ **Film Title Scrambler:** Per-word letter unscrambling with typing input
-- 15 popular film titles included
+✅ **Film Title Scrambler:** Per-word letter unscrambling with typing input using actual video titles
+- Uses uploaded video filenames as titles
+- Automatically cleans and formats titles (removes extensions, separators)
 - Letter-by-letter scrambling with Fisher-Yates shuffle
 - Typing-based interface with real-time feedback
-- Current + Previous film simultaneous display
+- Current + Previous video simultaneous display
 - Streak tracking and performance bonuses
 
 ✅ **Higher or Lower:** Guess which video has more views
