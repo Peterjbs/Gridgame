@@ -318,6 +318,10 @@
       transition: opacity 0.5s ease-in-out, background-color 0.5s ease-in-out;
       z-index: 100;
       pointer-events: none;
+      padding-top: env(safe-area-inset-top, 0);
+      padding-right: env(safe-area-inset-right, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-left: env(safe-area-inset-left, 0);
     }
 
     .overlay.visible {
@@ -344,6 +348,10 @@
       align-items: center;
       gap: clamp(1.5rem, 5vw, 3.5rem);
       padding: clamp(1.5rem, 6vw, 5rem);
+      padding-top: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-top, 0));
+      padding-right: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-right, 0));
+      padding-bottom: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-bottom, 0));
+      padding-left: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-left, 0));
       background: rgba(0, 0, 0, 0.55);
       backdrop-filter: blur(6px);
       z-index: 155;
@@ -488,130 +496,7 @@
       border-radius: 10px 10px 0 0;
     }
 
-    /* Story Maker */
-    #story-maker-container {
-      position: fixed;
-      inset: 0;
-      z-index: 150;
-      display: none;
-      justify-content: center;
-      align-items: center;
-      pointer-events: all;
-    }
-
-    #story-maker-grid {
-      display: grid;
-      grid-template-columns: 350px 1fr;
-      gap: 2rem;
-      width: 90%;
-      max-width: 1200px;
-    }
-
-    #story-maker-left-panel {
-      background-color: rgba(30, 30, 30, 0.7);
-      padding: 1rem;
-      border-radius: 1rem;
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
-    }
-
-    .story-maker-dropzone {
-      width: 100%;
-      aspect-ratio: 16/9;
-      background: #333;
-      border: 3px dashed #666;
-      border-radius: 8px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-size: 2.5rem;
-      position: relative;
-    }
-
-    .story-maker-dropzone video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: 6px;
-    }
-
-    #story-maker-effects {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-    }
-
-    .effect-btn {
-      background-color: #4a4a4a;
-      border: 2px solid transparent;
-    }
-
-    .effect-btn.active {
-      border-color: #3498db;
-    }
-
-    #story-maker-clip-area {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 1rem;
-    }
-
-    #story-maker-clue {
-      background-color: rgba(0, 0, 0, 0.3);
-      padding: 1rem;
-      border-radius: 8px;
-      text-align: center;
-      font-size: 1.5rem;
-      font-style: italic;
-      color: black;
-    }
-
-    #story-maker-clip-grid {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 1rem;
-    }
-
-    .story-maker-clip-cell {
-      position: relative;
-      width: 100%;
-      aspect-ratio: 16/9;
-    }
-
-    .story-maker-clip-cell video {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border: 2px solid #555;
-      border-radius: 8px;
-      cursor: grab;
-    }
-
-    .clip-arrow {
-      position: absolute;
-      background: rgba(0, 0, 0, 0.5);
-      border: none;
-      color: white;
-      font-size: 1rem;
-      width: 24px;
-      height: 24px;
-      border-radius: 50%;
-      cursor: pointer;
-    }
-
-    .clip-arrow-left {
-      left: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
-
-    .clip-arrow-right {
-      right: 5px;
-      top: 50%;
-      transform: translateY(-50%);
-    }
+    /* Story Maker styles REMOVED */
 
     #movie-playback-overlay {
       pointer-events: none;
@@ -628,26 +513,7 @@
       opacity: 0;
     }
 
-    #story-maker-bg {
-      position: fixed;
-      inset: 0;
-      z-index: 149;
-      background-color: white;
-      display: none;
-      transition: background-color 0.5s;
-    }
-
-    #story-maker-progress {
-      position: absolute;
-      top: 0;
-      left: 0;
-      height: 100%;
-      width: 100%;
-      background-color: black;
-      transform-origin: left;
-      transform: scaleX(0);
-      transition: transform 180s linear;
-    }
+    /* Story Maker background styles REMOVED */
 
     #scene-timer-display {
       font-size: 2rem;
@@ -660,6 +526,8 @@
       position: fixed;
       top: 1rem;
       left: 1rem;
+      top: max(1rem, env(safe-area-inset-top, 1rem));
+      left: max(1rem, env(safe-area-inset-left, 1rem));
       z-index: 150;
       background: rgba(0, 0, 0, 0.6);
       padding: 0.5rem;
@@ -980,11 +848,17 @@
     #task-modal-overlay {
       z-index: 300;
       background-color: rgba(0, 0, 0, 0.9);
+      /* B0.5: Safe-area padding for overlays */
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
     }
 
     #task-modal-content {
       background-color: #1f1f1f;
       padding: 2rem;
+      padding-top: max(2rem, env(safe-area-inset-top, 2rem));
+      padding-right: max(2rem, env(safe-area-inset-right, 2rem));
+      padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
+      padding-left: max(2rem, env(safe-area-inset-left, 2rem));
       border-radius: 1rem;
       width: 90%;
       max-width: 800px;
@@ -1021,10 +895,84 @@
       cursor: pointer;
       line-height: 1;
       transition: color 0.2s;
+      z-index: 10;
+      padding: 0.5rem;
+      min-width: 44px;
+      min-height: 44px;
     }
 
     #task-modal-close:hover {
       color: white;
+    }
+
+    /* B0.3: Toast notification system */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      /* B0.5: Safe area padding */
+      padding-top: env(safe-area-inset-top, 0);
+    }
+
+    .toast {
+      background: rgba(31, 31, 31, 0.95);
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      animation: toastSlideIn 0.3s ease-out;
+      pointer-events: auto;
+      max-width: 500px;
+      text-align: center;
+      border: 2px solid #4a4a4a;
+    }
+
+    .toast.toast-error {
+      border-color: #e74c3c;
+      background: rgba(231, 76, 60, 0.9);
+    }
+
+    .toast.toast-success {
+      border-color: #2ecc71;
+      background: rgba(46, 204, 113, 0.9);
+    }
+
+    .toast.toast-warning {
+      border-color: #f39c12;
+      background: rgba(243, 156, 18, 0.9);
+    }
+
+    .toast.toast-info {
+      border-color: #3498db;
+      background: rgba(52, 152, 219, 0.9);
+    }
+
+    @keyframes toastSlideIn {
+      from {
+        transform: translateY(-100px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes toastSlideOut {
+      from {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateY(-100px);
+        opacity: 0;
+      }
     }
 
     .task-option-btn {
@@ -1502,10 +1450,11 @@
 </head>
 
 <body>
+  <!-- B0.3: Toast notification container -->
+  <div id="toast-container"></div>
+  
   <div class="video-full-screen"><video id="mainVideo" muted playsinline></video></div>
-  <div id="story-maker-bg">
-    <div id="story-maker-progress"></div>
-  </div>
+  <!-- Removed: story-maker-bg and story-maker-progress -->
   <div id="breathingOverlay" class="overlay">
     <div class="overlay-timer"></div>
     <div class="overlay-text"></div>
@@ -1522,7 +1471,7 @@
     <button id="gemini-key-save">Save</button>
     <span id="gemini-key-status"></span>
   </div>
-  <div id="story-maker-container"></div>
+  <!-- Removed: story-maker-container -->
   <div id="movie-playback-overlay" class="overlay"></div>
 
   <div id="task-modal-overlay" class="overlay">
@@ -1532,6 +1481,8 @@
       <div id="task-modal-body"></div>
     </div>
   </div>
+
+  <div id="toast-container"></div>
 
   <div id="main-score-container">
     <span>Score: <span id="main-score-value">0</span></span>
@@ -1710,31 +1661,7 @@
       <button id="generateBingoCardsButton" class="mt-4" disabled>Generate Cards</button>
     </div>
   </div>
-  <div id="panel-story-maker" class="panel right-panel">
-    <div class="panel-header">
-      <h2 id="title-story-maker">Dream Factory</h2>
-    </div>
-    <div class="flex items-center gap-2">
-      <input type="text" id="story-maker-title" placeholder="e.g., The Cloudburst" class="flex-grow">
-      <button id="generate-title-btn" title="Generate Title">✨</button>
-    </div>
-    <label for="story-maker-scenes" class="mt-2">Number of Scenes (4-8):</label>
-    <input type="number" id="story-maker-scenes" value="6" min="4" max="8" class="mb-2">
-    <label for="story-maker-voice">Voice:</label>
-    <div class="flex items-center gap-2">
-      <select id="story-maker-voice" class="flex-grow"></select>
-      <button id="preview-voice-btn" class="panel-toggle-button"
-        style="width: 40px; height: 40px; font-size: 1.2rem;">🔊</button>
-    </div>
-    <label for="story-maker-font" class="mt-2">Font:</label>
-    <select id="story-maker-font" class="mb-4">
-      <option value="'Trajan Pro', serif">Trajan Pro</option>
-      <option value="'Impact', sans-serif">Impact</option>
-      <option value="'Cinzel', serif">Cinzel</option>
-      <option value="'Bebas Neue', sans-serif">Bebas Neue</option>
-    </select>
-    <button id="generate-script-btn">Generate Dream Script</button>
-  </div>
+  <!-- Removed: panel-story-maker (Dream Factory) -->
   
   <div id="panel-creative-challenges" class="panel right-panel">
     <div class="panel-header">
@@ -1827,8 +1754,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           const triviaGameOverlay = document.getElementById('trivia-game-overlay');
           const scoreboardContainer = document.getElementById('scoreboard-container');
           const selectorToggleBtn = document.getElementById('selector-toggle-btn');
-          const storyMakerContainer = document.getElementById('story-maker-container');
-          const storyMakerVoiceSelect = document.getElementById('story-maker-voice');
+          // Removed: storyMakerContainer, storyMakerVoiceSelect
           const geminiKeyInput = document.getElementById('gemini-api-key');
           const geminiKeySaveBtn = document.getElementById('gemini-key-save');
           const geminiKeyStatus = document.getElementById('gemini-key-status');
@@ -1861,6 +1787,33 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let scoreMultiplier = 1.0;
           let scoreDecayInterval = null;
 
+          // --- Toast Notification System ---
+          const toastContainer = document.getElementById('toast-container');
+          
+          function showToast(message, type = 'info', duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = {
+              success: '✓',
+              error: '✕',
+              warning: '⚠',
+              info: 'ℹ'
+            }[type] || 'ℹ';
+            
+            toast.innerHTML = `<span style="font-size: 1.2rem;">${icon}</span><span>${message}</span>`;
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+              toast.classList.add('removing');
+              setTimeout(() => {
+                if (toast.parentNode) {
+                  toast.parentNode.removeChild(toast);
+                }
+              }, 300);
+            }, duration);
+          }
+
           // --- THEME UPDATE: Cloud-themed categories ---
           const challengeCategories = [
            ["Cinematic Classics 🎬", "Underground Eats 🍔", "Mythical Realms 🐉", "Bytes & Beeps 💾", "Wild Kingdom 🐾", "Watery Wonders 🌊", "Cosmic Conundrums 🌌", "Artful Aesthetics 🖼️", "The Great Outdoors 🏕️", "Ancient History 🏺"],
@@ -1870,8 +1823,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
            ["Mystical Monuments 🏯", "Elemental Power 🔥", "Classic Cartoons 📺", "Crime Scene Clues 🔎", "Oceanic Odysseys 🐳", "Jungle Jive 🐒", "Rhythmic Rhymes 🎤", "Cloud Computing ☁️", "Culinary Concoctions 🍲", "Wacky World Records 🏆"]
          ];
 
-          // Challenges that require Gemini AI - DISABLED (AI integration removed)
-          const AI_REQUIRED_CHALLENGES = new Set(['aiChallenge', 'audioAnagram']);
+          // Challenges that require Gemini AI - REMOVED
+          // const AI_REQUIRED_CHALLENGES = new Set(['aiChallenge', 'audioAnagram']);
 
           const challengeTypes = [{
               type: 'matchPairs',
@@ -1972,12 +1925,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               type: 'creativeChallenge',
               name: 'Creative Challenge',
               icon: '💡'
-            },
-            {
-              type: 'splashClick',
-              name: 'Emoji Clicker',
-              icon: '💦'
             }
+            // Removed: splashClick (19), clipSequencer (22), aiChallenge (23), audioAnagram (24)
           ];
           
           // Function to distribute challenges evenly with minimal clumping
@@ -2033,12 +1982,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             return result;
           }
           
-          // Distribute 24 challenges evenly across the grid
-          let challenges = distributeEvenly(challengeTypes, 24);
+          // Distribute 45 challenges evenly across the grid (3x15)
+          let challenges = distributeEvenly(challengeTypes, 45);
           
           // Add "pick the game" mechanics - convert some tiles to 3-choice options
-          // Let's make every 4th tile (6 total) a 3-choice tile
-          const threeChoiceIndices = [3, 7, 11, 15, 19, 23];
+          // For 45 tiles, make every 4th tile (11 total, ~24%) a 3-choice tile
+          const threeChoiceIndices = [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43];
           threeChoiceIndices.forEach(index => {
             // Pick 3 distinct random challenges
             const availableTypes = [...challengeTypes];
@@ -2057,13 +2006,11 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             blowback: 'rgba(149, 165, 166, 0.5)',
             memory: 'rgba(230, 126, 34, 0.5)',
             bingo: 'rgba(231, 76, 60, 0.5)',
-            aiChallenge: 'rgba(52, 73, 94, 0.5)',
-            clipSequencer: 'rgba(211, 84, 0, 0.5)',
-            audioAnagram: 'rgba(142, 68, 173, 0.5)',
+            // Removed: aiChallenge, clipSequencer, audioAnagram, splashClick
             reflexTest: 'rgba(41, 128, 185, 0.5)',
             pressureFront: 'rgba(103, 58, 183, 0.5)',
             miniBingo: 'rgba(255, 87, 34, 0.5)',
-            splashClick: 'rgba(0, 188, 212, 0.5)',
+            // Removed: splashClick
             weatherGamble: 'rgba(96, 125, 139, 0.5)',
             // NEW MINI GAMES
             videoClipDetective: 'rgba(255, 193, 7, 0.5)',
@@ -2097,7 +2044,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
           
           // Pre-assign images for the grid
-          const gridImages = Array.from({ length: 24 }, () => getNextImage());
+          const gridImages = Array.from({ length: 45 }, () => getNextImage());
 
           const challengePlayers = [{
               name: 'Player 1',
@@ -2351,6 +2298,29 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let videoChangeInterval = null;
           let intervalCountdownInterval = null;
           let panelInactivityTimer = null;
+          
+          // --- ObjectURL Tracking System ---
+          let trackedObjectURLs = [];
+          
+          function createTrackedObjectURL(blob) {
+            const url = URL.createObjectURL(blob);
+            trackedObjectURLs.push(url);
+            return url;
+          }
+          
+          function revokeTrackedObjectURL(url) {
+            const index = trackedObjectURLs.indexOf(url);
+            if (index > -1) {
+              URL.revokeObjectURL(url);
+              trackedObjectURLs.splice(index, 1);
+            }
+          }
+          
+          function revokeAllTrackedObjectURLs() {
+            trackedObjectURLs.forEach(url => URL.revokeObjectURL(url));
+            trackedObjectURLs = [];
+          }
+          
           const playerColors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c'];
           
           // --- ObjectURL Manager ---
@@ -2372,6 +2342,27 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               this.urls.clear();
             }
           };
+          // Central ObjectURL manager (B0.2)
+          let trackedObjectURLs = new Set();
+          
+          function createTrackedObjectURL(blob) {
+            const url = URL.createObjectURL(blob);
+            trackedObjectURLs.add(url);
+            return url;
+          }
+          
+          function revokeTrackedObjectURL(url) {
+            if (trackedObjectURLs.has(url)) {
+              URL.revokeObjectURL(url);
+              trackedObjectURLs.delete(url);
+            }
+          }
+          
+          function revokeAllTrackedObjectURLs() {
+            trackedObjectURLs.forEach(url => URL.revokeObjectURL(url));
+            trackedObjectURLs.clear();
+          }
+          
           // --- THEME UPDATE: Cloud-themed bingo prompts ---
           const bingoPrompts = ["Someone blows smoke/vapor", "Four or more people", "Outside location", "Upside down position", "Costume or uniform", "Mirror reflection", "Someone wearing socks", "Body oil or shine", "Someone gets slapped",
             "Close-up of feet", "Whole body shot", "Overhead camera angle", "Tattoo visible", "Jewelry worn", "Someone is shaved", "Someone is hairy", "Bodybuilder type", "Twink type", "Beard or mustache", "Shaved head", "Long hair",
@@ -2384,10 +2375,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           ];
           let scores = [];
           let isVideoLoading = false;
-          let storyMakerState = {
-            script: [],
-            timelineClips: []
-          };
+          // Removed: storyMakerState
 
           // --- Gemini API ---
           async function callGemini(prompt, schema = null) {
@@ -2558,6 +2546,29 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             selectorToggleBtn.innerHTML = '🎞️';
             parseEmojis(selectorToggleBtn);
           };
+          
+          // B0.3: Toast notification system
+          function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            
+            container.appendChild(toast);
+            
+            // Auto-remove after duration
+            setTimeout(() => {
+              toast.style.animation = 'toastSlideOut 0.3s ease-in';
+              setTimeout(() => {
+                if (toast.parentNode === container) {
+                  container.removeChild(toast);
+                }
+              }, 300);
+            }, duration);
+          }
+          
           const formatTime = (seconds) => {
             if (isNaN(seconds)) return "0:00";
             const min = Math.floor(seconds / 60);
@@ -2673,7 +2684,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
 
             mainVideo.addEventListener('loadedmetadata', onMetadataLoaded);
-            mainVideo.src = URL.createObjectURL(videoFile);
+            mainVideo.src = createTrackedObjectURL(videoFile);
             currentVideoIndex = index;
           };
 
@@ -2686,7 +2697,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               playVideoByIndex(0);
               populateRandomVideoSelector();
             } else {
-              alert("No video files found.");
+              showToast("No video files found.", "warning");
             }
           });
           mainVideo.onended = () => advanceVideo(1);
@@ -2701,7 +2712,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           const playPauseButton = document.getElementById('playPauseButton');
           playPauseButton.addEventListener('click', () => {
             if (!mainVideo.currentSrc) {
-              alert("Please select a video folder first using the 'Atmosphere Control' panel.");
+              showToast("Please select a video folder first using the 'Atmosphere Control' panel.", "info");
               document.querySelector('[data-panel="panel-playback-settings"]').click();
               return;
             }
@@ -2740,7 +2751,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
             indices.forEach(index => {
               const vid = document.createElement('video');
-              vid.src = URL.createObjectURL(videoFiles[index]);
+              vid.src = createTrackedObjectURL(videoFiles[index]);
               vid.muted = true;
               vid.loop = true;
               vid.playsInline = true;
@@ -2781,7 +2792,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           });
           document.getElementById('startBreathingGuideButton').addEventListener('click', () => {
-            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            if (videoFiles.length === 0) return showToast("Please upload videos first.", "warning");
             closeAllPanels();
             clearAllTimers();
             let breaths = parseInt(document.getElementById('breaths').value);
@@ -2826,7 +2837,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             inhale();
           });
           document.getElementById('startCountdownButton').addEventListener('click', () => {
-            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            if (videoFiles.length === 0) return showToast("Please upload videos first.", "warning");
             closeAllPanels();
             clearAllTimers();
             const countdownOverlay = document.getElementById('countdownOverlay');
@@ -2867,7 +2878,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           });
           document.getElementById('startGuessGameButton').addEventListener('click', () => {
-            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            if (videoFiles.length === 0) return showToast("Please upload videos first.", "warning");
             closeAllPanels();
             clearAllTimers();
             advanceVideo(1);
@@ -3132,7 +3143,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             btn.disabled = false;
             btn.textContent = 'Start Trivia';
             if (!result) {
-              alert('Failed to generate trivia questions. Please try again.');
+              showToast('Failed to generate trivia questions. Please try again.', 'error');
               return;
             }
             try {
@@ -3151,7 +3162,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               closeAllPanels();
               startPlayerTurn(0);
             } catch (e) {
-              alert('The AI generated invalid data. Please try again.');
+              showToast('The AI generated invalid data. Please try again.', 'error');
               console.error("Failed to parse trivia JSON:", result, e);
             }
           });
@@ -3277,265 +3288,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               scoreboardContainer.style.opacity = scoreboardContainer.style.opacity === '0' ? '1' : '0';
             }
           });
-          const generateScriptBtn = document.getElementById('generate-script-btn');
-          const generateTitleBtn = document.getElementById('generate-title-btn');
-          generateTitleBtn.addEventListener('click', async (e) => {
-            const btn = e.target;
-            const titleInput = document.getElementById('story-maker-title');
-            btn.disabled = true;
-            titleInput.value = 'Generating...';
-            const prompt = "Generate a short, punny, innuendo-filled, cloud-themed movie title suitable for a gay-themed trailer.";
-            const result = await callGemini(prompt);
-            if (result) {
-              titleInput.value = result.replace(/"/g, '');
-            } else {
-              titleInput.value = 'Error! Try again.';
-            }
-            btn.disabled = false;
-          });
-          generateScriptBtn.addEventListener('click', async (e) => {
-            const btn = e.target;
-            const title = document.getElementById('story-maker-title').value || 'a generic movie';
-            const numScenes = document.getElementById('story-maker-scenes').value;
-            btn.disabled = true;
-            btn.textContent = 'Generating...';
-            const prompt =
-              `Generate a JSON array for a movie trailer script about "${title}". The array should contain exactly ${numScenes} objects. Each object must have three properties: "sentence" (a punny, innuendo-filled, cloud-themed voiceover line about gay sex acts or rendezvous), "clue" (a 2-3 word summary of the sentence), and "duration" (a number between 5 and 10 representing how many seconds the clip should play). The sentences must form a cohesive, dramatic trailer arc.`;
-            const schema = {
-              type: "ARRAY",
-              items: {
-                type: "OBJECT",
-                properties: {
-                  "sentence": {
-                    "type": "STRING"
-                  },
-                  "clue": {
-                    "type": "STRING"
-                  },
-                  "duration": {
-                    "type": "INTEGER"
-                  }
-                },
-                required: ["sentence", "clue", "duration"]
-              }
-            };
-            const result = await callGemini(prompt, schema);
-            btn.disabled = false;
-            btn.textContent = '✨ Generate Dream Script';
-            if (result) {
-              try {
-                const script = JSON.parse(result);
-                if (!Array.isArray(script)) throw new Error();
-                storyMakerState.script = script;
-                storyMakerState.timelineClips = Array(script.length).fill(null);
-                startStoryMakerGame();
-                closeAllPanels();
-              } catch (e) {
-                alert('AI generated invalid data. Please try again.');
-              }
-            } else {
-              alert('Failed to generate script. Please add your Gemini API key (top right) and try again.');
-            }
-          });
-
-          function startStoryMakerGame() {
-            const storyMakerBG = document.getElementById('story-maker-bg');
-            storyMakerContainer.style.display = 'flex';
-            storyMakerBG.style.display = 'block';
-            mainVideo.pause();
-            mediaControlsOverlay.classList.add('hidden');
-            minimizeControlsToggle.innerHTML = '🔼';
-            storyMakerState.currentScene = 0;
-            loadStoryMakerScene(0);
-          }
-
-          function loadStoryMakerScene(sceneIndex) {
-            clearAllTimers();
-            if (sceneIndex >= storyMakerState.script.length) {
-              finalizeMovie();
-              return;
-            }
-            const scene = storyMakerState.script[sceneIndex];
-            storyMakerContainer.innerHTML =
-              `<div id="story-maker-grid"><div id="story-maker-left-panel"><div class="story-maker-dropzone">DROP CLIP HERE</div><div id="story-maker-clue">${scene.clue}</div><div id="story-maker-effects"><button class="effect-btn" data-effect="bw">B&W</button><button class="effect-btn" data-effect="sepia">Sepia</button><button class="effect-btn" data-effect="invert">Invert</button><button class="effect-btn" data-effect="strobe">Strobe</button></div></div><div id="story-maker-clip-area"><div id="scene-timer-display">30</div><div id="story-maker-clip-grid"></div><div class="flex gap-4 mt-4"><button id="shuffle-clips-btn" class="panel-toggle-button" style="width: auto; padding: 0 1rem;">Shuffle</button><button id="finish-scene-btn" class="panel-toggle-button" style="width: auto; padding: 0 1rem;">Finish Scene</button></div></div></div>`;
-            populateStoryMakerClipGrid();
-            let sceneTimeLeft = 30;
-            const sceneTimer = setInterval(() => {
-              sceneTimeLeft--;
-              const timerDisplay = document.getElementById('scene-timer-display');
-              if (timerDisplay) timerDisplay.textContent = sceneTimeLeft;
-              if (sceneTimeLeft <= 0) {
-                finishScene();
-              }
-            }, 1000);
-            currentTimers.push(sceneTimer);
-            document.getElementById('finish-scene-btn').onclick = () => {
-              finishScene();
-            };
-            document.getElementById('shuffle-clips-btn').onclick = populateStoryMakerClipGrid;
-          }
-
-          function finishScene() {
-            clearAllTimers();
-            storyMakerState.currentScene++;
-            loadStoryMakerScene(storyMakerState.currentScene);
-          }
-
-          function populateStoryMakerClipGrid() {
-            const grid = document.getElementById('story-maker-clip-grid');
-            if (!grid) return;
-            grid.innerHTML = '';
-            let indices = new Set();
-            while (indices.size < 4 && indices.size < videoFiles.length) {
-              indices.add(Math.floor(Math.random() * videoFiles.length));
-            }
-            indices.forEach(index => {
-              const cell = document.createElement('div');
-              cell.className = 'story-maker-clip-cell';
-              const vid = document.createElement('video');
-              vid.src = URL.createObjectURL(videoFiles[index]);
-              vid.muted = true;
-              vid.loop = true;
-              vid.playsInline = true;
-              vid.draggable = true;
-              vid.dataset.videoIndex = index;
-              vid.onloadedmetadata = () => {
-                vid.currentTime = Math.random() * vid.duration;
-                vid.dataset.startTime = vid.currentTime;
-                vid.play().catch(() => {});
-              };
-              vid.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('text/plain', JSON.stringify({
-                  videoIndex: vid.dataset.videoIndex,
-                  startTime: vid.dataset.startTime
-                }));
-              });
-              cell.innerHTML = `<button class="clip-arrow clip-arrow-left">◀️</button><button class="clip-arrow clip-arrow-right">▶️</button>`;
-              cell.prepend(vid);
-              grid.appendChild(cell);
-            });
-          }
-          storyMakerContainer.addEventListener('click', (e) => {
-            if (e.target.classList.contains('clip-arrow')) {
-              const cell = e.target.closest('.story-maker-clip-cell');
-              const video = cell.querySelector('video');
-              const direction = e.target.classList.contains('clip-arrow-left') ? -10 : 10;
-              video.currentTime += direction;
-              video.dataset.startTime = video.currentTime;
-            } else if (e.target.classList.contains('effect-btn')) {
-              const effect = e.target.dataset.effect;
-              const currentClip = storyMakerState.timelineClips[storyMakerState.currentScene];
-              const dropzoneVideo = document.querySelector('.story-maker-dropzone video');
-              if (currentClip && dropzoneVideo) {
-                if (currentClip.effect === effect) {
-                  currentClip.effect = 'none';
-                  e.target.classList.remove('active');
-                } else {
-                  currentClip.effect = effect;
-                  document.querySelectorAll('#story-maker-effects .effect-btn').forEach(btn => btn.classList.remove('active'));
-                  e.target.classList.add('active');
-                }
-                dropzoneVideo.className = '';
-                if (currentClip.effect !== 'none') {
-                  dropzoneVideo.classList.add(`video-${currentClip.effect}`);
-                }
-              }
-            }
-          });
-          storyMakerContainer.addEventListener('dragover', (e) => {
-            if (e.target.classList.contains('story-maker-dropzone')) {
-              e.preventDefault();
-            }
-          });
-          storyMakerContainer.addEventListener('drop', (e) => {
-            const dropzone = e.target.closest('.story-maker-dropzone');
-            if (dropzone) {
-              e.preventDefault();
-              const data = JSON.parse(e.dataTransfer.getData('text/plain'));
-              storyMakerState.timelineClips[storyMakerState.currentScene] = {
-                videoIndex: data.videoIndex,
-                startTime: data.startTime,
-                effect: 'none'
-              };
-              const vid = document.createElement('video');
-              vid.src = URL.createObjectURL(videoFiles[data.videoIndex]);
-              vid.muted = true;
-              vid.loop = true;
-              vid.playsInline = true;
-              vid.onloadedmetadata = () => {
-                vid.currentTime = data.startTime;
-                vid.play().catch(() => {});
-              };
-              dropzone.innerHTML = '';
-              dropzone.appendChild(vid);
-              document.querySelectorAll('#story-maker-effects .effect-btn').forEach(btn => btn.classList.remove('active'));
-            }
-          });
-
-          function finalizeMovie() {
-            storyMakerContainer.style.display = 'none';
-            document.getElementById('story-maker-bg').style.display = 'none';
-            const completionOverlay = document.getElementById('completionOverlay');
-            completionOverlay.innerHTML = 'Preparing your video...';
-            completionOverlay.classList.add('visible');
-            setTimeout(() => {
-              completionOverlay.innerHTML = '<button id="final-play-btn" style="font-size: 5rem; background: none; border: none; color: white; cursor: pointer;">▶️</button>';
-            }, 2000);
-          }
-          document.addEventListener('click', e => {
-            if (e.target && e.target.id === 'final-play-btn') {
-              playFinalMovie();
-            } else if (e.target && e.target.id === 'replay-movie-btn') {
-              playFinalMovie();
-            }
-          });
-          async function playFinalMovie() {
-            document.getElementById('completionOverlay').classList.remove('visible');
-            const movieOverlay = document.getElementById('movie-playback-overlay');
-            movieOverlay.innerHTML = '';
-            movieOverlay.classList.add('visible');
-            for (let i = 0; i < storyMakerState.timelineClips.length; i++) {
-              const clip = storyMakerState.timelineClips[i];
-              if (!clip) continue;
-              const line = storyMakerState.script[i];
-              const sentenceDisplay = document.createElement('div');
-              sentenceDisplay.className = 'movie-sentence-display';
-              sentenceDisplay.textContent = line.sentence;
-              sentenceDisplay.style.fontFamily = document.getElementById('story-maker-font').value;
-              movieOverlay.appendChild(sentenceDisplay);
-              mainVideo.className = '';
-              mainVideo.playbackRate = 1;
-              if (clip.effect !== 'none') {
-                mainVideo.classList.add(`video-${clip.effect}`);
-              }
-              speak(line.sentence, document.getElementById('story-maker-voice').value);
-              setTimeout(() => {
-                sentenceDisplay.style.opacity = 1;
-              }, 100);
-              await new Promise(resolve => {
-                playVideoByIndex(clip.videoIndex, clip.startTime);
-                const onCanPlay = () => {
-                  mainVideo.removeEventListener('canplay', onCanPlay);
-                  setTimeout(() => {
-                    sentenceDisplay.style.opacity = 0;
-                    setTimeout(() => sentenceDisplay.remove(), 500);
-                    resolve();
-                  }, line.duration * 1000);
-                };
-                mainVideo.addEventListener('canplay', onCanPlay, {
-                  once: true
-                });
-              });
-            }
-            movieOverlay.classList.remove('visible');
-            mainVideo.pause();
-            mainVideo.className = '';
-            mainVideo.playbackRate = 1;
-            const completionOverlay = document.getElementById('completionOverlay');
-            completionOverlay.innerHTML = '<button id="replay-movie-btn" style="font-size: 5rem; background: none; border: none; color: white; cursor: pointer;">🔄</button>';
-            parseEmojis(completionOverlay);
-            completionOverlay.classList.add('visible');
-          }
+          
+          // REMOVED: Story Maker (Dream Factory) code - generateTitleBtn, generateScriptBtn,
+          // startStoryMakerGame, loadStoryMakerScene, finishScene, populateStoryMakerClipGrid,
+          // finalizeMovie, playFinalMovie event handlers and functions
 
           // --- Challenge Logic ---
           function initChallengeGrid() {
@@ -3612,12 +3368,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
 
           function startConcreteTask(type, options = {}) {
-            // Check if challenge requires Gemini AI and key is not available
-            if (AI_REQUIRED_CHALLENGES.has(type) && (!geminiApiKey || !geminiApiKey.trim())) {
-              taskModalTitle.textContent = "AI Key Required";
-              taskModalBody.innerHTML = `<p style="color: #fbbf24; text-align: center; font-size: 1.1rem;">Add your Gemini API key (top right) to unlock this AI-powered challenge.</p>`;
-              return;
-            }
+            // AI key check removed - AI challenges have been removed
             
             taskModalContent.style.backgroundColor = challengeUIColors[type] || 'rgba(31, 31, 31, 0.5)';
             switch (type) {
@@ -3634,13 +3385,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               case 'bingo':
                 setupBingoBuilderTask();
                 break;
-              case 'aiChallenge':
-                setupAiChallengeTask();
-                break;
-
-              case 'audioAnagram':
-                setupAudioAnagramTask();
-                break;
+              // Removed: aiChallenge case
+              // Removed: audioAnagram case
               case 'reflexTest':
                 setupReflexTestTask();
                 break;
@@ -3689,9 +3435,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               case 'creativeChallenge':
                 setupCreativeChallengeTask();
                 break;
-              case 'splashClick':
-                setupSplashClickTask();
-                break;
+              // Removed: splashClick case
             }
           }
 
@@ -3708,11 +3452,35 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             objectURLManager.revokeAll();
             taskModalOverlay.classList.remove('visible');
             taskModalBody.innerHTML = '';
+            
+            // B0.1: Comprehensive cleanup
+            // Clear all timers and intervals
+            clearAllTimers();
             if (modalTimer) {
               clearInterval(modalTimer);
               modalTimer = null;
             }
+            
+            // Pause and detach any task video elements
+            const taskVideos = taskModalBody.querySelectorAll('video');
+            taskVideos.forEach(video => {
+              video.pause();
+              video.src = '';
+              video.load();
+            });
+            
+            // Remove any task-specific overlays
+            const taskOverlays = taskModalBody.querySelectorAll('.overlay, .game-overlay');
+            taskOverlays.forEach(overlay => overlay.remove());
+            
+            // B0.2: Revoke all tracked ObjectURLs
+            revokeAllTrackedObjectURLs();
+            
+            // Clear modal content
+            taskModalOverlay.classList.remove('visible');
+            taskModalBody.innerHTML = '';
             taskModalOverlay.style.pointerEvents = 'all';
+            
             activeTaskElement = null;
             isTaskCompleted = false;
             startScoreDecay();
@@ -3733,11 +3501,11 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 renderChallengeHud();
               }
               
-              // Check for horizontal line bonus (5 columns = 5 tiles per row)
+              // Check for horizontal line bonus (3 columns = 3 tiles per row)
               const challengeIndex = parseInt(activeTaskElement.dataset.challengeIndex);
-              const rowIndex = Math.floor(challengeIndex / 5);
-              const rowStart = rowIndex * 5;
-              const rowEnd = rowStart + 5;
+              const rowIndex = Math.floor(challengeIndex / 3);
+              const rowStart = rowIndex * 3;
+              const rowEnd = rowStart + 3;
               
               // Check if all tiles in this row are owned by the current player
               let allOwnedByPlayer = true;
@@ -3822,7 +3590,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             advanceChallengeTurn();
           }
 
-          taskModalCloseBtn.addEventListener('click', closeTaskModal);
+          taskModalCloseBtn.addEventListener('pointerdown', closeTaskModal);
           
           // Add keyboard shortcut to close task modal (Escape key)
           document.addEventListener('keydown', (event) => {
@@ -3908,7 +3676,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 const q = questions[currentQ];
                 taskModalBody.innerHTML =
                   `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
-                document.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = handleAnswer);
+                document.querySelectorAll('.task-option-btn').forEach(btn => btn.addEventListener('pointerdown', handleAnswer));
               }
 
               function handleAnswer(e) {
@@ -3972,12 +3740,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 if (timeLeft <= 0) {
                   clearInterval(modalTimer);
                   updateMainScore(-1000);
-                  alert("Time's up!");
+                  showToast("Time's up!", "warning");
                   closeTaskModal();
                 }
               }, 1000);
               document.querySelectorAll('.emoji-cell').forEach(cell => {
-                cell.onclick = () => {
+                cell.addEventListener('pointerdown', () => {
                   if (!canClick || cell.classList.contains('flipped') || cell.classList.contains('matched') || flipped.length >= 2) return;
                   cell.classList.add('flipped');
                   flipped.push(cell);
@@ -4044,7 +3812,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             for (const index of clipIndices) {
               const vidFile = videoFiles[index];
               const tempVid = document.createElement('video');
-              const url = URL.createObjectURL(vidFile);
+              const url = createTrackedObjectURL(vidFile);
               await new Promise(resolve => {
                 tempVid.onloadedmetadata = () => {
                   const startTime = Math.random() * (tempVid.duration > 3 ? tempVid.duration - 3 : 0);
@@ -4081,7 +3849,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 thumbDiv.className = 'memory-clip-thumbnail';
                 thumbDiv.dataset.index = data.index;
                 thumbDiv.innerHTML = `<video src="${data.url}#t=${data.startTime+1}" preload="metadata"></video>`;
-                thumbDiv.onclick = () => {
+                thumbDiv.addEventListener('pointerdown', () => {
                   document.querySelectorAll('.memory-clip-thumbnail').forEach(t => t.classList.add('disabled'));
                   if (parseInt(thumbDiv.dataset.index) === hiddenClipIndex) {
                     thumbDiv.style.outline = "4px solid #27ae60";
@@ -4731,299 +4499,67 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 cells.forEach((cell, i) => {
                   cell.textContent = selectedPrompts[i] || '';
                 });
-                document.getElementById('minibingo-pick-count').textContent = selectedPrompts.length;
-                document.getElementById('confirm-minibingo-card').disabled = selectedPrompts.length !== 4;
+                document.getElementById('bingo-pick-count').textContent = selectedPrompts.length;
+                document.getElementById('confirm-bingo-card').disabled = selectedPrompts.length !== 6;
               };
-              
-              document.querySelectorAll('#minibingo-master-list .bingo-item').forEach(item => {
-                item.onclick = () => {
+              document.querySelectorAll('#bingo-builder-master-list .bingo-item').forEach(item => {
+                item.addEventListener('pointerdown', () => {
                   const prompt = item.textContent;
                   if (item.classList.contains('selected')) {
                     item.classList.remove('selected');
-                    item.style.background = 'rgba(255,255,255,0.1)';
                     selectedPrompts = selectedPrompts.filter(p => p !== prompt);
-                  } else if (selectedPrompts.length < 4) {
+                  } else if (selectedPrompts.length < 6) {
                     item.classList.add('selected');
-                    item.style.background = 'rgba(76, 175, 80, 0.3)';
                     selectedPrompts.push(prompt);
                   }
                   updatePreview();
                 };
               });
-              
-              document.getElementById('confirm-minibingo-card').onclick = () => {
-                // Create the mini bingo card widget
-                const card = document.createElement('div');
-                card.className = 'bingo-card-widget';
-                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 6px; padding: 0.5rem; z-index: 1000; min-width: 180px; width: 180px;';
-                card.style.top = `${Math.random() * 30 + 30}vh`;
-                card.style.left = `${Math.random() * 40 + 30}vw`;
-                
-                const currentPlayer = challengePlayers[currentChallengePlayerIndex];
-                const playerName = currentPlayer ? currentPlayer.name : 'Mini Bingo';
-                card.innerHTML = `
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 2px 4px;">
-                    <span style="font-weight: bold; font-size: 0.85rem;">${playerName}</span>
-                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; padding: 0; width: 24px; height: 24px; line-height: 1;">&times;</button>
-                  </div>
-                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem;">
-                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.4rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; cursor: pointer; font-size: 0.65rem; text-align: center; line-height: 1.1;">${prompt}</div>`).join('')}
-                  </div>
-                `;
-                
-                document.body.appendChild(card);
-                
-                let markedCount = 0;
-                const cells = card.querySelectorAll('.minibingo-cell');
-                cells.forEach(cell => {
-                  cell.addEventListener('click', () => {
-                    if (!cell.classList.contains('marked')) {
-                      cell.classList.add('marked');
-                      cell.style.background = 'rgba(76, 175, 80, 0.5)';
-                      cell.style.textDecoration = 'line-through';
-                      markedCount++;
-                      
-                      if (markedCount === 4) {
-                        setTimeout(() => {
-                          alert('🎉 Mini Bingo! You marked all 4!');
-                          card.remove();
-                          updateMainScore(1000);
-                          markTaskComplete();
-                        }, 300);
-                      }
-                    }
-                  });
-                });
-                
-                card.querySelector('.minibingo-close-btn').onclick = () => {
-                  card.remove();
-                };
-                
+              document.getElementById('confirm-bingo-card').addEventListener('pointerdown', () => {
+                createBingoCardWidget(selectedPrompts, activeTaskElement);
                 closeTaskModal();
               };
-              
               updatePreview();
             };
           }
 
-          // --- Splash Click Challenge ---
-          async function setupSplashClickTask() {
-            taskModalTitle.textContent = "Splash Click";
+          function createBingoCardWidget(prompts, originalTaskElement) {
+            const card = document.createElement('div');
+            card.className = 'bingo-card-widget';
+            const cardId = `bingo-card-${Date.now()}`;
+            card.id = cardId;
+            card.style.top = `${Math.random() * 50 + 20}vh`;
+            card.style.left = `${Math.random() * 50 + 20}vw`;
+
             const currentPlayer = challengePlayers[currentChallengePlayerIndex];
-            
-            // Get a word from the current video filename for the label
-            let videoWord = "Challenge";
-            if (videoFiles.length > 0 && currentVideoIndex >= 0 && currentVideoIndex < videoFiles.length) {
-              const filename = videoFiles[currentVideoIndex].name;
-              const words = filename.replace(/\.[^/.]+$/, "").split(/[\s_-]+/).filter(w => w.length > 3);
-              videoWord = words.length > 0 ? words[0].charAt(0).toUpperCase() + words[0].slice(1) : "Challenge";
-            }
-            
-            taskModalBody.innerHTML = `
-              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
-              <p>Click the target emojis as they appear over the video!</p>
-              <p style="color: #fbbf24;">Get 10 targets to win! Time limit: 30 seconds</p>
-              <p style="color: #8b5cf6;">Faster clicks = bigger bonus!</p>
-              <button id="start-splash-btn" class="modal-action-btn">Start Game</button>
-            `;
-            
-            parseEmojis(taskModalBody);
-            
-            document.getElementById('start-splash-btn').onclick = () => {
-              // Varied target and decoy emojis - ensure no overlap
-              const possibleTargets = ['💦', '⭐', '🌟', '✨', '💎', '🔮'];
-              const targetEmoji = possibleTargets[Math.floor(Math.random() * possibleTargets.length)];
-              const allDecoys = ['🔥', '💨', '⚡', '🌊', '❄️', '☀️', '🌙', '💫', '🌈', '☁️'];
-              const decoyEmojis = allDecoys.filter(e => e !== targetEmoji);
-              
-              let correctClicks = 0;
-              let gameOver = false;
-              const startTime = Date.now();
-              
-              // Close the modal and show minimal overlay over video
-              taskModalOverlay.style.pointerEvents = 'none'; // Allow clicks through to video overlay
-              taskModalBody.innerHTML = ''; // Clear modal content but keep modal visible with dark background
-              
-              // Create overlay container over the video
-              const gameOverlay = document.createElement('div');
-              gameOverlay.id = 'splash-click-overlay';
-              gameOverlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                z-index: 250;
-                pointer-events: none;
-              `;
-              
-              // Info panel at top (minimal, semi-transparent)
-              const infoPanel = document.createElement('div');
-              infoPanel.style.cssText = `
-                position: absolute;
-                top: 10px;
-                left: 50%;
-                transform: translateX(-50%);
-                background: rgba(0, 0, 0, 0.7);
-                padding: 0.5rem 1rem;
-                border-radius: 8px;
-                display: flex;
-                gap: 2rem;
-                align-items: center;
-                pointer-events: none;
-                z-index: 10;
-              `;
-              infoPanel.innerHTML = `
-                <div style="color: #8b5cf6; font-weight: bold;">Studio Challenge: ${videoWord}</div>
-                <div style="color: #3b82f6; font-weight: bold;">Player ${currentChallengePlayerIndex + 1}'s Turn</div>
-                <div id="splash-score-display" style="color: #10b981; font-weight: bold;">Score: 0/10</div>
-                <div id="splash-timer-display" style="color: #f59e0b; font-weight: bold;">Time: 30s</div>
-              `;
-              gameOverlay.appendChild(infoPanel);
-              
-              // Feedback container for tick/cross
-              const feedbackContainer = document.createElement('div');
-              feedbackContainer.style.cssText = `
-                position: absolute;
-                top: 50%;
-                left: 50%;
-                transform: translate(-50%, -50%);
-                font-size: 5rem;
-                pointer-events: none;
-                z-index: 15;
-                transition: opacity 0.3s;
-                opacity: 0;
-              `;
-              gameOverlay.appendChild(feedbackContainer);
-              
-              document.body.appendChild(gameOverlay);
-              
-              const scoreDisplay = document.getElementById('splash-score-display');
-              const timerDisplay = document.getElementById('splash-timer-display');
-              
-              const showFeedback = (isCorrect) => {
-                feedbackContainer.textContent = isCorrect ? '✔️' : '✖️';
-                feedbackContainer.style.opacity = '1';
-                parseEmojis(feedbackContainer);
-                setTimeout(() => {
-                  feedbackContainer.style.opacity = '0';
-                }, 500);
-              };
-              
-              const spawnEmoji = () => {
-                if (gameOver) return;
-                
-                const emojiEl = document.createElement('div');
-                // 50% chance for target, 50% for random decoy
-                const isTarget = Math.random() < 0.5;
-                const emoji = isTarget ? targetEmoji : decoyEmojis[Math.floor(Math.random() * decoyEmojis.length)];
-                emojiEl.textContent = emoji;
-                emojiEl.style.cssText = `
-                  position: absolute;
-                  font-size: 2.5rem;
-                  cursor: pointer;
-                  pointer-events: auto;
-                  transition: transform 0.1s;
-                  top: ${Math.random() * 70 + 15}%;
-                  left: ${Math.random() * 80 + 10}%;
-                  text-shadow: 0 0 4px rgba(0,0,0,0.8);
-                `;
-                
-                emojiEl.addEventListener('click', (e) => {
-                  e.stopPropagation();
-                  if (gameOver) return;
-                  
-                  if (emoji === targetEmoji) {
-                    correctClicks++;
-                    scoreDisplay.textContent = `Score: ${correctClicks}/10`;
-                    showFeedback(true);
-                    emojiEl.remove();
-                    
-                    if (correctClicks >= 10) {
-                      gameOver = true;
-                      clearInterval(spawnInterval);
-                      clearInterval(gameTimer);
-                      
-                      // Calculate time-based bonus
-                      const elapsedTime = (Date.now() - startTime) / 1000;
-                      const baseScore = 2000;
-                      const timeBonus = Math.max(0, Math.floor((30 - elapsedTime) * 50));
-                      const totalScore = baseScore + timeBonus;
-                      
-                      gameOverlay.remove();
-                      taskModalOverlay.style.pointerEvents = 'all';
-                      taskModalBody.innerHTML = `
-                        <h2>🎉 Victory!</h2>
-                        <p style="font-size: 1.3rem; margin: 1rem 0;">Completed in ${elapsedTime.toFixed(1)}s</p>
-                        <p style="font-size: 1.1rem;">Base Score: ${baseScore}</p>
-                        <p style="font-size: 1.1rem; color: #10b981;">Time Bonus: +${timeBonus}</p>
-                        <p style="font-size: 1.5rem; font-weight: bold; margin-top: 1rem;">Total: ${totalScore} points</p>
-                        <button id="splash-finish-btn" class="modal-action-btn mt-4">Claim Square</button>
-                      `;
-                      
-                      parseEmojis(taskModalBody);
-                      
-                      document.getElementById('splash-finish-btn').onclick = () => {
-                        updateMainScore(totalScore);
-                        markTaskComplete();
-                      };
-                    }
-                  } else {
-                    gameOver = true;
-                    clearInterval(spawnInterval);
-                    clearInterval(gameTimer);
-                    showFeedback(false);
-                    
-                    setTimeout(() => {
-                      gameOverlay.remove();
-                      taskModalOverlay.style.pointerEvents = 'all';
-                      closeTaskModal();
-                    }, 800);
-                  }
-                });
-                
-                gameOverlay.appendChild(emojiEl);
-                parseEmojis(emojiEl);
-                
-                setTimeout(() => {
-                  if (!gameOver && emojiEl.parentNode) {
-                    emojiEl.remove();
-                  }
-                }, 2500);
-              };
-              
-              // Spawn emojis every 700ms
-              const spawnInterval = setInterval(() => {
-                if (gameOver) {
-                  clearInterval(spawnInterval);
-                } else {
-                  spawnEmoji();
+            const playerName = currentPlayer ? currentPlayer.name : 'Bingo Card';
+            card.innerHTML = `<div class="bingo-card-header"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+            const gridContainer = card.querySelector('.bingo-grid-container');
+            prompts.forEach(prompt => {
+              const cell = document.createElement('div');
+              cell.className = 'cell';
+              cell.textContent = prompt;
+              cell.addEventListener('click', () => {
+                cell.classList.toggle('marked');
+                const allMarked = [...gridContainer.querySelectorAll('.cell')].every(c => c.classList.contains('marked'));
+                if (allMarked) {
+                  card.remove();
+                  activeTaskElement = originalTaskElement; // Re-assign active element
+                  updateMainScore(2000);
+                  markTaskComplete();
                 }
-              }, 700);
-              
-              currentTimers.push(spawnInterval);
-              
-              // 30 second timer
-              let timeLeft = 30;
-              const gameTimer = setInterval(() => {
-                timeLeft--;
-                timerDisplay.textContent = `Time: ${timeLeft}s`;
-                
-                if (timeLeft <= 0 && !gameOver) {
-                  gameOver = true;
-                  clearInterval(spawnInterval);
-                  clearInterval(gameTimer);
-                  
-                  gameOverlay.remove();
-                  taskModalOverlay.style.pointerEvents = 'all';
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Not enough targets found.</p></div>`;
-                  setTimeout(() => closeTaskModal(), 2000);
-                }
-              }, 1000);
-              
-              currentTimers.push(gameTimer);
-            };
+              });
+              gridContainer.appendChild(cell);
+            });
+            bingoCardsOverlayContainer.appendChild(card);
+            makeDraggable(card);
+            card.querySelector('.bingo-card-close-btn').onclick = () => card.remove();
           }
+
+          
+          // REMOVED: AI and removed challenge functions - setupAiChallengeTask, setupClipSequencerTask,
+          // setupAudioAnagramTask, setupSplashClickTask
+
 
           // --- Weather Gamble Challenge ---
           async function setupWeatherGambleTask() {
@@ -5081,8 +4617,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               };
             };
             
-            document.getElementById('choose-sunny').onclick = () => handleChoice('sunny');
-            document.getElementById('choose-stormy').onclick = () => handleChoice('stormy');
+            document.getElementById('choose-sunny').addEventListener('pointerdown', () => handleChoice('sunny'));
+            document.getElementById('choose-stormy').addEventListener('pointerdown', () => handleChoice('stormy'));
           }
 
           // --- NEW MINI GAMES ---
@@ -5174,6 +4710,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
                 const url = objectURLManager.create(file);
+                const url = createTrackedObjectURL(file);
                 
                 // Pause any existing playback before changing source
                 player.pause();
@@ -5293,13 +4830,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               `;
               
               const player = document.getElementById('memory-player');
-              const createdUrls = []; // Track URLs for cleanup
               
               for (let i = 0; i < 6; i++) {
                 document.getElementById('clip-number').textContent = i + 1;
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+                const url = createTrackedObjectURL(file);
                 createdUrls.push(url);
                 
                 player.src = url;
@@ -5320,7 +4856,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               // Create video thumbnails for selection
               const clipThumbnails = await Promise.all(selectedIndices.map(async (videoIndex, i) => {
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+                const url = createTrackedObjectURL(file);
                 createdUrls.push(url);
                 const video = document.createElement('video');
                 video.src = url;
@@ -5389,38 +4925,34 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.querySelectorAll('.clip-selection-tile').forEach(tile => {
                   const videoIndex = parseInt(tile.dataset.videoIndex);
                   if (!userOrder.includes(videoIndex)) {
-                    tile.onclick = () => {
+                    tile.addEventListener('pointerdown', () => {
                       userOrder.push(videoIndex);
                       renderSelectionScreen();
-                    };
+                    });
                   }
                 });
                 
                 const resetBtn = document.getElementById('reset-order-btn');
                 if (resetBtn && !resetBtn.disabled) {
-                  resetBtn.onclick = () => {
+                  resetBtn.addEventListener('pointerdown', () => {
                     userOrder = [];
                     renderSelectionScreen();
-                  };
+                  });
                 }
                 
                 const confirmBtn = document.getElementById('confirm-order-btn');
                 if (confirmBtn && !confirmBtn.disabled) {
-                  confirmBtn.onclick = () => {
+                  confirmBtn.addEventListener('pointerdown', () => {
                     // Check if order is correct
                     const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
                     
                     if (isCorrect) {
-                      // Clean up URLs
-                      createdUrls.forEach(url => URL.revokeObjectURL(url));
                       taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You got the order exactly right!</p></div>`;
                       setTimeout(() => {
                         updateMainScore(3000);
                         markTaskComplete();
                       }, 1500);
                     } else {
-                      // Clean up URLs
-                      createdUrls.forEach(url => URL.revokeObjectURL(url));
                       taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Incorrect!</h2><p>The order wasn't quite right.</p></div>`;
                       setTimeout(() => closeTaskModal(), 2000);
                     }
@@ -5562,128 +5094,290 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
           }
 
-          // 3. Film Title Scrambler - Rearrange words to make film title
+          // 3. Film Title Scrambler - Type to unscramble letters in each word
+          // Global state for tracking films
+          let filmScramblerState = {
+            currentFilm: null,
+            previousFilm: null,
+            streak: 0,
+            startTime: null
+          };
+
           async function setupFilmTitleScramblerTask() {
             taskModalTitle.textContent = "Film Title Scrambler 🎬";
             
-            // Hardcoded film titles for now
-            const filmTitles = [
-              "The Dark Knight",
-              "Pulp Fiction",
-              "Fight Club",
-              "The Matrix",
-              "Inception",
-              "The Shawshank Redemption",
-              "Forrest Gump",
-              "The Godfather",
-              "Star Wars",
-              "Jurassic Park",
-              "Back to the Future",
-              "The Lion King",
-              "Toy Story",
-              "Finding Nemo",
-              "The Avengers"
-            ];
+            // Helper function to extract clean title from video filename
+            function getVideoTitle(videoIndex) {
+              if (videoFiles.length === 0 || videoIndex < 0 || videoIndex >= videoFiles.length) {
+                return null;
+              }
+              const filename = videoFiles[videoIndex].name;
+              // Remove file extension
+              let title = filename.replace(/\.[^/.]+$/, "");
+              // Replace underscores, hyphens, and dots with spaces
+              title = title.replace(/[_\-\.]+/g, " ");
+              // Capitalize first letter of each word
+              title = title.split(' ')
+                .map(word => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase())
+                .join(' ')
+                .trim();
+              return title;
+            }
             
-            const selectedTitle = filmTitles[Math.floor(Math.random() * filmTitles.length)];
-            const words = selectedTitle.split(' ');
-            const scrambledWords = [...words].sort(() => 0.5 - Math.random());
+            // Helper function to scramble letters in a word
+            function scrambleWord(word) {
+              const letters = word.split('');
+              // Fisher-Yates shuffle to ensure proper scrambling
+              for (let i = letters.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [letters[i], letters[j]] = [letters[j], letters[i]];
+              }
+              // Make sure it's actually different from original (for words > 2 letters)
+              const scrambled = letters.join('');
+              return scrambled === word && word.length > 2 ? scrambleWord(word) : scrambled;
+            }
             
-            taskModalBody.innerHTML = `
-              <h3>Unscramble the film title!</h3>
-              <p style="margin: 1rem 0;">Drag the words into the correct order:</p>
-              <div id="word-slots" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; min-height: 60px; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 1rem;">
-                ${words.map((_, i) => `<div class="word-slot" data-position="${i}" style="min-width: 100px; padding: 0.5rem 1rem; border: 2px dashed #666; border-radius: 4px; text-align: center;"></div>`).join('')}
+            // Get current and previous video titles
+            let currentFilm = null;
+            let previousFilm = null;
+            
+            if (videoFiles.length > 0 && currentVideoIndex >= 0) {
+              // Get current video title
+              currentFilm = getVideoTitle(currentVideoIndex);
+              
+              // Get previous video title (wrap around if at start)
+              const previousIndex = (currentVideoIndex - 1 + videoFiles.length) % videoFiles.length;
+              previousFilm = getVideoTitle(previousIndex);
+            }
+            
+            // If no videos available, show error
+            if (!currentFilm) {
+              taskModalBody.innerHTML = `
+                <div style="text-align: center; padding: 2rem;">
+                  <h3>❌ No Videos Available</h3>
+                  <p>Please upload videos to play this challenge.</p>
+                </div>
+              `;
+              return;
+            }
+            
+            // Update state
+            filmScramblerState.previousFilm = filmScramblerState.currentFilm;
+            filmScramblerState.currentFilm = currentFilm;
+            filmScramblerState.startTime = Date.now();
+            
+            // Prepare current and previous film data
+            const films = [];
+            if (filmScramblerState.previousFilm && previousFilm) {
+              films.push({
+                title: previousFilm,
+                label: "Previous Video",
+                color: "rgba(155, 89, 182, 0.3)"
+              });
+            }
+            films.push({
+              title: currentFilm,
+              label: "Current Video (Now Playing)",
+              color: "rgba(52, 152, 219, 0.3)"
+            });
+            
+            // Build UI with word-by-word inputs
+            let html = `
+              <div style="text-align: center; margin-bottom: 1rem;">
+                <h3>Unscramble the letters in each word!</h3>
+                <p style="color: #aaa; font-size: 0.9rem;">Type the correct letters for each scrambled word</p>
+                ${filmScramblerState.streak > 0 ? `<p style="color: #f39c12; font-size: 1.1rem; font-weight: bold;">🔥 Streak: ${filmScramblerState.streak}</p>` : ''}
               </div>
-              <div id="word-pool" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
-                ${scrambledWords.map((word, i) => `
-                  <div class="word-tile" draggable="true" data-word="${word}" style="
-                    padding: 0.5rem 1rem;
-                    background: rgba(52, 152, 219, 0.8);
-                    border-radius: 4px;
-                    cursor: grab;
-                    user-select: none;
-                  ">${word}</div>
-                `).join('')}
-              </div>
-              <button id="check-answer-btn" class="modal-action-btn" style="margin-top: 1rem;">Check Answer</button>
             `;
             
-            const userAnswer = Array(words.length).fill(null);
-            
-            // Drag and drop logic
-            const wordTiles = document.querySelectorAll('.word-tile');
-            const wordSlots = document.querySelectorAll('.word-slot');
-            
-            wordTiles.forEach(tile => {
-              tile.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('word', tile.dataset.word);
-                e.dataTransfer.setData('fromSlot', tile.parentElement.classList.contains('word-slot') ? tile.parentElement.dataset.position : 'pool');
-                setTimeout(() => tile.style.opacity = '0.5', 0);
+            // Create sections for each film
+            const filmData = [];
+            films.forEach((film, filmIndex) => {
+              const words = film.title.split(' ');
+              const scrambledWords = words.map(word => scrambleWord(word));
+              
+              filmData.push({
+                title: film.title,
+                words: words,
+                scrambledWords: scrambledWords,
+                userInputs: Array(words.length).fill(''),
+                completed: Array(words.length).fill(false)
               });
-              tile.addEventListener('dragend', () => {
-                tile.style.opacity = '1';
+              
+              html += `
+                <div style="background: ${film.color}; padding: 1rem; border-radius: 8px; margin-bottom: 1rem;" data-film-index="${filmIndex}">
+                  <h4 style="margin-bottom: 1rem; color: #fff;">${film.label}</h4>
+                  <div style="display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center;">
+                    ${scrambledWords.map((scrambled, wordIndex) => `
+                      <div style="display: flex; flex-direction: column; align-items: center; gap: 0.3rem;">
+                        <div style="
+                          background: rgba(0,0,0,0.4);
+                          padding: 0.5rem 1rem;
+                          border-radius: 4px;
+                          font-family: monospace;
+                          font-size: 1.2rem;
+                          letter-spacing: 2px;
+                          color: #ecf0f1;
+                          min-width: 80px;
+                          text-align: center;
+                        ">${scrambled}</div>
+                        <input
+                          type="text"
+                          class="word-input"
+                          data-film-index="${filmIndex}"
+                          data-word-index="${wordIndex}"
+                          data-correct-word="${words[wordIndex]}"
+                          maxlength="${words[wordIndex].length}"
+                          placeholder="${'_'.repeat(words[wordIndex].length)}"
+                          style="
+                            width: ${Math.max(80, words[wordIndex].length * 15)}px;
+                            padding: 0.5rem;
+                            font-size: 1rem;
+                            text-align: center;
+                            border: 2px solid #555;
+                            border-radius: 4px;
+                            background: rgba(255,255,255,0.1);
+                            color: #fff;
+                            text-transform: uppercase;
+                          "
+                        />
+                        <div class="feedback" data-film-index="${filmIndex}" data-word-index="${wordIndex}" style="min-height: 20px; font-size: 0.9rem;"></div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+              `;
+            });
+            
+            html += `
+              <div style="text-align: center; margin-top: 1rem;">
+                <button id="check-all-btn" class="modal-action-btn">Check All Words</button>
+                <button id="submit-final-btn" class="modal-action-btn" style="display: none; background: #27ae60;">Submit Final Answer</button>
+              </div>
+              <div id="overall-feedback" style="margin-top: 1rem; text-align: center; font-size: 1.1rem;"></div>
+            `;
+            
+            taskModalBody.innerHTML = html;
+            
+            // Store film data for validation
+            const allFilmData = filmData;
+            
+            // Add input event listeners for real-time feedback
+            const inputs = document.querySelectorAll('.word-input');
+            inputs.forEach(input => {
+              input.addEventListener('input', (e) => {
+                const filmIndex = parseInt(e.target.dataset.filmIndex);
+                const wordIndex = parseInt(e.target.dataset.wordIndex);
+                const correctWord = e.target.dataset.correctWord;
+                const userInput = e.target.value.toUpperCase();
+                const feedback = document.querySelector(`.feedback[data-film-index="${filmIndex}"][data-word-index="${wordIndex}"]`);
+                
+                // Update stored input
+                allFilmData[filmIndex].userInputs[wordIndex] = userInput;
+                
+                // Provide letter-by-letter feedback
+                if (userInput.length === 0) {
+                  feedback.textContent = '';
+                  e.target.style.borderColor = '#555';
+                } else if (userInput === correctWord.toUpperCase()) {
+                  feedback.textContent = '✓ Correct!';
+                  feedback.style.color = '#2ecc71';
+                  e.target.style.borderColor = '#2ecc71';
+                  allFilmData[filmIndex].completed[wordIndex] = true;
+                } else {
+                  // Show partial progress
+                  let correctCount = 0;
+                  for (let i = 0; i < Math.min(userInput.length, correctWord.length); i++) {
+                    if (userInput[i] === correctWord[i].toUpperCase()) {
+                      correctCount++;
+                    }
+                  }
+                  feedback.textContent = `${correctCount}/${correctWord.length} letters correct`;
+                  feedback.style.color = '#f39c12';
+                  e.target.style.borderColor = '#f39c12';
+                  allFilmData[filmIndex].completed[wordIndex] = false;
+                }
+              });
+              
+              // Auto-advance to next input on completion
+              input.addEventListener('keyup', (e) => {
+                const correctWord = e.target.dataset.correctWord;
+                if (e.target.value.toUpperCase() === correctWord.toUpperCase() && e.target.value.length === correctWord.length) {
+                  // Find next empty input
+                  const allInputs = Array.from(inputs);
+                  const currentIndex = allInputs.indexOf(e.target);
+                  for (let i = currentIndex + 1; i < allInputs.length; i++) {
+                    if (allInputs[i].value === '') {
+                      allInputs[i].focus();
+                      break;
+                    }
+                  }
+                }
               });
             });
             
-            wordSlots.forEach(slot => {
-              slot.addEventListener('dragover', (e) => {
-                e.preventDefault();
-                slot.style.borderColor = '#fff';
+            // Check all words button
+            document.getElementById('check-all-btn').onclick = () => {
+              let allCorrect = true;
+              let totalWords = 0;
+              let correctWords = 0;
+              
+              allFilmData.forEach((filmData, filmIndex) => {
+                filmData.words.forEach((word, wordIndex) => {
+                  totalWords++;
+                  const userInput = filmData.userInputs[wordIndex].toUpperCase();
+                  const isCorrect = userInput === word.toUpperCase();
+                  if (isCorrect) {
+                    correctWords++;
+                  } else {
+                    allCorrect = false;
+                  }
+                });
               });
-              slot.addEventListener('dragleave', () => {
-                slot.style.borderColor = '#666';
-              });
-              slot.addEventListener('drop', (e) => {
-                e.preventDefault();
-                slot.style.borderColor = '#666';
-                const word = e.dataTransfer.getData('word');
-                const fromSlot = e.dataTransfer.getData('fromSlot');
-                const tile = document.querySelector(`.word-tile[data-word="${word}"]`);
+              
+              const overallFeedback = document.getElementById('overall-feedback');
+              if (allCorrect) {
+                const timeElapsed = ((Date.now() - filmScramblerState.startTime) / 1000).toFixed(1);
+                filmScramblerState.streak++;
                 
-                // If slot already has a word, send it back to pool
-                if (slot.firstChild) {
-                  document.getElementById('word-pool').appendChild(slot.firstChild);
+                let bonusPoints = 0;
+                if (timeElapsed < 10) {
+                  bonusPoints = 1000;
+                  overallFeedback.innerHTML = `<p style="color: #2ecc71; font-weight: bold;">🎉 Perfect! All ${totalWords} words correct in ${timeElapsed}s!</p><p style="color: #f39c12;">⚡ Speed bonus: +${bonusPoints} points!</p>`;
+                } else if (timeElapsed < 20) {
+                  bonusPoints = 500;
+                  overallFeedback.innerHTML = `<p style="color: #2ecc71; font-weight: bold;">🎉 Perfect! All ${totalWords} words correct in ${timeElapsed}s!</p><p style="color: #f39c12;">⚡ Speed bonus: +${bonusPoints} points!</p>`;
+                } else {
+                  overallFeedback.innerHTML = `<p style="color: #2ecc71; font-weight: bold;">🎉 Perfect! All ${totalWords} words correct in ${timeElapsed}s!</p>`;
                 }
                 
-                // If tile was in another slot, clear that position
-                if (fromSlot !== 'pool') {
-                  userAnswer[parseInt(fromSlot)] = null;
-                }
+                document.getElementById('check-all-btn').style.display = 'none';
+                document.getElementById('submit-final-btn').style.display = 'inline-block';
                 
-                slot.appendChild(tile);
-                userAnswer[parseInt(slot.dataset.position)] = word;
-              });
-            });
-            
-            // Also allow dropping back to pool
-            document.getElementById('word-pool').addEventListener('dragover', (e) => e.preventDefault());
-            document.getElementById('word-pool').addEventListener('drop', (e) => {
-              e.preventDefault();
-              const word = e.dataTransfer.getData('word');
-              const fromSlot = e.dataTransfer.getData('fromSlot');
-              const tile = document.querySelector(`.word-tile[data-word="${word}"]`);
-              
-              if (fromSlot !== 'pool') {
-                userAnswer[parseInt(fromSlot)] = null;
-              }
-              
-              document.getElementById('word-pool').appendChild(tile);
-            });
-            
-            document.getElementById('check-answer-btn').onclick = () => {
-              const playerTitle = userAnswer.join(' ');
-              if (playerTitle === selectedTitle) {
-                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Correct!</h2><p>"${selectedTitle}"</p></div>`;
-                setTimeout(() => {
-                  updateMainScore(2000);
-                  markTaskComplete();
-                }, 1500);
+                document.getElementById('submit-final-btn').onclick = () => {
+                  const totalScore = 2000 + bonusPoints + (filmScramblerState.streak > 1 ? (filmScramblerState.streak - 1) * 500 : 0);
+                  taskModalBody.innerHTML = `
+                    <div style="text-align: center; padding: 2rem;">
+                      <h2>🎉 Excellent Work!</h2>
+                      ${filmScramblerState.streak > 1 ? `<p style="color: #f39c12; font-size: 1.3rem; font-weight: bold;">🔥 ${filmScramblerState.streak} Win Streak! +${(filmScramblerState.streak - 1) * 500} bonus</p>` : ''}
+                      <p style="font-size: 1.2rem; margin-top: 1rem;">Total Score: ${totalScore} points</p>
+                    </div>
+                  `;
+                  setTimeout(() => {
+                    updateMainScore(totalScore);
+                    markTaskComplete();
+                  }, 1500);
+                };
               } else {
-                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong!</h2><p>It was: "${selectedTitle}"</p><p>You said: "${playerTitle}"</p></div>`;
-                setTimeout(() => closeTaskModal(), 3000);
+                filmScramblerState.streak = 0;
+                overallFeedback.innerHTML = `<p style="color: #e74c3c;">📝 ${correctWords}/${totalWords} words correct. Keep trying!</p>`;
               }
             };
+            
+            // Focus first input
+            if (inputs.length > 0) {
+              inputs[0].focus();
+            }
           }
 
           // 4. Higher or Lower Views - Guess which video has more views
@@ -6163,7 +5857,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             document.getElementById('start-challenge-btn').onclick = async () => {
               const videoIndex = Math.floor(Math.random() * videoFiles.length);
               const file = videoFiles[videoIndex];
-              const url = URL.createObjectURL(file);
+              const url = createTrackedObjectURL(file);
               
               // Create video element
               const tempVideo = document.createElement('video');
@@ -6428,6 +6122,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     state.currentVideoIndex = videoIndex;
                     state.video.src = url;
                     
+                    video.src = createTrackedObjectURL(file);
                     await new Promise(resolve => {
                       state.video.onloadedmetadata = () => {
                         state.video.currentTime = Math.random() * Math.max(0, state.video.duration - 5);
@@ -6575,23 +6270,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           }
 
           // --- Initial Setup ---
-          function populateVoices() {
-            const voices = speechSynthesis.getVoices();
-            storyMakerVoiceSelect.innerHTML = '';
-            voices.filter(v => v.lang.startsWith('en')).forEach(voice => {
-              const option = document.createElement('option');
-              option.textContent = `${voice.name} (${voice.lang})`;
-              option.value = voice.voiceURI;
-              storyMakerVoiceSelect.appendChild(option);
-            });
-          }
-          populateVoices();
-          if (speechSynthesis.onvoiceschanged !== undefined) {
-            speechSynthesis.onvoiceschanged = populateVoices;
-          }
-          document.getElementById('preview-voice-btn').addEventListener('click', () => {
-            speak("This is a preview of the selected voice.", storyMakerVoiceSelect.value);
-          });
+          // REMOVED: populateVoices and preview-voice-btn (used by Story Maker)
+
 
           initChallengeGrid();
           startScoreDecay();
@@ -6612,14 +6292,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           document.getElementById('save-creative-challenges-btn').addEventListener('click', () => {
             const text = document.getElementById('creative-challenges-input').value.trim();
             if (!text) {
-              alert('Please enter at least one challenge!');
+              showToast('Please enter at least one challenge!', 'warning');
               return;
             }
             
             const challenges = text.split('\n').filter(line => line.trim().length > 0);
             localStorage.setItem('customCreativeChallenges', JSON.stringify(challenges));
             loadCreativeChallenges();
-            alert(`Saved ${challenges.length} challenge(s)!`);
+            showToast(`Saved ${challenges.length} challenge(s)!`, 'success');
             document.getElementById('creative-challenges-input').value = '';
           });
           
@@ -6652,7 +6332,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           document.getElementById('save-film-data-btn').addEventListener('click', () => {
             const text = document.getElementById('film-data-input').value.trim();
             if (!text) {
-              alert('Please enter at least one film entry!');
+              showToast('Please enter at least one film entry!', 'warning');
               return;
             }
             
@@ -6678,10 +6358,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             if (filmData.length > 0) {
               localStorage.setItem('filmViewsData', JSON.stringify(filmData));
               loadFilmData();
-              alert(`Saved ${filmData.length} film(s)!${errors > 0 ? ` (${errors} entries had errors and were skipped)` : ''}`);
+              showToast(`Saved ${filmData.length} film(s)!${errors > 0 ? ` (${errors} entries had errors and were skipped)` : ''}`, 'success');
               document.getElementById('film-data-input').value = '';
             } else {
-              alert('No valid film data found! Use format: "Title|Views" (one per line)');
+              showToast('No valid film data found! Use format: "Title|Views" (one per line)', 'error');
             }
           });
           
