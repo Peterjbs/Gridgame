@@ -2350,6 +2350,29 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let videoChangeInterval = null;
           let intervalCountdownInterval = null;
           let panelInactivityTimer = null;
+          
+          // --- ObjectURL Tracking System ---
+          let trackedObjectURLs = [];
+          
+          function createTrackedObjectURL(blob) {
+            const url = URL.createObjectURL(blob);
+            trackedObjectURLs.push(url);
+            return url;
+          }
+          
+          function revokeTrackedObjectURL(url) {
+            const index = trackedObjectURLs.indexOf(url);
+            if (index > -1) {
+              URL.revokeObjectURL(url);
+              trackedObjectURLs.splice(index, 1);
+            }
+          }
+          
+          function revokeAllTrackedObjectURLs() {
+            trackedObjectURLs.forEach(url => URL.revokeObjectURL(url));
+            trackedObjectURLs = [];
+          }
+          
           const playerColors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c'];
           // --- THEME UPDATE: Cloud-themed bingo prompts ---
           const bingoPrompts = ["Someone blows smoke/vapor", "Four or more people", "Outside location", "Upside down position", "Costume or uniform", "Mirror reflection", "Someone wearing socks", "Body oil or shine", "Someone gets slapped",
@@ -2652,7 +2675,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
 
             mainVideo.addEventListener('loadedmetadata', onMetadataLoaded);
-            mainVideo.src = URL.createObjectURL(videoFile);
+            
+            // Revoke previous URL if it exists and is a blob URL
+            if (mainVideo.src && mainVideo.src.startsWith('blob:')) {
+              revokeTrackedObjectURL(mainVideo.src);
+            }
+            
+            mainVideo.src = createTrackedObjectURL(videoFile);
             currentVideoIndex = index;
           };
 
@@ -2719,7 +2748,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
             indices.forEach(index => {
               const vid = document.createElement('video');
-              vid.src = URL.createObjectURL(videoFiles[index]);
+              vid.src = createTrackedObjectURL(videoFiles[index]);
               vid.muted = true;
               vid.loop = true;
               vid.playsInline = true;
@@ -3372,7 +3401,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const cell = document.createElement('div');
               cell.className = 'story-maker-clip-cell';
               const vid = document.createElement('video');
-              vid.src = URL.createObjectURL(videoFiles[index]);
+              vid.src = createTrackedObjectURL(videoFiles[index]);
               vid.muted = true;
               vid.loop = true;
               vid.playsInline = true;
@@ -3437,7 +3466,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 effect: 'none'
               };
               const vid = document.createElement('video');
-              vid.src = URL.createObjectURL(videoFiles[data.videoIndex]);
+              vid.src = createTrackedObjectURL(videoFiles[data.videoIndex]);
               vid.muted = true;
               vid.loop = true;
               vid.playsInline = true;
@@ -3678,12 +3707,34 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             if (!isTaskCompleted && activeTaskElement) {
               markTaskFailed();
             }
-            taskModalOverlay.classList.remove('visible');
-            taskModalBody.innerHTML = '';
+            
+            // Clear all timers and intervals
+            clearAllTimers();
             if (modalTimer) {
               clearInterval(modalTimer);
               modalTimer = null;
             }
+            
+            // Pause and cleanup any video elements in the modal
+            const modalVideos = taskModalBody.querySelectorAll('video');
+            modalVideos.forEach(video => {
+              video.pause();
+              if (video.src && video.src.startsWith('blob:')) {
+                revokeTrackedObjectURL(video.src);
+              }
+              video.src = '';
+            });
+            
+            // Remove any game overlays created by minigames
+            const gameOverlays = document.querySelectorAll('#pf-game-overlay, #splash-click-overlay, #icon-hunt-overlay');
+            gameOverlays.forEach(overlay => overlay.remove());
+            
+            // Revoke all tracked ObjectURLs
+            revokeAllTrackedObjectURLs();
+            
+            // Clear modal content and reset state
+            taskModalOverlay.classList.remove('visible');
+            taskModalBody.innerHTML = '';
             taskModalOverlay.style.pointerEvents = 'all';
             activeTaskElement = null;
             isTaskCompleted = false;
@@ -4016,7 +4067,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             for (const index of clipIndices) {
               const vidFile = videoFiles[index];
               const tempVid = document.createElement('video');
-              const url = URL.createObjectURL(vidFile);
+              const url = createTrackedObjectURL(vidFile);
               await new Promise(resolve => {
                 tempVid.onloadedmetadata = () => {
                   const startTime = Math.random() * (tempVid.duration > 3 ? tempVid.duration - 3 : 0);
@@ -4186,7 +4237,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 const videoIndex = correctSequence[i];
                 taskModalTitle.textContent = `Watching Clip ${i + 1} / ${NUM_CLIPS}`;
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+                const url = createTrackedObjectURL(file);
                 player.src = url;
                 await player.play();
                 await new Promise(resolve => setTimeout(resolve, 2500)); // Play each clip for 2.5s
@@ -4210,7 +4261,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     <div class="sequencer-clips-pool">
                          ${shuffledSequence.map(index => `
                             <div class="sequencer-draggable-clip" draggable="true" data-video-index="${index}">
-                                <video src="${URL.createObjectURL(videoFiles[index])}#t=0.5" preload="metadata" muted playsinline></video>
+                                <video src="${createTrackedObjectURL(videoFiles[index])}#t=0.5" preload="metadata" muted playsinline></video>
                             </div>
                          `).join('')}
                     </div>
@@ -4371,7 +4422,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
 
             document.getElementById('start-challenge-btn').onclick = () => {
               const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
-              const videoURL = URL.createObjectURL(videoFiles[randomVideoIndex]);
+              const videoURL = createTrackedObjectURL(videoFiles[randomVideoIndex]);
               let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
               let symbolTimer = null;
 
@@ -5056,7 +5107,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.getElementById('clip-number').textContent = i + 1;
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+                const url = createTrackedObjectURL(file);
                 
                 player.src = url;
                 await new Promise(resolve => {
@@ -5161,14 +5212,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               `;
               
               const player = document.getElementById('memory-player');
-              const createdUrls = []; // Track URLs for cleanup
               
               for (let i = 0; i < 6; i++) {
                 document.getElementById('clip-number').textContent = i + 1;
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
-                createdUrls.push(url);
+                const url = createTrackedObjectURL(file);
                 
                 player.src = url;
                 await new Promise(resolve => {
@@ -5188,8 +5237,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               // Create video thumbnails for selection
               const clipThumbnails = await Promise.all(selectedIndices.map(async (videoIndex, i) => {
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
-                createdUrls.push(url);
+                const url = createTrackedObjectURL(file);
                 const video = document.createElement('video');
                 video.src = url;
                 await new Promise(resolve => {
@@ -5279,16 +5327,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
                     
                     if (isCorrect) {
-                      // Clean up URLs
-                      createdUrls.forEach(url => URL.revokeObjectURL(url));
                       taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You got the order exactly right!</p></div>`;
                       setTimeout(() => {
                         updateMainScore(3000);
                         markTaskComplete();
                       }, 1500);
                     } else {
-                      // Clean up URLs
-                      createdUrls.forEach(url => URL.revokeObjectURL(url));
                       taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Incorrect!</h2><p>The order wasn't quite right.</p></div>`;
                       setTimeout(() => closeTaskModal(), 2000);
                     }
@@ -6193,7 +6237,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             document.getElementById('start-challenge-btn').onclick = async () => {
               const videoIndex = Math.floor(Math.random() * videoFiles.length);
               const file = videoFiles[videoIndex];
-              const url = URL.createObjectURL(file);
+              const url = createTrackedObjectURL(file);
               
               // Create video element
               const tempVideo = document.createElement('video');
@@ -6411,7 +6455,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     const videoIndex = quarters[q][Math.floor(Math.random() * quarters[q].length)];
                     const file = videoFiles[videoIndex];
                     
-                    video.src = URL.createObjectURL(file);
+                    // Revoke previous URL if exists
+                    if (video.src && video.src.startsWith('blob:')) {
+                      revokeTrackedObjectURL(video.src);
+                    }
+                    
+                    video.src = createTrackedObjectURL(file);
                     await new Promise(resolve => {
                       video.onloadedmetadata = () => {
                         video.currentTime = Math.random() * Math.max(0, video.duration - 5);
