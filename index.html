@@ -4440,23 +4440,23 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               <p>Set up your guess and watch the videos!</p>
               <div style="margin: 1rem 0;">
                 <label>Preset Options: 
-                  <select id="pf-preset" style="padding: 0.5rem; pointer-events: auto; background: #f5f5f5; color: black; border-radius: 4px; font-family: 'Bebas Neue', 'Inter', sans-serif; font-weight: 700;">
+                  <select id="pf2-preset" style="padding: 0.5rem; pointer-events: auto; background: #f5f5f5; color: black; border-radius: 4px; font-family: 'Bebas Neue', 'Inter', sans-serif; font-weight: 700;">
                     ${presetOptions.map((opt, i) => `<option value="${i}">Duration ${opt.duration}s, Change ${opt.change}s</option>`).join('')}
                   </select>
                 </label>
               </div>
               <div style="margin: 1rem 0;">
-                <label>Time Duration (seconds): <input type="number" id="pf-timer" value="${defaultPreset.duration}" min="10" max="120" style="width: 80px; pointer-events: auto; color: black; background: #f5f5f5; font-family: 'Bebas Neue', 'Inter', sans-serif; font-weight: 700;"></label>
+                <label>Time Duration (seconds): <input type="number" id="pf2-timer" value="${defaultPreset.duration}" min="10" max="120" style="width: 80px; pointer-events: auto; color: black; background: #f5f5f5; font-family: 'Bebas Neue', 'Inter', sans-serif; font-weight: 700;"></label>
               </div>
               <div style="margin: 1rem 0;">
-                <label>Video Change Interval (seconds): <input type="number" id="pf-interval" value="${defaultPreset.change}" min="1" max="30" style="width: 80px; pointer-events: auto; color: black; background: #f5f5f5; font-family: 'Bebas Neue', 'Inter', sans-serif; font-weight: 700;"></label>
+                <label>Video Change Interval (seconds): <input type="number" id="pf2-interval" value="${defaultPreset.change}" min="1" max="30" style="width: 80px; pointer-events: auto; color: black; background: #f5f5f5; font-family: 'Bebas Neue', 'Inter', sans-serif; font-weight: 700;"></label>
               </div>
               <div style="margin: 1rem 0;">
                 <label>Your guess emoji: </label>
                 <span class="pf-emoji-cycler text-2xl cursor-pointer" style="display: inline-block; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 5px;">🍆</span>
               </div>
               <div style="margin: 1rem 0;">
-                <label>Your guess count: <input type="number" id="pf-guess-count" value="5" min="0" max="100" style="width: 80px; pointer-events: auto; color: black; background: #f5f5f5; font-family: 'Bebas Neue', 'Inter', sans-serif; font-weight: 700;"></label>
+                <label>Your guess count: <input type="number" id="pf2-guess-count" value="5" min="0" max="100" style="width: 80px; pointer-events: auto; color: black; background: #f5f5f5; font-family: 'Bebas Neue', 'Inter', sans-serif; font-weight: 700;"></label>
               </div>
               <button id="start-pf-btn" class="modal-action-btn">Start Game</button>
             `;
@@ -4466,9 +4466,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             parseEmojis(emojiCycler);
             
             // Preset selector handler
-            const presetSelector = document.getElementById('pf-preset');
-            const timerInput = document.getElementById('pf-timer');
-            const intervalInput = document.getElementById('pf-interval');
+            const presetSelector = document.getElementById('pf2-preset');
+            const timerInput = document.getElementById('pf2-timer');
+            const intervalInput = document.getElementById('pf2-interval');
             
             presetSelector.addEventListener('change', () => {
               const selectedPreset = presetOptions[parseInt(presetSelector.value)];
@@ -4498,10 +4498,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 return;
               }
               
-              const duration = parseInt(document.getElementById('pf-timer').value);
-              const interval = parseInt(document.getElementById('pf-interval').value);
+              const duration = parseInt(document.getElementById('pf2-timer').value);
+              const interval = parseInt(document.getElementById('pf2-interval').value);
               const guessEmoji = emojiCycler.textContent.trim();
-              const guessCount = parseInt(document.getElementById('pf-guess-count').value);
+              const guessCount = parseInt(document.getElementById('pf2-guess-count').value);
               
               // Hide modal overlay to show video clearly
               taskModalOverlay.style.pointerEvents = 'none';
@@ -4509,7 +4509,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               
               // Create overlay for tally in corner of video canvas
               const gameOverlay = document.createElement('div');
-              gameOverlay.id = 'pf-game-overlay';
+              gameOverlay.id = 'pf2-game-overlay';
               gameOverlay.style.cssText = `
                 position: fixed;
                 top: 0;
@@ -4539,7 +4539,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               infoDiv.innerHTML = `
                 <div style="color: #8b5cf6; font-weight: bold; margin-bottom: 0.5rem;">Player ${currentChallengePlayerIndex + 1}</div>
                 <div style="color: #10b981; margin-bottom: 0.5rem;">Guess: ${guessEmoji} × ${guessCount}</div>
-                <div id="pf-timer-display" style="color: #f59e0b; font-size: 1.5rem; font-weight: bold;">Time: ${duration}s</div>
+                <div id="pf2-timer-display" style="color: #f59e0b; font-size: 1.5rem; font-weight: bold;">Time: ${duration}s</div>
               `;
               tallyContainer.appendChild(infoDiv);
               parseEmojis(infoDiv);
@@ -4580,7 +4580,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               
               // Countdown timer
               let timeLeft = duration;
-              const timerDisplay = document.getElementById('pf-timer-display');
+              const timerDisplay = document.getElementById('pf2-timer-display');
               const countdownTimer = setInterval(() => {
                 timeLeft--;
                 timerDisplay.textContent = `Time: ${timeLeft}s`;
@@ -4603,12 +4603,12 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     <p style="font-size: 1.5rem;">Actual count: ${guessEmoji} × ${actualCount}</p>
                     <p style="font-size: 1.5rem;">Difference: ${difference}</p>
                     <p style="font-size: 1.2rem; margin-top: 1rem;">${difference <= 2 ? '🎉 Close enough! You win!' : '❌ Not close enough. Try again!'}</p>
-                    <button id="pf-finish-btn" class="modal-action-btn mt-4">${difference <= 2 ? 'Claim Square' : 'Continue'}</button>
+                    <button id="pf2-finish-btn" class="modal-action-btn mt-4">${difference <= 2 ? 'Claim Square' : 'Continue'}</button>
                   `;
                   
                   parseEmojis(taskModalBody);
                   
-                  document.getElementById('pf-finish-btn').onclick = () => {
+                  document.getElementById('pf2-finish-btn').onclick = () => {
                     if (difference <= 2) {
                       updateMainScore(1500);
                       markTaskComplete();
