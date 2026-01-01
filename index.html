@@ -1112,8 +1112,8 @@
     /* Match Pairs Game */
     .emoji-grid {
       display: grid;
-      gap: 5px;
-      max-width: 400px;
+      gap: 10px;
+      max-width: 500px;
       margin: auto;
     }
 
@@ -1129,13 +1129,15 @@
       aspect-ratio: 1/1;
       background: #444;
       border-radius: 8px;
-      font-size: 2rem;
+      font-size: 2.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: background-color 0.2s, transform 0.2s;
       transform-style: preserve-3d;
+      min-width: 60px;
+      min-height: 60px;
     }
 
     .emoji-cell .emoji-content {
@@ -2990,15 +2992,15 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               pos4 = 0;
             const header = elmnt.querySelector('.bingo-card-header, #scoreboard-header') || elmnt;
             if (header) {
-              header.onmousedown = dragMouseDown;
+              header.onpointerdown = dragPointerDown;
             }
 
-            function dragMouseDown(e) {
+            function dragPointerDown(e) {
               e.preventDefault();
               pos3 = e.clientX;
               pos4 = e.clientY;
-              document.onmouseup = closeDragElement;
-              document.onmousemove = elementDrag;
+              document.onpointerup = closeDragElement;
+              document.onpointermove = elementDrag;
             }
 
             function elementDrag(e) {
@@ -3012,8 +3014,31 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
 
             function closeDragElement() {
-              document.onmouseup = null;
-              document.onmousemove = null;
+              // Snap to edge on release
+              const rect = elmnt.getBoundingClientRect();
+              const viewportWidth = window.innerWidth;
+              const viewportHeight = window.innerHeight;
+              
+              // Determine closest edge
+              const distanceToLeft = rect.left;
+              const distanceToRight = viewportWidth - rect.right;
+              const distanceToTop = rect.top;
+              const distanceToBottom = viewportHeight - rect.bottom;
+              
+              const minDistance = Math.min(distanceToLeft, distanceToRight, distanceToTop, distanceToBottom);
+              
+              if (minDistance === distanceToLeft) {
+                elmnt.style.left = '10px';
+              } else if (minDistance === distanceToRight) {
+                elmnt.style.left = (viewportWidth - rect.width - 10) + 'px';
+              } else if (minDistance === distanceToTop) {
+                elmnt.style.top = '10px';
+              } else if (minDistance === distanceToBottom) {
+                elmnt.style.top = (viewportHeight - rect.height - 10) + 'px';
+              }
+              
+              document.onpointerup = null;
+              document.onpointermove = null;
             }
           }
           bingoCardsOverlayContainer.addEventListener('click', (e) => {
@@ -3857,6 +3882,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             document.getElementById('start-challenge-btn').onclick = () => {
               let currentQ = 0;
 
+              let selectedAnswer = null;
+
               function renderQuestion() {
                 if (currentQ >= questions.length) {
                   // Check if player got at least 3 correct
@@ -3877,23 +3904,54 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   };
                   return;
                 }
+                selectedAnswer = null;
                 const q = questions[currentQ];
                 taskModalBody.innerHTML =
-                  `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
-                document.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = handleAnswer);
+                  `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p>
+                  <div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>
+                  <button id="confirm-answer-btn" class="modal-action-btn mt-4" disabled style="opacity: 0.5;">Confirm Answer</button>`;
+                document.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = selectAnswer);
+                document.getElementById('confirm-answer-btn').onclick = confirmAnswer;
               }
 
-              function handleAnswer(e) {
-                const selectedIndex = parseInt(e.target.dataset.index);
+              function selectAnswer(e) {
+                // Remove previous selection highlight
+                document.querySelectorAll('.task-option-btn').forEach(btn => {
+                  btn.style.border = '';
+                  btn.style.boxShadow = '';
+                });
+                
+                // Highlight selected answer
+                e.target.style.border = '3px solid #3498db';
+                e.target.style.boxShadow = '0 0 10px rgba(52, 152, 219, 0.5)';
+                
+                selectedAnswer = parseInt(e.target.dataset.index);
+                
+                // Enable confirm button
+                const confirmBtn = document.getElementById('confirm-answer-btn');
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+              }
+
+              function confirmAnswer() {
+                if (selectedAnswer === null) return;
+                
                 const correctIndex = questions[currentQ].correctAnswerIndex;
-                if (selectedIndex === correctIndex) {
+                if (selectedAnswer === correctIndex) {
                   correctAnswers++;
                 }
                 document.querySelectorAll('.task-option-btn').forEach((btn, i) => {
                   btn.disabled = true;
+                  btn.onclick = null;
                   if (i === correctIndex) btn.style.backgroundColor = '#27ae60';
-                  else if (i === selectedIndex) btn.style.backgroundColor = '#c0392b';
+                  else if (i === selectedAnswer) btn.style.backgroundColor = '#c0392b';
                 });
+                
+                // Disable confirm button
+                const confirmBtn = document.getElementById('confirm-answer-btn');
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                
                 setTimeout(() => {
                   currentQ++;
                   renderQuestion();
@@ -3997,9 +4055,133 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             taskModalBody.innerHTML =
               `<h3>Ready to Breathe?</h3><p class="my-4">Inhale for ${inhaleTime}s, Hold for ${holdTime}s, Exhale for ${exhaleTime}s. Repeat ${breathCount} times.</p><button id="start-challenge-btn" class="modal-action-btn">Start Breathing</button>`;
             document.getElementById('start-challenge-btn').onclick = () => {
-              isTaskCompleted = true; // Mark as completed since it runs in the background
-              markTaskComplete();
-              document.getElementById('startBreathingGuideButton').click();
+              // Add breathing controls overlay
+              const breathingOverlay = document.getElementById('breathingOverlay');
+              const overlayTimer = breathingOverlay.querySelector('.overlay-timer');
+              const overlayText = breathingOverlay.querySelector('.overlay-text');
+              
+              // Create controls container if it doesn't exist
+              let controlsDiv = document.getElementById('breathing-controls');
+              if (!controlsDiv) {
+                controlsDiv = document.createElement('div');
+                controlsDiv.id = 'breathing-controls';
+                controlsDiv.style.cssText = `
+                  position: fixed;
+                  bottom: 20px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  display: flex;
+                  gap: 1rem;
+                  z-index: 300;
+                `;
+                breathingOverlay.appendChild(controlsDiv);
+              }
+              
+              let isPaused = false;
+              let currentTimer = null;
+              let breaths = breathCount;
+              let currentPhase = 'Inhale';
+              let remainingTime = inhaleTime;
+              
+              const updateControls = () => {
+                controlsDiv.innerHTML = `
+                  <button id="pause-breathing-btn" class="modal-action-btn" style="min-width: 100px;">
+                    ${isPaused ? 'Resume' : 'Pause'}
+                  </button>
+                  <button id="restart-breathing-btn" class="modal-action-btn" style="min-width: 100px;">
+                    Restart
+                  </button>
+                  <button id="exit-breathing-btn" class="modal-action-btn" style="min-width: 100px; background: #e74c3c;">
+                    Exit
+                  </button>
+                `;
+                
+                document.getElementById('pause-breathing-btn').onclick = () => {
+                  isPaused = !isPaused;
+                  if (isPaused) {
+                    if (currentTimer) clearInterval(currentTimer);
+                  } else {
+                    runPhase();
+                  }
+                  updateControls();
+                };
+                
+                document.getElementById('restart-breathing-btn').onclick = () => {
+                  if (currentTimer) clearInterval(currentTimer);
+                  breaths = breathCount;
+                  isPaused = false;
+                  startBreathing();
+                };
+                
+                document.getElementById('exit-breathing-btn').onclick = () => {
+                  if (currentTimer) clearInterval(currentTimer);
+                  breathingOverlay.className = 'overlay';
+                  controlsDiv.remove();
+                  clearAllTimers();
+                  closeTaskModal();
+                };
+              };
+              
+              const runPhase = () => {
+                if (isPaused) return;
+                
+                let count = remainingTime;
+                overlayTimer.textContent = count;
+                
+                currentTimer = setInterval(() => {
+                  if (isPaused) {
+                    clearInterval(currentTimer);
+                    return;
+                  }
+                  
+                  count--;
+                  remainingTime = count;
+                  overlayTimer.textContent = count;
+                  
+                  if (count < 0) {
+                    clearInterval(currentTimer);
+                    
+                    if (currentPhase === 'Exhale') {
+                      breaths--;
+                      if (breaths <= 0) {
+                        // Complete
+                        breathingOverlay.className = 'overlay';
+                        controlsDiv.remove();
+                        clearAllTimers();
+                        updateMainScore(2000);
+                        markTaskComplete();
+                        return;
+                      }
+                      currentPhase = 'Inhale';
+                      remainingTime = inhaleTime;
+                    } else if (currentPhase === 'Inhale') {
+                      currentPhase = 'Hold';
+                      remainingTime = holdTime;
+                    } else if (currentPhase === 'Hold') {
+                      currentPhase = 'Exhale';
+                      remainingTime = exhaleTime;
+                    }
+                    
+                    overlayText.textContent = currentPhase;
+                    const colorClass = currentPhase === 'Inhale' ? 'overlay-inhale' : 
+                                      currentPhase === 'Hold' ? 'overlay-hold' : 'overlay-exhale';
+                    breathingOverlay.className = `overlay visible ${colorClass}`;
+                    runPhase();
+                  }
+                }, 1000);
+              };
+              
+              const startBreathing = () => {
+                currentPhase = 'Inhale';
+                remainingTime = inhaleTime;
+                breathingOverlay.className = 'overlay visible overlay-inhale';
+                overlayText.textContent = 'Inhale';
+                runPhase();
+                updateControls();
+              };
+              
+              closeTaskModal();
+              startBreathing();
             };
           }
 
@@ -4546,19 +4728,18 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               
               const tallyCounts = {};
               
-              guessEmojis.forEach(emoji => {
-                tallyCounts[emoji] = 0;
-                const tallyDiv = document.createElement('div');
-                tallyDiv.style.cssText = 'text-align: center; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; user-select: none; flex: 1 1 45%;';
-                tallyDiv.innerHTML = `<div style="font-size: 1.5rem;">${emoji}</div><div class="tally-count" style="font-size: 1.2rem; font-weight: bold;">0</div>`;
-                
-                tallyDiv.addEventListener('click', () => {
-                  tallyCounts[emoji]++;
-                  tallyDiv.querySelector('.tally-count').textContent = tallyCounts[emoji];
-                });
-                
-                tallyGrid.appendChild(tallyDiv);
+              // Initialize only the guessed emoji
+              tallyCounts[guessEmoji] = 0;
+              const tallyDiv = document.createElement('div');
+              tallyDiv.style.cssText = 'text-align: center; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; user-select: none; flex: 1 1 100%;';
+              tallyDiv.innerHTML = `<div style="font-size: 1.5rem;">${guessEmoji}</div><div class="tally-count" style="font-size: 1.2rem; font-weight: bold;">0</div>`;
+              
+              tallyDiv.addEventListener('click', () => {
+                tallyCounts[guessEmoji]++;
+                tallyDiv.querySelector('.tally-count').textContent = tallyCounts[guessEmoji];
               });
+              
+              tallyGrid.appendChild(tallyDiv);
               
               tallyContainer.appendChild(tallyGrid);
               gameOverlay.appendChild(tallyContainer);
@@ -4631,6 +4812,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             `;
             
             document.getElementById('start-minibingo-btn').onclick = () => {
+              // Check existing cards limit (max 6 cards)
+              const existingCards = document.querySelectorAll('.bingo-card-widget').length;
+              if (existingCards >= 6) {
+                alert('Maximum 6 mini bingo cards allowed. Complete or close some cards first.');
+                return;
+              }
+              
               let selectedPrompts = [];
               // Pick 12 random prompts from the full list
               const miniPrompts = [...bingoPrompts].sort(() => 0.5 - Math.random()).slice(0, 12);
@@ -4676,19 +4864,30 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 // Create the mini bingo card widget
                 const card = document.createElement('div');
                 card.className = 'bingo-card-widget';
-                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 6px; padding: 0.5rem; z-index: 1000; min-width: 180px; width: 180px;';
-                card.style.top = `${Math.random() * 30 + 30}vh`;
-                card.style.left = `${Math.random() * 40 + 30}vw`;
+                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 6px; padding: 0.75rem; z-index: 1000; min-width: 220px; width: 220px;';
+                
+                // Snap to corner positions
+                const existingCards = document.querySelectorAll('.bingo-card-widget').length;
+                const corners = [
+                  { top: '20px', left: '20px' },
+                  { top: '20px', right: '20px' },
+                  { bottom: '20px', left: '20px' },
+                  { bottom: '20px', right: '20px' },
+                  { top: '50%', left: '20px', transform: 'translateY(-50%)' },
+                  { top: '50%', right: '20px', transform: 'translateY(-50%)' }
+                ];
+                const position = corners[existingCards % corners.length];
+                Object.assign(card.style, position);
                 
                 const currentPlayer = challengePlayers[currentChallengePlayerIndex];
                 const playerName = currentPlayer ? currentPlayer.name : 'Mini Bingo';
                 card.innerHTML = `
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 2px 4px;">
-                    <span style="font-weight: bold; font-size: 0.85rem;">${playerName}</span>
-                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; padding: 0; width: 24px; height: 24px; line-height: 1;">&times;</button>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 4px 6px;">
+                    <span style="font-weight: bold; font-size: 0.95rem;">${playerName}</span>
+                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.3rem; cursor: pointer; padding: 0; width: 28px; height: 28px; line-height: 1;">&times;</button>
                   </div>
-                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem;">
-                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.4rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; cursor: pointer; font-size: 0.65rem; text-align: center; line-height: 1.1;">${prompt}</div>`).join('')}
+                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.6rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; cursor: pointer; font-size: 0.75rem; text-align: center; line-height: 1.2; min-height: 50px;">${prompt}</div>`).join('')}
                   </div>
                 `;
                 
@@ -4719,6 +4918,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 card.querySelector('.minibingo-close-btn').onclick = () => {
                   card.remove();
                 };
+                
+                // Make draggable
+                makeDraggable(card);
                 
                 closeTaskModal();
               };
