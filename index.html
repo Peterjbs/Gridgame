@@ -976,6 +976,8 @@
     #task-modal-overlay {
       z-index: 300;
       background-color: rgba(0, 0, 0, 0.9);
+      /* B0.5: Safe-area padding for overlays */
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
     }
 
     #task-modal-content {
@@ -1021,6 +1023,76 @@
 
     #task-modal-close:hover {
       color: white;
+    }
+
+    /* B0.3: Toast notification system */
+    #toast-container {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      pointer-events: none;
+      /* B0.5: Safe area padding */
+      padding-top: env(safe-area-inset-top, 0);
+    }
+
+    .toast {
+      background: rgba(31, 31, 31, 0.95);
+      color: white;
+      padding: 1rem 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+      animation: toastSlideIn 0.3s ease-out;
+      pointer-events: auto;
+      max-width: 500px;
+      text-align: center;
+      border: 2px solid #4a4a4a;
+    }
+
+    .toast.toast-error {
+      border-color: #e74c3c;
+      background: rgba(231, 76, 60, 0.9);
+    }
+
+    .toast.toast-success {
+      border-color: #2ecc71;
+      background: rgba(46, 204, 113, 0.9);
+    }
+
+    .toast.toast-warning {
+      border-color: #f39c12;
+      background: rgba(243, 156, 18, 0.9);
+    }
+
+    .toast.toast-info {
+      border-color: #3498db;
+      background: rgba(52, 152, 219, 0.9);
+    }
+
+    @keyframes toastSlideIn {
+      from {
+        transform: translateY(-100px);
+        opacity: 0;
+      }
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
+
+    @keyframes toastSlideOut {
+      from {
+        transform: translateY(0);
+        opacity: 1;
+      }
+      to {
+        transform: translateY(-100px);
+        opacity: 0;
+      }
     }
 
     .task-option-btn {
@@ -1495,6 +1567,9 @@
 </head>
 
 <body>
+  <!-- B0.3: Toast notification container -->
+  <div id="toast-container"></div>
+  
   <div class="video-full-screen"><video id="mainVideo" muted playsinline></video></div>
   <div id="story-maker-bg">
     <div id="story-maker-progress"></div>
@@ -2345,6 +2420,28 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let intervalCountdownInterval = null;
           let panelInactivityTimer = null;
           const playerColors = ['#3498db', '#2ecc71', '#f1c40f', '#e74c3c'];
+          
+          // Central ObjectURL manager (B0.2)
+          let trackedObjectURLs = new Set();
+          
+          function createTrackedObjectURL(blob) {
+            const url = URL.createObjectURL(blob);
+            trackedObjectURLs.add(url);
+            return url;
+          }
+          
+          function revokeTrackedObjectURL(url) {
+            if (trackedObjectURLs.has(url)) {
+              URL.revokeObjectURL(url);
+              trackedObjectURLs.delete(url);
+            }
+          }
+          
+          function revokeAllTrackedObjectURLs() {
+            trackedObjectURLs.forEach(url => URL.revokeObjectURL(url));
+            trackedObjectURLs.clear();
+          }
+          
           // --- THEME UPDATE: Cloud-themed bingo prompts ---
           const bingoPrompts = ["Someone blows smoke/vapor", "Four or more people", "Outside location", "Upside down position", "Costume or uniform", "Mirror reflection", "Someone wearing socks", "Body oil or shine", "Someone gets slapped",
             "Close-up of feet", "Whole body shot", "Overhead camera angle", "Tattoo visible", "Jewelry worn", "Someone is shaved", "Someone is hairy", "Bodybuilder type", "Twink type", "Beard or mustache", "Shaved head", "Long hair",
@@ -2531,6 +2628,29 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             selectorToggleBtn.innerHTML = '🎞️';
             parseEmojis(selectorToggleBtn);
           };
+          
+          // B0.3: Toast notification system
+          function showToast(message, type = 'info', duration = 3000) {
+            const container = document.getElementById('toast-container');
+            if (!container) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            
+            container.appendChild(toast);
+            
+            // Auto-remove after duration
+            setTimeout(() => {
+              toast.style.animation = 'toastSlideOut 0.3s ease-in';
+              setTimeout(() => {
+                if (toast.parentNode === container) {
+                  container.removeChild(toast);
+                }
+              }, 300);
+            }, duration);
+          }
+          
           const formatTime = (seconds) => {
             if (isNaN(seconds)) return "0:00";
             const min = Math.floor(seconds / 60);
@@ -2646,7 +2766,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
 
             mainVideo.addEventListener('loadedmetadata', onMetadataLoaded);
-            mainVideo.src = URL.createObjectURL(videoFile);
+            mainVideo.src = createTrackedObjectURL(videoFile);
             currentVideoIndex = index;
           };
 
@@ -2659,7 +2779,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               playVideoByIndex(0);
               populateRandomVideoSelector();
             } else {
-              alert("No video files found.");
+              showToast("No video files found.", "warning");
             }
           });
           mainVideo.onended = () => advanceVideo(1);
@@ -2674,7 +2794,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           const playPauseButton = document.getElementById('playPauseButton');
           playPauseButton.addEventListener('click', () => {
             if (!mainVideo.currentSrc) {
-              alert("Please select a video folder first using the 'Atmosphere Control' panel.");
+              showToast("Please select a video folder first using the 'Atmosphere Control' panel.", "info");
               document.querySelector('[data-panel="panel-playback-settings"]').click();
               return;
             }
@@ -2713,7 +2833,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
             indices.forEach(index => {
               const vid = document.createElement('video');
-              vid.src = URL.createObjectURL(videoFiles[index]);
+              vid.src = createTrackedObjectURL(videoFiles[index]);
               vid.muted = true;
               vid.loop = true;
               vid.playsInline = true;
@@ -2754,7 +2874,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           });
           document.getElementById('startBreathingGuideButton').addEventListener('click', () => {
-            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            if (videoFiles.length === 0) return showToast("Please upload videos first.", "warning");
             closeAllPanels();
             clearAllTimers();
             let breaths = parseInt(document.getElementById('breaths').value);
@@ -2799,7 +2919,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             inhale();
           });
           document.getElementById('startCountdownButton').addEventListener('click', () => {
-            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            if (videoFiles.length === 0) return showToast("Please upload videos first.", "warning");
             closeAllPanels();
             clearAllTimers();
             const countdownOverlay = document.getElementById('countdownOverlay');
@@ -2840,7 +2960,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           });
           document.getElementById('startGuessGameButton').addEventListener('click', () => {
-            if (videoFiles.length === 0) return alert("Please upload videos first.");
+            if (videoFiles.length === 0) return showToast("Please upload videos first.", "warning");
             closeAllPanels();
             clearAllTimers();
             advanceVideo(1);
@@ -3104,7 +3224,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             btn.disabled = false;
             btn.textContent = 'Start Trivia';
             if (!result) {
-              alert('Failed to generate trivia questions. Please try again.');
+              showToast('Failed to generate trivia questions. Please try again.', 'error');
               return;
             }
             try {
@@ -3123,7 +3243,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               closeAllPanels();
               startPlayerTurn(0);
             } catch (e) {
-              alert('The AI generated invalid data. Please try again.');
+              showToast('The AI generated invalid data. Please try again.', 'error');
               console.error("Failed to parse trivia JSON:", result, e);
             }
           });
@@ -3303,10 +3423,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 startStoryMakerGame();
                 closeAllPanels();
               } catch (e) {
-                alert('AI generated invalid data. Please try again.');
+                showToast('AI generated invalid data. Please try again.', 'error');
               }
             } else {
-              alert('Failed to generate script. Please add your Gemini API key (top right) and try again.');
+              showToast('Failed to generate script. Please add your Gemini API key (top right) and try again.', 'warning');
             }
           });
 
@@ -3365,7 +3485,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const cell = document.createElement('div');
               cell.className = 'story-maker-clip-cell';
               const vid = document.createElement('video');
-              vid.src = URL.createObjectURL(videoFiles[index]);
+              vid.src = createTrackedObjectURL(videoFiles[index]);
               vid.muted = true;
               vid.loop = true;
               vid.playsInline = true;
@@ -3430,7 +3550,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 effect: 'none'
               };
               const vid = document.createElement('video');
-              vid.src = URL.createObjectURL(videoFiles[data.videoIndex]);
+              vid.src = createTrackedObjectURL(videoFiles[data.videoIndex]);
               vid.muted = true;
               vid.loop = true;
               vid.playsInline = true;
@@ -3671,13 +3791,35 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             if (!isTaskCompleted && activeTaskElement) {
               markTaskFailed();
             }
-            taskModalOverlay.classList.remove('visible');
-            taskModalBody.innerHTML = '';
+            
+            // B0.1: Comprehensive cleanup
+            // Clear all timers and intervals
+            clearAllTimers();
             if (modalTimer) {
               clearInterval(modalTimer);
               modalTimer = null;
             }
+            
+            // Pause and detach any task video elements
+            const taskVideos = taskModalBody.querySelectorAll('video');
+            taskVideos.forEach(video => {
+              video.pause();
+              video.src = '';
+              video.load();
+            });
+            
+            // Remove any task-specific overlays
+            const taskOverlays = taskModalBody.querySelectorAll('.overlay, .game-overlay');
+            taskOverlays.forEach(overlay => overlay.remove());
+            
+            // B0.2: Revoke all tracked ObjectURLs
+            revokeAllTrackedObjectURLs();
+            
+            // Clear modal content
+            taskModalOverlay.classList.remove('visible');
+            taskModalBody.innerHTML = '';
             taskModalOverlay.style.pointerEvents = 'all';
+            
             activeTaskElement = null;
             isTaskCompleted = false;
             startScoreDecay();
@@ -3937,7 +4079,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 if (timeLeft <= 0) {
                   clearInterval(modalTimer);
                   updateMainScore(-1000);
-                  alert("Time's up!");
+                  showToast("Time's up!", "warning");
                   closeTaskModal();
                 }
               }, 1000);
@@ -4009,7 +4151,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             for (const index of clipIndices) {
               const vidFile = videoFiles[index];
               const tempVid = document.createElement('video');
-              const url = URL.createObjectURL(vidFile);
+              const url = createTrackedObjectURL(vidFile);
               await new Promise(resolve => {
                 tempVid.onloadedmetadata = () => {
                   const startTime = Math.random() * (tempVid.duration > 3 ? tempVid.duration - 3 : 0);
@@ -4149,7 +4291,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   updateMainScore(1500);
                   markTaskComplete();
                 } else {
-                  alert("You have to write something!");
+                  showToast("You have to write something!", "warning");
                 }
               };
               document.getElementById('ai-challenge-response').focus();
@@ -4177,7 +4319,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 const videoIndex = correctSequence[i];
                 taskModalTitle.textContent = `Watching Clip ${i + 1} / ${NUM_CLIPS}`;
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+                const url = createTrackedObjectURL(file);
                 player.src = url;
                 await player.play();
                 await new Promise(resolve => setTimeout(resolve, 2500)); // Play each clip for 2.5s
@@ -4191,6 +4333,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           function renderArrangementPhase(correctSequence) {
             taskModalTitle.textContent = `Recreate the Sequence`;
             const shuffledSequence = [...correctSequence].sort(() => 0.5 - Math.random());
+            
+            // Create tracked URLs for video clips
+            const clipUrls = shuffledSequence.map(index => createTrackedObjectURL(videoFiles[index]));
 
             taskModalBody.innerHTML = `
                 <div class="sequencer-container">
@@ -4199,9 +4344,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     </div>
                     <p>Drag the clips from the pool below into the correct order above.</p>
                     <div class="sequencer-clips-pool">
-                         ${shuffledSequence.map(index => `
+                         ${shuffledSequence.map((index, i) => `
                             <div class="sequencer-draggable-clip" draggable="true" data-video-index="${index}">
-                                <video src="${URL.createObjectURL(videoFiles[index])}#t=0.5" preload="metadata" muted playsinline></video>
+                                <video src="${clipUrls[i]}#t=0.5" preload="metadata" muted playsinline></video>
                             </div>
                          `).join('')}
                     </div>
@@ -4329,7 +4474,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
                   if (timeLeft <= 0) {
                     clearInterval(modalTimer);
-                    alert("Time's up!");
+                    showToast("Time's up!", "warning");
                     closeTaskModal();
                   }
                 }, 1000);
@@ -4341,7 +4486,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     updateMainScore(2000);
                     markTaskComplete();
                   } else {
-                    alert(`Incorrect! The word was: ${word}`);
+                    showToast(`Incorrect! The word was: ${word}`, "error");
                     closeTaskModal();
                   }
                 };
@@ -4362,7 +4507,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
 
             document.getElementById('start-challenge-btn').onclick = () => {
               const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
-              const videoURL = URL.createObjectURL(videoFiles[randomVideoIndex]);
+              const videoURL = createTrackedObjectURL(videoFiles[randomVideoIndex]);
               let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
               let symbolTimer = null;
 
@@ -4383,7 +4528,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   gamePhase = 'ended';
                   symbolEl.classList.remove('visible');
                   if (activeTaskElement && !isTaskCompleted) { // If player hasn't clicked by now
-                    alert('Too slow!');
+                    showToast('Too slow!', 'warning');
                     closeTaskModal();
                   }
                 }, 1500); // Symbol is visible for 1.5s
@@ -4395,7 +4540,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   if(gamePhase === 'ended') return;
 
                   if (gamePhase === 'waiting') {
-                    alert('Too early!');
+                    showToast('Too early!', 'warning');
                     clearTimeout(showSymbolTimeout);
                     closeTaskModal();
                   } else if (gamePhase === 'active') {
@@ -4481,7 +4626,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             document.getElementById('start-pf-btn').onclick = () => {
               if (videoFiles.length === 0) {
-                alert("Please upload videos first.");
+                showToast("Please upload videos first.", "warning");
                 return;
               }
               
@@ -4695,7 +4840,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                       
                       if (markedCount === 4) {
                         setTimeout(() => {
-                          alert('🎉 Mini Bingo! You marked all 4!');
+                          showToast('🎉 Mini Bingo! You marked all 4!', 'success');
                           card.remove();
                           updateMainScore(1000);
                           markTaskComplete();
@@ -5045,7 +5190,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.getElementById('clip-number').textContent = i + 1;
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+                const url = createTrackedObjectURL(file);
                 
                 player.src = url;
                 await new Promise(resolve => {
@@ -5156,7 +5301,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.getElementById('clip-number').textContent = i + 1;
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+                const url = createTrackedObjectURL(file);
                 createdUrls.push(url);
                 
                 player.src = url;
@@ -5177,7 +5322,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               // Create video thumbnails for selection
               const clipThumbnails = await Promise.all(selectedIndices.map(async (videoIndex, i) => {
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+                const url = createTrackedObjectURL(file);
                 createdUrls.push(url);
                 const video = document.createElement('video');
                 video.src = url;
@@ -6020,7 +6165,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             document.getElementById('start-challenge-btn').onclick = async () => {
               const videoIndex = Math.floor(Math.random() * videoFiles.length);
               const file = videoFiles[videoIndex];
-              const url = URL.createObjectURL(file);
+              const url = createTrackedObjectURL(file);
               
               // Create video element
               const tempVideo = document.createElement('video');
@@ -6238,7 +6383,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     const videoIndex = quarters[q][Math.floor(Math.random() * quarters[q].length)];
                     const file = videoFiles[videoIndex];
                     
-                    video.src = URL.createObjectURL(file);
+                    video.src = createTrackedObjectURL(file);
                     await new Promise(resolve => {
                       video.onloadedmetadata = () => {
                         video.currentTime = Math.random() * Math.max(0, video.duration - 5);
@@ -6403,14 +6548,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           document.getElementById('save-creative-challenges-btn').addEventListener('click', () => {
             const text = document.getElementById('creative-challenges-input').value.trim();
             if (!text) {
-              alert('Please enter at least one challenge!');
+              showToast('Please enter at least one challenge!', 'warning');
               return;
             }
             
             const challenges = text.split('\n').filter(line => line.trim().length > 0);
             localStorage.setItem('customCreativeChallenges', JSON.stringify(challenges));
             loadCreativeChallenges();
-            alert(`Saved ${challenges.length} challenge(s)!`);
+            showToast(`Saved ${challenges.length} challenge(s)!`, 'success');
             document.getElementById('creative-challenges-input').value = '';
           });
           
@@ -6443,7 +6588,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           document.getElementById('save-film-data-btn').addEventListener('click', () => {
             const text = document.getElementById('film-data-input').value.trim();
             if (!text) {
-              alert('Please enter at least one film entry!');
+              showToast('Please enter at least one film entry!', 'warning');
               return;
             }
             
@@ -6469,10 +6614,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             if (filmData.length > 0) {
               localStorage.setItem('filmViewsData', JSON.stringify(filmData));
               loadFilmData();
-              alert(`Saved ${filmData.length} film(s)!${errors > 0 ? ` (${errors} entries had errors and were skipped)` : ''}`);
+              showToast(`Saved ${filmData.length} film(s)!${errors > 0 ? ` (${errors} entries had errors and were skipped)` : ''}`, 'success');
               document.getElementById('film-data-input').value = '';
             } else {
-              alert('No valid film data found! Use format: "Title|Views" (one per line)');
+              showToast('No valid film data found! Use format: "Title|Views" (one per line)', 'error');
             }
           });
           
