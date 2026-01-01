@@ -1493,8 +1493,6 @@
     </div>
   </div>
 
-  <div id="toast-container"></div>
-
   <div id="main-score-container">
     <span>Score: <span id="main-score-value">0</span></span>
     <span>Multiplier: <span id="main-score-multiplier">1.0</span>x</span>
@@ -1803,7 +1801,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           
           function showToast(message, type = 'info', duration = 3000) {
             const toast = document.createElement('div');
-            toast.className = `toast ${type}`;
+            toast.className = `toast toast-${type}`;
             
             const icon = {
               success: '✓',
@@ -1817,6 +1815,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             setTimeout(() => {
               toast.classList.add('removing');
+              toast.style.animation = 'toastSlideOut 0.3s ease-out forwards';
               setTimeout(() => {
                 if (toast.parentNode) {
                   toast.parentNode.removeChild(toast);
@@ -2037,13 +2036,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             creativeChallenge: 'rgba(103, 58, 183, 0.5)'
           };
           
-          // Image shuffle-bag system - ensures all 34 PNGs are used before repeating
+          // Image shuffle-bag system - ensures all 45 PNGs are used before repeating
           let imageBag = [];
-          const TOTAL_IMAGES = 34;
+          const TOTAL_IMAGES = 45;
           
           function getNextImage() {
             if (imageBag.length === 0) {
-              // Refill the bag with all 34 images
+              // Refill the bag with all 45 images
               imageBag = Array.from({ length: TOTAL_IMAGES }, (_, i) => i + 1);
               // Shuffle the bag
               for (let i = imageBag.length - 1; i > 0; i--) {
@@ -2317,6 +2316,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           // Tracks all blob URLs created for videos/images to prevent memory leaks
           // All minigame code should use these functions for ObjectURL management
           let trackedObjectURLs = new Set();
+          let currentMainVideoURL = null; // Track current main video URL for proper cleanup
           
           function createTrackedObjectURL(blob) {
             const url = URL.createObjectURL(blob);
@@ -2334,6 +2334,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           function revokeAllTrackedObjectURLs() {
             trackedObjectURLs.forEach(url => URL.revokeObjectURL(url));
             trackedObjectURLs.clear();
+            currentMainVideoURL = null;
           }
           
           // --- THEME UPDATE: Cloud-themed bingo prompts ---
@@ -2654,7 +2655,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
 
             mainVideo.addEventListener('loadedmetadata', onMetadataLoaded);
-            mainVideo.src = createTrackedObjectURL(videoFile);
+            
+            // Revoke previous main video URL before setting new one
+            if (currentMainVideoURL) {
+              revokeTrackedObjectURL(currentMainVideoURL);
+            }
+            
+            currentMainVideoURL = createTrackedObjectURL(videoFile);
+            mainVideo.src = currentMainVideoURL;
             currentVideoIndex = index;
           };
 
@@ -3437,24 +3445,18 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               markTaskFailed();
             }
             
-            // Clean up any videos in the modal
-            const modalVideos = taskModalBody.querySelectorAll('video');
-            modalVideos.forEach(video => {
-              video.pause();
-              video.src = '';
+            // Pause and clean up any media in the modal (query before clearing innerHTML)
+            taskModalBody.querySelectorAll('video, audio').forEach(media => {
+              media.pause();
+              if (media.src) {
+                media.src = '';
+              }
             });
-            
-            // Clean up object URLs
-            currentObjectURLs.forEach(url => {
-              URL.revokeObjectURL(url);
-            });
-            currentObjectURLs = [];
             
             // Clean up any grid overlays
             const gridOverlay = document.getElementById('quarter-grid');
             if (gridOverlay) {
-              const videos = gridOverlay.querySelectorAll('video');
-              videos.forEach(video => {
+              gridOverlay.querySelectorAll('video').forEach(video => {
                 video.pause();
                 video.src = '';
               });
@@ -3463,28 +3465,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             // Clean up timer display
             const timerDiv = document.getElementById('quarter-timer');
-            if (timerDiv) {
-              timerDiv.remove();
-            }
+            if (timerDiv) timerDiv.remove();
             
-            taskModalOverlay.classList.remove('visible');
-            taskModalBody.innerHTML = '';
-            if (modalTimer) {
-              clearInterval(modalTimer);
-              modalTimer = null;
-            }
-            
-            // Pause and detach any task video elements (query before clearing innerHTML)
-            const taskVideos = taskModalBody.querySelectorAll('video');
-            taskVideos.forEach(video => {
-              video.pause();
-              video.src = '';
-              video.load();
+            // Clean up object URLs
+            currentObjectURLs.forEach(url => {
+              URL.revokeObjectURL(url);
             });
-            
-            // Remove any task-specific overlays
-            const taskOverlays = taskModalBody.querySelectorAll('.overlay, .game-overlay');
-            taskOverlays.forEach(overlay => overlay.remove());
+            currentObjectURLs = [];
             
             // B0.2: Revoke all tracked ObjectURLs (prevents memory leaks)
             revokeAllTrackedObjectURLs();
@@ -3493,7 +3480,15 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             taskModalBody.innerHTML = '';
             taskModalOverlay.classList.remove('visible');
             taskModalOverlay.style.pointerEvents = 'all';
+            taskModalTitle.textContent = '';
             
+            // Clear timer
+            if (modalTimer) {
+              clearInterval(modalTimer);
+              modalTimer = null;
+            }
+            
+            // Reset state
             activeTaskElement = null;
             isTaskCompleted = false;
             startScoreDecay();
@@ -4656,26 +4651,91 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 cells.forEach((cell, i) => {
                   cell.textContent = selectedPrompts[i] || '';
                 });
-                document.getElementById('bingo-pick-count').textContent = selectedPrompts.length;
-                document.getElementById('confirm-bingo-card').disabled = selectedPrompts.length !== 6;
+                document.getElementById('minibingo-pick-count').textContent = selectedPrompts.length;
+                document.getElementById('confirm-minibingo-card').disabled = selectedPrompts.length !== 4;
               };
-              document.querySelectorAll('#bingo-builder-master-list .bingo-item').forEach(item => {
+              document.querySelectorAll('#minibingo-master-list .bingo-item').forEach(item => {
                 item.addEventListener('pointerdown', () => {
                   const prompt = item.textContent;
                   if (item.classList.contains('selected')) {
                     item.classList.remove('selected');
                     selectedPrompts = selectedPrompts.filter(p => p !== prompt);
-                  } else if (selectedPrompts.length < 6) {
+                  } else if (selectedPrompts.length < 4) {
                     item.classList.add('selected');
                     selectedPrompts.push(prompt);
                   }
                   updatePreview();
-                };
+                });
               });
-              document.getElementById('confirm-bingo-card').onclick = () => {
-                createBingoCardWidget(selectedPrompts, activeTaskElement);
+              document.getElementById('confirm-minibingo-card').addEventListener('pointerdown', () => {
+                // Check existing cards limit (max 6 cards)
+                const existingCards = document.querySelectorAll('.bingo-card-widget').length;
+                if (existingCards >= 6) {
+                  alert('Maximum 6 mini bingo cards allowed. Complete or close some cards first.');
+                  return;
+                }
+                
+                // Create the mini bingo card widget
+                const card = document.createElement('div');
+                card.className = 'bingo-card-widget';
+                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 6px; padding: 0.75rem; z-index: 1000; min-width: 220px; width: 220px;';
+                
+                // Snap to corner positions
+                const corners = [
+                  { top: '20px', left: '20px' },
+                  { top: '20px', right: '20px' },
+                  { bottom: '20px', left: '20px' },
+                  { bottom: '20px', right: '20px' },
+                  { top: '50%', left: '20px', transform: 'translateY(-50%)' },
+                  { top: '50%', right: '20px', transform: 'translateY(-50%)' }
+                ];
+                const position = corners[existingCards % corners.length];
+                Object.assign(card.style, position);
+                
+                const playerName = currentPlayer ? currentPlayer.name : 'Mini Bingo';
+                card.innerHTML = `
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 4px 6px;">
+                    <span style="font-weight: bold; font-size: 0.95rem;">${playerName}</span>
+                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.3rem; cursor: pointer; padding: 0; width: 28px; height: 28px; line-height: 1;">&times;</button>
+                  </div>
+                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.6rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; cursor: pointer; font-size: 0.75rem; text-align: center; line-height: 1.2; min-height: 50px;">${prompt}</div>`).join('')}
+                  </div>
+                `;
+                
+                document.body.appendChild(card);
+                
+                let markedCount = 0;
+                const cells = card.querySelectorAll('.minibingo-cell');
+                cells.forEach(cell => {
+                  cell.addEventListener('click', () => {
+                    if (!cell.classList.contains('marked')) {
+                      cell.classList.add('marked');
+                      cell.style.background = 'rgba(76, 175, 80, 0.5)';
+                      cell.style.textDecoration = 'line-through';
+                      markedCount++;
+                      
+                      if (markedCount === 4) {
+                        setTimeout(() => {
+                          alert('🎉 Mini Bingo! You marked all 4!');
+                          card.remove();
+                          updateMainScore(1000);
+                          markTaskComplete();
+                        }, 300);
+                      }
+                    }
+                  });
+                });
+                
+                card.querySelector('.minibingo-close-btn').onclick = () => {
+                  card.remove();
+                };
+                
+                // Make draggable
+                makeDraggable(card);
+                
                 closeTaskModal();
-              };
+              });
               updatePreview();
             };
           }
@@ -5190,130 +5250,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
           }
 
-          // --- Mini Bingo Challenge ---
-          async function setupMiniBingoTask() {
-            taskModalTitle.textContent = "Mini Bingo (2x2)";
-            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
-            
-            taskModalBody.innerHTML = `
-              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
-              <p>Create a 2x2 bingo card (select 4 prompts)</p>
-              <button id="start-minibingo-btn" class="modal-action-btn">Start Building</button>
-            `;
-            
-            document.getElementById('start-minibingo-btn').onclick = () => {
-              // Check existing cards limit (max 6 cards)
-              const existingCards = document.querySelectorAll('.bingo-card-widget').length;
-              if (existingCards >= 6) {
-                alert('Maximum 6 mini bingo cards allowed. Complete or close some cards first.');
-                return;
-              }
-              
-              let selectedPrompts = [];
-              // Pick 12 random prompts from the full list
-              const miniPrompts = [...bingoPrompts].sort(() => 0.5 - Math.random()).slice(0, 12);
-              
-              taskModalBody.innerHTML = `
-                <p>Select 4 prompts from the list below:</p>
-                <div id="minibingo-master-list" style="max-height: 300px; overflow-y: auto; margin: 1rem 0;">
-                  ${miniPrompts.map(p => `<div class="bingo-item" style="padding: 0.5rem; margin: 0.25rem 0; background: rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer;">${p}</div>`).join('')}
-                </div>
-                <h3>Your Card Preview (<span id="minibingo-pick-count">0</span>/4)</h3>
-                <div id="minibingo-card-preview" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0;">
-                  ${Array(4).fill('<div class="cell" style="padding: 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; min-height: 60px;"></div>').join('')}
-                </div>
-                <button id="confirm-minibingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>
-              `;
-              
-              const updatePreview = () => {
-                const cells = document.querySelectorAll('#minibingo-card-preview .cell');
-                cells.forEach((cell, i) => {
-                  cell.textContent = selectedPrompts[i] || '';
-                });
-                document.getElementById('bingo-pick-count').textContent = selectedPrompts.length;
-                document.getElementById('confirm-bingo-card').disabled = selectedPrompts.length !== 6;
-              };
-              document.querySelectorAll('#bingo-builder-master-list .bingo-item').forEach(item => {
-                item.addEventListener('pointerdown', () => {
-                  const prompt = item.textContent;
-                  if (item.classList.contains('selected')) {
-                    item.classList.remove('selected');
-                    selectedPrompts = selectedPrompts.filter(p => p !== prompt);
-                  } else if (selectedPrompts.length < 6) {
-                    item.classList.add('selected');
-                    selectedPrompts.push(prompt);
-                  }
-                  updatePreview();
-                };
-              });
-              
-              document.getElementById('confirm-minibingo-card').onclick = () => {
-                // Create the mini bingo card widget
-                const card = document.createElement('div');
-                card.className = 'bingo-card-widget';
-                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 6px; padding: 0.75rem; z-index: 1000; min-width: 220px; width: 220px;';
-                
-                // Snap to corner positions
-                const existingCards = document.querySelectorAll('.bingo-card-widget').length;
-                const corners = [
-                  { top: '20px', left: '20px' },
-                  { top: '20px', right: '20px' },
-                  { bottom: '20px', left: '20px' },
-                  { bottom: '20px', right: '20px' },
-                  { top: '50%', left: '20px', transform: 'translateY(-50%)' },
-                  { top: '50%', right: '20px', transform: 'translateY(-50%)' }
-                ];
-                const position = corners[existingCards % corners.length];
-                Object.assign(card.style, position);
-                
-                const currentPlayer = challengePlayers[currentChallengePlayerIndex];
-                const playerName = currentPlayer ? currentPlayer.name : 'Mini Bingo';
-                card.innerHTML = `
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 4px 6px;">
-                    <span style="font-weight: bold; font-size: 0.95rem;">${playerName}</span>
-                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.3rem; cursor: pointer; padding: 0; width: 28px; height: 28px; line-height: 1;">&times;</button>
-                  </div>
-                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
-                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.6rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; cursor: pointer; font-size: 0.75rem; text-align: center; line-height: 1.2; min-height: 50px;">${prompt}</div>`).join('')}
-                  </div>
-                `;
-                
-                document.body.appendChild(card);
-                
-                let markedCount = 0;
-                const cells = card.querySelectorAll('.minibingo-cell');
-                cells.forEach(cell => {
-                  cell.addEventListener('click', () => {
-                    if (!cell.classList.contains('marked')) {
-                      cell.classList.add('marked');
-                      cell.style.background = 'rgba(76, 175, 80, 0.5)';
-                      cell.style.textDecoration = 'line-through';
-                      markedCount++;
-                      
-                      if (markedCount === 4) {
-                        setTimeout(() => {
-                          alert('🎉 Mini Bingo! You marked all 4!');
-                          card.remove();
-                          updateMainScore(1000);
-                          markTaskComplete();
-                        }, 300);
-                      }
-                    }
-                  });
-                });
-                
-                card.querySelector('.minibingo-close-btn').onclick = () => {
-                  card.remove();
-                };
-                
-                // Make draggable
-                makeDraggable(card);
-                
-                closeTaskModal();
-              };
-              updatePreview();
-            };
-          }
 
           function createBingoCardWidget(prompts, originalTaskElement) {
             const card = document.createElement('div');
@@ -5741,7 +5677,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                       taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Incorrect!</h2><p>The order wasn't quite right.</p></div>`;
                       setTimeout(() => closeTaskModal(), 2000);
                     }
-                  };
+                  });
                 }
               };
               
