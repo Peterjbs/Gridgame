@@ -780,12 +780,12 @@
     .bingo-card-widget {
       position: fixed;
       z-index: 160;
-      background: rgba(20, 20, 20, 0.85);
-      border-radius: 10px;
-      box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
-      width: 280px;
-      min-width: 200px;
-      min-height: 200px;
+      background: rgba(20, 20, 20, 0.9);
+      border-radius: 6px;
+      box-shadow: 0 3px 15px rgba(0, 0, 0, 0.6);
+      width: 200px;
+      min-width: 160px;
+      min-height: 160px;
       display: flex;
       flex-direction: column;
       overflow: hidden;
@@ -793,23 +793,25 @@
     }
 
     .bingo-card-header {
-      padding: 5px 10px;
-      background: rgba(0, 0, 0, 0.5);
+      padding: 3px 6px;
+      background: rgba(0, 0, 0, 0.6);
       cursor: move;
       display: flex;
       justify-content: space-between;
       align-items: center;
       color: white;
       font-weight: bold;
+      font-size: 0.85rem;
     }
 
     .bingo-card-close-btn {
       cursor: pointer;
-      font-size: 1.2rem;
-      padding: 0 5px;
+      font-size: 1rem;
+      padding: 0 3px;
       background: none;
       border: none;
       color: #aaa;
+      line-height: 1;
     }
 
     .bingo-card-close-btn:hover {
@@ -817,18 +819,19 @@
     }
 
     .bingo-grid-container {
-      padding: 10px;
+      padding: 6px;
       flex-grow: 1;
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
+      gap: 3px;
     }
 
     .bingo-grid-container .cell {
       background: #444;
-      border-radius: 5px;
+      border-radius: 3px;
       cursor: pointer;
-      font-size: 0.7rem;
+      font-size: 0.6rem;
+      padding: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -836,10 +839,11 @@
       transition: background-color 0.2s;
       overflow: hidden;
       word-break: break-word;
+      line-height: 1.1;
     }
 
     .bingo-grid-container .cell.marked {
-      border: 3px solid white;
+      border: 2px solid white;
     }
 
     /* General Panel Styles */
@@ -1185,20 +1189,22 @@
     #my-bingo-card-preview {
       display: grid;
       grid-template-columns: repeat(3, 1fr);
-      gap: 5px;
-      margin-top: 1rem;
+      gap: 3px;
+      margin-top: 0.5rem;
     }
 
     #my-bingo-card-preview .cell {
       background: #444;
-      border-radius: 5px;
+      border-radius: 3px;
       aspect-ratio: 3/2;
-      font-size: 0.7rem;
+      font-size: 0.6rem;
+      padding: 2px;
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
       word-break: break-word;
+      line-height: 1.1;
     }
 
     /* Memory Game */
@@ -2957,9 +2963,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             bingoSelections.forEach((playerPrompts, i) => {
               const card = document.createElement('div');
               card.className = 'bingo-card-widget';
-              card.style.top = `${20 + i * 20}px`;
-              card.style.left = `${20 + i * 20}px`;
-              card.innerHTML = `<div class="bingo-card-header" style="background-color:${playerColors[i]}"><span>Player ${i+1}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+              card.style.top = `${15 + i * 15}px`;
+              card.style.left = `${15 + i * 15}px`;
+              const playerName = challengePlayers[i] ? challengePlayers[i].name : `Player ${i+1}`;
+              card.innerHTML = `<div class="bingo-card-header" style="background-color:${playerColors[i]}"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
               const gridContainer = card.querySelector('.bingo-grid-container');
               playerPrompts.forEach(prompt => {
                 const cell = document.createElement('div');
@@ -4109,7 +4116,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             card.style.top = `${Math.random() * 50 + 20}vh`;
             card.style.left = `${Math.random() * 50 + 20}vw`;
 
-            card.innerHTML = `<div class="bingo-card-header"><span>Bingo Card</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            const playerName = currentPlayer ? currentPlayer.name : 'Bingo Card';
+            card.innerHTML = `<div class="bingo-card-header"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
             const gridContainer = card.querySelector('.bingo-grid-container');
             prompts.forEach(prompt => {
               const cell = document.createElement('div');
@@ -4667,17 +4676,19 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 // Create the mini bingo card widget
                 const card = document.createElement('div');
                 card.className = 'bingo-card-widget';
-                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 8px; padding: 1rem; z-index: 1000; min-width: 250px;';
+                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 6px; padding: 0.5rem; z-index: 1000; min-width: 180px; width: 180px;';
                 card.style.top = `${Math.random() * 30 + 30}vh`;
                 card.style.left = `${Math.random() * 40 + 30}vw`;
                 
+                const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+                const playerName = currentPlayer ? currentPlayer.name : 'Mini Bingo';
                 card.innerHTML = `
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <span style="font-weight: bold;">Mini Bingo Card</span>
-                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 0; width: 30px; height: 30px;">&times;</button>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 2px 4px;">
+                    <span style="font-weight: bold; font-size: 0.85rem;">${playerName}</span>
+                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.2rem; cursor: pointer; padding: 0; width: 24px; height: 24px; line-height: 1;">&times;</button>
                   </div>
-                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer; font-size: 0.8rem; text-align: center;">${prompt}</div>`).join('')}
+                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.3rem;">
+                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.4rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; cursor: pointer; font-size: 0.65rem; text-align: center; line-height: 1.1;">${prompt}</div>`).join('')}
                   </div>
                 `;
                 
