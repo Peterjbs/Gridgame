@@ -5407,8 +5407,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 });
                 
                 const canvas = document.createElement('canvas');
-                canvas.width = 160;
-                canvas.height = 90;
+                canvas.width = 240;
+                canvas.height = 135;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
@@ -5427,10 +5427,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const renderSelectionScreen = () => {
                 taskModalBody.innerHTML = `
                   <p style="margin-bottom: 1rem;">Click the clips in the order they were shown:</p>
-                  <div style="margin-bottom: 1rem;">
-                    <strong>Your Selection:</strong> ${userOrder.map((_, i) => i + 1).join(', ') || 'None yet'}
+                  <div style="margin-bottom: 1rem; font-size: 1.1rem;">
+                    <strong>Your Selection:</strong> <span style="color: #10b981;">${userOrder.length}/6 selected</span>
                   </div>
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; max-width: 600px; margin-left: auto; margin-right: auto;">
                     ${shuffledClips.map((clip, i) => {
                       const orderNum = userOrder.indexOf(clip.videoIndex);
                       const isSelected = orderNum !== -1;
@@ -5438,13 +5438,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                         <div class="clip-selection-tile" data-video-index="${clip.videoIndex}" style="
                           position: relative;
                           cursor: ${isSelected ? 'default' : 'pointer'};
-                          opacity: ${isSelected ? '0.5' : '1'};
-                          border: 2px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.3)'};
+                          opacity: ${isSelected ? '0.6' : '1'};
+                          border: 3px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.3)'};
                           border-radius: 8px;
                           overflow: hidden;
+                          transition: all 0.2s;
                         ">
                           <img src="${clip.thumbnail}" style="width: 100%; display: block;" />
-                          ${isSelected ? `<div style="position: absolute; top: 5px; right: 5px; background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">${orderNum + 1}</div>` : ''}
+                          ${isSelected ? `<div style="position: absolute; top: 8px; right: 8px; background: #10b981; color: white; padding: 0.5rem 0.75rem; border-radius: 50%; font-weight: bold; font-size: 1.2rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">${orderNum + 1}</div>` : ''}
                         </div>
                       `;
                     }).join('')}
@@ -5908,7 +5909,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               `;
               infoPanel.innerHTML = `
                 <div style="display: flex; gap: 2rem; align-items: center;">
-                  <div id="hunt-score" style="font-size: 1.5rem; color: #10b981;">Score: 0/15</div>
+                  <div id="hunt-score" style="font-size: 1.5rem; color: #10b981; font-weight: bold;">Progress: 0/15</div>
                   <div id="hunt-timer" style="font-size: 1.5rem; color: #f59e0b;">Time: 60s</div>
                 </div>
               `;
@@ -5925,22 +5926,32 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 iconEl.textContent = icon;
                 iconEl.style.cssText = `
                   position: absolute;
-                  font-size: 3rem;
+                  font-size: 3.5rem;
                   cursor: pointer;
                   pointer-events: auto;
-                  top: ${Math.random() * 70 + 15}%;
-                  left: ${Math.random() * 80 + 10}%;
+                  top: ${Math.random() * 60 + 20}%;
+                  left: ${Math.random() * 70 + 15}%;
                   transition: transform 0.1s;
+                  user-select: none;
+                  min-width: 56px;
+                  min-height: 56px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
                 `;
                 
+                let clicked = false;
+                
                 iconEl.onclick = () => {
-                  if (gameOver) return;
+                  if (gameOver || clicked) return;
+                  clicked = true;
                   
                   if (isCorrect) {
                     correctClicks++;
-                    document.getElementById('hunt-score').textContent = `Score: ${correctClicks}/15`;
+                    document.getElementById('hunt-score').textContent = `Progress: ${correctClicks}/15`;
                     iconEl.style.transform = 'scale(1.5)';
                     iconEl.style.opacity = '0';
+                    iconEl.style.pointerEvents = 'none';
                     
                     if (correctClicks >= 15) {
                       gameOver = true;
@@ -5956,9 +5967,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     }
                   } else {
                     correctClicks = Math.max(0, correctClicks - 1);
-                    document.getElementById('hunt-score').textContent = `Score: ${correctClicks}/15`;
+                    document.getElementById('hunt-score').textContent = `Progress: ${correctClicks}/15`;
                     iconEl.style.background = 'red';
                     iconEl.style.borderRadius = '50%';
+                    iconEl.style.pointerEvents = 'none';
                   }
                   
                   setTimeout(() => iconEl.remove(), 200);
@@ -6168,13 +6180,24 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   ctx.fillRect(dripX, y + radius, 3, dripHeight);
                 }
                 
-                // Calculate coverage
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                let paintedPixels = 0;
-                for (let i = 3; i < imageData.data.length; i += 4) {
-                  if (imageData.data[i] > 0) paintedPixels++;
+                // Calculate coverage using low-res sampling grid (20x20)
+                const sampleSize = 20;
+                const stepX = canvas.width / sampleSize;
+                const stepY = canvas.height / sampleSize;
+                let paintedSamples = 0;
+                
+                for (let sy = 0; sy < sampleSize; sy++) {
+                  for (let sx = 0; sx < sampleSize; sx++) {
+                    const px = Math.floor(sx * stepX + stepX / 2);
+                    const py = Math.floor(sy * stepY + stepY / 2);
+                    const imageData = ctx.getImageData(px, py, 1, 1);
+                    if (imageData.data[3] > 0) {
+                      paintedSamples++;
+                    }
+                  }
                 }
-                coverage = (paintedPixels / (canvas.width * canvas.height)) * 100;
+                
+                coverage = (paintedSamples / (sampleSize * sampleSize)) * 100;
                 document.getElementById('paint-coverage').textContent = `Coverage: ${Math.floor(coverage)}%`;
                 
                 if (coverage >= 90 && !gameOver) {
@@ -6225,7 +6248,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             taskModalBody.innerHTML = `
               <h3>Remember the timestamp!</h3>
-              <p>The video will show a moment, then jump around.</p>
+              <p>The video will show a 4-second moment, then jump around.</p>
               <p>Click when it returns to the SAME moment!</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>
             `;
@@ -6267,10 +6290,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 player.onloadedmetadata = () => resolve();
               });
               
-              // Show target timestamp for 2 seconds
+              // Show target timestamp for 4 seconds
               player.currentTime = targetTime;
               await player.play();
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              await new Promise(resolve => setTimeout(resolve, 4000));
               player.pause();
               
               document.getElementById('timestamp-instruction').textContent = 'Video is jumping around... Click when it matches!';
@@ -6279,7 +6302,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               let gameOver = false;
               let currentJumpTime = 0;
               
-              // Jump around every 2 seconds, ensuring clips are at least 10 minutes apart
+              // Jump around every 4 seconds, ensuring clips are at least 10 minutes apart
               const jumpInterval = setInterval(() => {
                 if (gameOver) {
                   clearInterval(jumpInterval);
@@ -6295,7 +6318,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 currentJumpTime = newJumpTime;
                 player.currentTime = currentJumpTime;
                 player.play();
-              }, 2000);
+              }, 4000);
               
               currentTimers.push(jumpInterval);
               
