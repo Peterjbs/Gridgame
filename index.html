@@ -1060,8 +1060,8 @@
     /* Match Pairs Game */
     .emoji-grid {
       display: grid;
-      gap: 5px;
-      max-width: 400px;
+      gap: 10px;
+      max-width: 500px;
       margin: auto;
     }
 
@@ -1077,13 +1077,15 @@
       aspect-ratio: 1/1;
       background: #444;
       border-radius: 8px;
-      font-size: 2rem;
+      font-size: 2.5rem;
       display: flex;
       align-items: center;
       justify-content: center;
       cursor: pointer;
       transition: background-color 0.2s, transform 0.2s;
       transform-style: preserve-3d;
+      min-width: 60px;
+      min-height: 60px;
     }
 
     .emoji-cell .emoji-content {
@@ -3022,15 +3024,15 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               pos4 = 0;
             const header = elmnt.querySelector('.bingo-card-header, #scoreboard-header') || elmnt;
             if (header) {
-              header.onmousedown = dragMouseDown;
+              header.onpointerdown = dragPointerDown;
             }
 
-            function dragMouseDown(e) {
+            function dragPointerDown(e) {
               e.preventDefault();
               pos3 = e.clientX;
               pos4 = e.clientY;
-              document.onmouseup = closeDragElement;
-              document.onmousemove = elementDrag;
+              document.onpointerup = closeDragElement;
+              document.onpointermove = elementDrag;
             }
 
             function elementDrag(e) {
@@ -3044,8 +3046,31 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
 
             function closeDragElement() {
-              document.onmouseup = null;
-              document.onmousemove = null;
+              // Snap to edge on release
+              const rect = elmnt.getBoundingClientRect();
+              const viewportWidth = window.innerWidth;
+              const viewportHeight = window.innerHeight;
+              
+              // Determine closest edge
+              const distanceToLeft = rect.left;
+              const distanceToRight = viewportWidth - rect.right;
+              const distanceToTop = rect.top;
+              const distanceToBottom = viewportHeight - rect.bottom;
+              
+              const minDistance = Math.min(distanceToLeft, distanceToRight, distanceToTop, distanceToBottom);
+              
+              if (minDistance === distanceToLeft) {
+                elmnt.style.left = '10px';
+              } else if (minDistance === distanceToRight) {
+                elmnt.style.left = (viewportWidth - rect.width - 10) + 'px';
+              } else if (minDistance === distanceToTop) {
+                elmnt.style.top = '10px';
+              } else if (minDistance === distanceToBottom) {
+                elmnt.style.top = (viewportHeight - rect.height - 10) + 'px';
+              }
+              
+              document.onpointerup = null;
+              document.onpointermove = null;
             }
           }
           bingoCardsOverlayContainer.addEventListener('click', (e) => {
@@ -3653,6 +3678,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             document.getElementById('start-challenge-btn').onclick = () => {
               let currentQ = 0;
 
+              let selectedAnswer = null;
+
               function renderQuestion() {
                 if (currentQ >= questions.length) {
                   // Check if player got at least 3 correct
@@ -3673,23 +3700,54 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   };
                   return;
                 }
+                selectedAnswer = null;
                 const q = questions[currentQ];
                 taskModalBody.innerHTML =
-                  `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
-                document.querySelectorAll('.task-option-btn').forEach(btn => btn.addEventListener('pointerdown', handleAnswer));
+                  `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p>
+                  <div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>
+                  <button id="confirm-answer-btn" class="modal-action-btn mt-4" disabled style="opacity: 0.5;">Confirm Answer</button>`;
+                document.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = selectAnswer);
+                document.getElementById('confirm-answer-btn').onclick = confirmAnswer;
               }
 
-              function handleAnswer(e) {
-                const selectedIndex = parseInt(e.target.dataset.index);
+              function selectAnswer(e) {
+                // Remove previous selection highlight
+                document.querySelectorAll('.task-option-btn').forEach(btn => {
+                  btn.style.border = '';
+                  btn.style.boxShadow = '';
+                });
+                
+                // Highlight selected answer
+                e.target.style.border = '3px solid #3498db';
+                e.target.style.boxShadow = '0 0 10px rgba(52, 152, 219, 0.5)';
+                
+                selectedAnswer = parseInt(e.target.dataset.index);
+                
+                // Enable confirm button
+                const confirmBtn = document.getElementById('confirm-answer-btn');
+                confirmBtn.disabled = false;
+                confirmBtn.style.opacity = '1';
+              }
+
+              function confirmAnswer() {
+                if (selectedAnswer === null) return;
+                
                 const correctIndex = questions[currentQ].correctAnswerIndex;
-                if (selectedIndex === correctIndex) {
+                if (selectedAnswer === correctIndex) {
                   correctAnswers++;
                 }
                 document.querySelectorAll('.task-option-btn').forEach((btn, i) => {
                   btn.disabled = true;
+                  btn.onclick = null;
                   if (i === correctIndex) btn.style.backgroundColor = '#27ae60';
-                  else if (i === selectedIndex) btn.style.backgroundColor = '#c0392b';
+                  else if (i === selectedAnswer) btn.style.backgroundColor = '#c0392b';
                 });
+                
+                // Disable confirm button
+                const confirmBtn = document.getElementById('confirm-answer-btn');
+                confirmBtn.disabled = true;
+                confirmBtn.style.opacity = '0.5';
+                
                 setTimeout(() => {
                   currentQ++;
                   renderQuestion();
@@ -3793,9 +3851,136 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             taskModalBody.innerHTML =
               `<h3>Ready to Breathe?</h3><p class="my-4">Inhale for ${inhaleTime}s, Hold for ${holdTime}s, Exhale for ${exhaleTime}s. Repeat ${breathCount} times.</p><button id="start-challenge-btn" class="modal-action-btn">Start Breathing</button>`;
             document.getElementById('start-challenge-btn').onclick = () => {
-              isTaskCompleted = true; // Mark as completed since it runs in the background
-              markTaskComplete();
-              document.getElementById('startBreathingGuideButton').click();
+              // Add breathing controls overlay
+              const breathingOverlay = document.getElementById('breathingOverlay');
+              const overlayTimer = breathingOverlay.querySelector('.overlay-timer');
+              const overlayText = breathingOverlay.querySelector('.overlay-text');
+              
+              // Create controls container if it doesn't exist
+              let controlsDiv = document.getElementById('breathing-controls');
+              if (!controlsDiv) {
+                controlsDiv = document.createElement('div');
+                controlsDiv.id = 'breathing-controls';
+                controlsDiv.style.cssText = `
+                  position: fixed;
+                  bottom: 20px;
+                  left: 50%;
+                  transform: translateX(-50%);
+                  display: flex;
+                  gap: 1rem;
+                  z-index: 300;
+                `;
+                breathingOverlay.appendChild(controlsDiv);
+              }
+              
+              let isPaused = false;
+              let currentTimer = null;
+              let breaths = breathCount;
+              let currentPhase = 'Inhale';
+              let remainingTime = inhaleTime;
+              
+              const updateControls = () => {
+                controlsDiv.innerHTML = `
+                  <button id="pause-breathing-btn" class="modal-action-btn" style="min-width: 100px;">
+                    ${isPaused ? 'Resume' : 'Pause'}
+                  </button>
+                  <button id="restart-breathing-btn" class="modal-action-btn" style="min-width: 100px;">
+                    Restart
+                  </button>
+                  <button id="exit-breathing-btn" class="modal-action-btn" style="min-width: 100px; background: #e74c3c;">
+                    Exit
+                  </button>
+                `;
+                
+                document.getElementById('pause-breathing-btn').onclick = () => {
+                  isPaused = !isPaused;
+                  if (isPaused) {
+                    if (currentTimer) clearInterval(currentTimer);
+                  } else {
+                    runPhase();
+                  }
+                  updateControls();
+                };
+                
+                document.getElementById('restart-breathing-btn').onclick = () => {
+                  if (currentTimer) clearInterval(currentTimer);
+                  breaths = breathCount;
+                  isPaused = false;
+                  startBreathing();
+                };
+                
+                document.getElementById('exit-breathing-btn').onclick = () => {
+                  if (currentTimer) clearInterval(currentTimer);
+                  breathingOverlay.className = 'overlay';
+                  controlsDiv.remove();
+                  clearAllTimers();
+                  closeTaskModal();
+                };
+              };
+              
+              const runPhase = () => {
+                if (isPaused) return;
+                
+                // Clear any existing timer to prevent race conditions
+                if (currentTimer) clearInterval(currentTimer);
+                
+                let count = remainingTime;
+                overlayTimer.textContent = count;
+                
+                currentTimer = setInterval(() => {
+                  if (isPaused) {
+                    clearInterval(currentTimer);
+                    return;
+                  }
+                  
+                  count--;
+                  remainingTime = count;
+                  overlayTimer.textContent = count;
+                  
+                  if (count < 0) {
+                    clearInterval(currentTimer);
+                    
+                    if (currentPhase === 'Exhale') {
+                      breaths--;
+                      if (breaths <= 0) {
+                        // Complete
+                        breathingOverlay.className = 'overlay';
+                        controlsDiv.remove();
+                        clearAllTimers();
+                        updateMainScore(2000);
+                        markTaskComplete();
+                        return;
+                      }
+                      currentPhase = 'Inhale';
+                      remainingTime = inhaleTime;
+                    } else if (currentPhase === 'Inhale') {
+                      currentPhase = 'Hold';
+                      remainingTime = holdTime;
+                    } else if (currentPhase === 'Hold') {
+                      currentPhase = 'Exhale';
+                      remainingTime = exhaleTime;
+                    }
+                    
+                    overlayText.textContent = currentPhase;
+                    const colorClass = currentPhase === 'Inhale' ? 'overlay-inhale' : 
+                                      currentPhase === 'Hold' ? 'overlay-hold' : 'overlay-exhale';
+                    breathingOverlay.className = `overlay visible ${colorClass}`;
+                    runPhase();
+                  }
+                }, 1000);
+              };
+              
+              const startBreathing = () => {
+                currentPhase = 'Inhale';
+                remainingTime = inhaleTime;
+                breathingOverlay.className = 'overlay visible overlay-inhale';
+                overlayText.textContent = 'Inhale';
+                runPhase();
+                updateControls();
+              };
+              
+              closeTaskModal();
+              startBreathing();
             };
           }
 
@@ -4515,8 +4700,643 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   updatePreview();
                 };
               });
-              document.getElementById('confirm-bingo-card').addEventListener('pointerdown', () => {
+              document.getElementById('confirm-bingo-card').onclick = () => {
                 createBingoCardWidget(selectedPrompts, activeTaskElement);
+                closeTaskModal();
+              };
+              updatePreview();
+            };
+          }
+
+          function createBingoCardWidget(prompts, originalTaskElement) {
+            const card = document.createElement('div');
+            card.className = 'bingo-card-widget';
+            const cardId = `bingo-card-${Date.now()}`;
+            card.id = cardId;
+            card.style.top = `${Math.random() * 50 + 20}vh`;
+            card.style.left = `${Math.random() * 50 + 20}vw`;
+
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            const playerName = currentPlayer ? currentPlayer.name : 'Bingo Card';
+            card.innerHTML = `<div class="bingo-card-header"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+            const gridContainer = card.querySelector('.bingo-grid-container');
+            prompts.forEach(prompt => {
+              const cell = document.createElement('div');
+              cell.className = 'cell';
+              cell.textContent = prompt;
+              cell.addEventListener('click', () => {
+                cell.classList.toggle('marked');
+                const allMarked = [...gridContainer.querySelectorAll('.cell')].every(c => c.classList.contains('marked'));
+                if (allMarked) {
+                  card.remove();
+                  activeTaskElement = originalTaskElement; // Re-assign active element
+                  updateMainScore(2000);
+                  markTaskComplete();
+                }
+              });
+              gridContainer.appendChild(cell);
+            });
+            bingoCardsOverlayContainer.appendChild(card);
+            makeDraggable(card);
+            card.querySelector('.bingo-card-close-btn').onclick = () => card.remove();
+          }
+
+          async function setupAiChallengeTask() {
+            taskModalTitle.textContent = "AI Challenge";
+            const prompt = `Generate a funny, wacky, or provocative, potentially NSFW, cloud-themed creative challenge that requires a witty text response. For example: "Write a Grindr bio for a lonely rain cloud."`;
+            const result = await callGemini(prompt);
+            if (!result) {
+              taskModalBody.innerHTML = `<p style="color: #e74c3c; text-align: center;">Failed to generate AI challenge. Please check your API key and try again.</p>`;
+              return;
+            }
+            taskModalBody.innerHTML = `<h3>Ready for a Dare?</h3><p class="italic my-2">"${result.replace(/"/g, '')}"</p><button id="start-challenge-btn" class="modal-action-btn">Accept Challenge</button>`;
+            document.getElementById('start-challenge-btn').onclick = () => {
+              taskModalBody.innerHTML =
+                `<p class="text-xl mb-4 italic">"${result.replace(/"/g, '')}"</p><textarea id="ai-challenge-response" rows="3" class="w-full task-input-field" placeholder="Type your witty response..."></textarea><button id="submit-ai-challenge" class="modal-action-btn mt-4">I Did It!</button>`;
+              document.getElementById('submit-ai-challenge').onclick = () => {
+                if (document.getElementById('ai-challenge-response').value.trim().length > 0) {
+                  updateMainScore(1500);
+                  markTaskComplete();
+                } else {
+                  alert("You have to write something!");
+                }
+              };
+              document.getElementById('ai-challenge-response').focus();
+            };
+          }
+
+          async function setupClipSequencerTask() {
+            taskModalTitle.textContent = "Clip Sequencer";
+            const NUM_CLIPS = 5;
+            if (videoFiles.length < NUM_CLIPS) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least ${NUM_CLIPS} videos for this challenge.</p>`;
+              return;
+            }
+
+            taskModalBody.innerHTML = `<h3>Memorize the Sequence!</h3><p>You will be shown ${NUM_CLIPS} clips. Watch carefully.</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
+
+            document.getElementById('start-challenge-btn').onclick = async () => {
+              const shuffledIndices = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
+              const correctSequence = shuffledIndices.slice(0, NUM_CLIPS);
+
+              taskModalBody.innerHTML = `<div id="memory-video-player-container"><video id="sequencer-player" muted playsinline></video></div>`;
+              const player = document.getElementById('sequencer-player');
+
+              for (let i = 0; i < correctSequence.length; i++) {
+                const videoIndex = correctSequence[i];
+                taskModalTitle.textContent = `Watching Clip ${i + 1} / ${NUM_CLIPS}`;
+                const file = videoFiles[videoIndex];
+                const url = URL.createObjectURL(file);
+                player.src = url;
+                await player.play();
+                await new Promise(resolve => setTimeout(resolve, 2500)); // Play each clip for 2.5s
+                player.pause();
+              }
+
+              renderArrangementPhase(correctSequence);
+            };
+          }
+
+          function renderArrangementPhase(correctSequence) {
+            taskModalTitle.textContent = `Recreate the Sequence`;
+            const shuffledSequence = [...correctSequence].sort(() => 0.5 - Math.random());
+
+            taskModalBody.innerHTML = `
+                <div class="sequencer-container">
+                    <div class="sequencer-drop-zones">
+                        ${Array(correctSequence.length).fill(0).map((_, i) => `<div class="sequencer-drop-zone" data-drop-index="${i}">${i+1}</div>`).join('')}
+                    </div>
+                    <p>Drag the clips from the pool below into the correct order above.</p>
+                    <div class="sequencer-clips-pool">
+                         ${shuffledSequence.map(index => `
+                            <div class="sequencer-draggable-clip" draggable="true" data-video-index="${index}">
+                                <video src="${URL.createObjectURL(videoFiles[index])}#t=0.5" preload="metadata" muted playsinline></video>
+                            </div>
+                         `).join('')}
+                    </div>
+                    <button id="check-sequence-btn" class="modal-action-btn mt-4" style="max-width: 200px;">Check Sequence</button>
+                </div>
+            `;
+
+            // Force video thumbnails to load
+            const videoElements = taskModalBody.querySelectorAll('.sequencer-draggable-clip video');
+            videoElements.forEach(video => {
+              video.load();
+              video.addEventListener('loadedmetadata', () => {
+                try {
+                  video.currentTime = 0.5; // Seek to 0.5 seconds to show a frame
+                } catch (e) {
+                  // Some videos may not be seekable yet, just use first frame
+                  console.log('Could not seek video for thumbnail');
+                }
+              });
+            });
+
+            const draggables = document.querySelectorAll('.sequencer-draggable-clip');
+            const dropZones = document.querySelectorAll('.sequencer-drop-zone');
+            let userSequence = Array(correctSequence.length).fill(null);
+
+            draggables.forEach(draggable => {
+              draggable.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('text/plain', draggable.dataset.videoIndex);
+                setTimeout(() => draggable.style.opacity = '0.5', 0);
+              });
+              draggable.addEventListener('dragend', () => draggable.style.opacity = '1');
+            });
+
+            dropZones.forEach(zone => {
+              zone.addEventListener('dragover', e => {
+                e.preventDefault();
+                zone.classList.add('over');
+              });
+              zone.addEventListener('dragleave', () => zone.classList.remove('over'));
+              zone.addEventListener('drop', e => {
+                e.preventDefault();
+                zone.classList.remove('over');
+                const videoIndex = e.dataTransfer.getData('text/plain');
+                const draggableElement = document.querySelector(`.sequencer-draggable-clip[data-video-index='${videoIndex}']`);
+                if (draggableElement) {
+                  const dropIndex = parseInt(zone.dataset.dropIndex);
+                  // If another clip is already here, send it back to the pool
+                  if (zone.firstChild && zone.firstChild.dataset) {
+                    document.querySelector('.sequencer-clips-pool').appendChild(zone.firstChild);
+                  }
+                  zone.innerHTML = '';
+                  zone.appendChild(draggableElement);
+                  userSequence[dropIndex] = parseInt(videoIndex);
+                }
+              });
+            });
+
+            document.getElementById('check-sequence-btn').onclick = () => {
+              const isCorrect = userSequence.every((val, index) => val === correctSequence[index]);
+              const correctCount = userSequence.filter((val, index) => val === correctSequence[index]).length;
+              
+              if (isCorrect) {
+                updateMainScore(3000);
+                showWinLossScreen(correctSequence.length, correctSequence.length, () => markTaskComplete());
+              } else {
+                updateMainScore(-1000);
+                showWinLossScreen(correctCount, correctSequence.length, () => closeTaskModal());
+              }
+            };
+          }
+
+          async function setupAudioAnagramTask() {
+            taskModalTitle.textContent = "Say What?";
+            const prompt =
+              `Generate a JSON object with two properties: "word" and "scrambled_letters". The word should be a 5-8 letter word relevant to pop culture, gay culture, or internet slang. The "scrambled_letters" should be an array of the letters from the word in a random order. Example: {"word": "BOTTOM", "scrambled_letters": ["T","O","M","B","T","O"]}`;
+            const schema = {
+              type: "OBJECT",
+              properties: {
+                "word": {
+                  "type": "STRING"
+                },
+                "scrambled_letters": {
+                  "type": "ARRAY",
+                  "items": {
+                    "type": "STRING"
+                  }
+                }
+              },
+              required: ["word", "scrambled_letters"]
+            };
+            const result = await callGemini(prompt, schema);
+            if (!result) {
+              taskModalBody.innerHTML = `<p style="color: #e74c3c; text-align: center;">Failed to generate audio anagram. Please check your API key and try again.</p>`;
+              return;
+            }
+
+            try {
+              const data = JSON.parse(result);
+              const {
+                word,
+                scrambled_letters
+              } = data;
+
+              taskModalBody.innerHTML = `
+                    <h3>Listen to the letters and unscramble the word!</h3>
+                    <button id="play-anagram-sound" class="modal-action-btn">🔊 Play Sound</button>
+                `;
+
+              document.getElementById('play-anagram-sound').onclick = () => {
+                const textToSpeak = `The letters are: ${scrambled_letters.join('... ')}`;
+                speak(textToSpeak, storyMakerVoiceSelect.value);
+
+                let timeLeft = 30;
+                taskModalBody.innerHTML = `
+                        <div id="task-modal-timer">Time: ${timeLeft}</div>
+                        <p class="mb-4">Unscramble the word you just heard.</p>
+                        <input type="text" id="anagram-answer" class="w-full task-input-field" placeholder="Type your answer...">
+                        <button id="submit-anagram" class="modal-action-btn mt-4">Submit</button>
+                    `;
+                document.getElementById('anagram-answer').focus();
+
+                modalTimer = setInterval(() => {
+                  timeLeft--;
+                  const timerEl = document.getElementById('task-modal-timer');
+                  if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
+                  if (timeLeft <= 0) {
+                    clearInterval(modalTimer);
+                    alert("Time's up!");
+                    closeTaskModal();
+                  }
+                }, 1000);
+
+                document.getElementById('submit-anagram').onclick = () => {
+                  const userAnswer = document.getElementById('anagram-answer').value.trim().toLowerCase();
+                  if (userAnswer === word.toLowerCase()) {
+                    clearInterval(modalTimer);
+                    updateMainScore(2000);
+                    markTaskComplete();
+                  } else {
+                    alert(`Incorrect! The word was: ${word}`);
+                    closeTaskModal();
+                  }
+                };
+              };
+            } catch (e) {
+              taskModalBody.innerHTML = `<p class="text-red-500">AI returned invalid data. Please try again.</p>`;
+            }
+          }
+
+          async function setupReflexTestTask() {
+            taskModalTitle.textContent = "Watch Closely";
+            if (videoFiles.length < 1) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least one video for this challenge.</p>`;
+              return;
+            }
+
+            taskModalBody.innerHTML = `<h3>Click the button ONLY when you see the 😈 symbol.</h3><p>Don't click too early!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
+
+            document.getElementById('start-challenge-btn').onclick = () => {
+              const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
+              const videoURL = URL.createObjectURL(videoFiles[randomVideoIndex]);
+              let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
+              let symbolTimer = null;
+
+              taskModalBody.innerHTML = `
+                    <div class="reflex-test-container">
+                        <video class="reflex-test-video" src="${videoURL}" muted autoplay loop></video>
+                        <div class="reflex-test-symbol">😈</div>
+                    </div>
+                    <button id="reflex-click-btn" class="modal-action-btn mt-4">CLICK HERE!</button>
+                `;
+
+              const symbolEl = document.querySelector('.reflex-test-symbol');
+
+              const showSymbolTimeout = setTimeout(() => {
+                gamePhase = 'active';
+                symbolEl.classList.add('visible');
+                symbolTimer = setTimeout(() => { // Symbol disappears
+                  gamePhase = 'ended';
+                  symbolEl.classList.remove('visible');
+                  if (activeTaskElement && !isTaskCompleted) { // If player hasn't clicked by now
+                    alert('Too slow!');
+                    closeTaskModal();
+                  }
+                }, 1500); // Symbol is visible for 1.5s
+              }, Math.random() * 5000 + 3000); // Random delay 3-8s
+
+              currentTimers.push(showSymbolTimeout, symbolTimer);
+
+              document.getElementById('reflex-click-btn').onclick = () => {
+                  if(gamePhase === 'ended') return;
+
+                  if (gamePhase === 'waiting') {
+                    alert('Too early!');
+                    clearTimeout(showSymbolTimeout);
+                    closeTaskModal();
+                  } else if (gamePhase === 'active') {
+                    updateMainScore(2000);
+                    markTaskComplete();
+                  }
+                  gamePhase = 'ended'; // Prevent multiple clicks
+              };
+            };
+          }
+
+          // --- Pressure Front Challenge ---
+          async function setupPressureFrontTask() {
+            taskModalTitle.textContent = "Pressure Front";
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            
+            // Preset options for duration and change interval
+            const presetOptions = [
+              { duration: 100, change: 5 },
+              { duration: 75, change: 5 },
+              { duration: 30, change: 5 },
+              { duration: 100, change: 10 },
+              { duration: 50, change: 10 }
+            ];
+            const defaultPreset = presetOptions[0];
+            
+            taskModalBody.innerHTML = `
+              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
+              <p>Set up your guess and watch the videos!</p>
+              <div style="margin: 1rem 0;">
+                <label>Preset Options: 
+                  <select id="pf-preset" style="padding: 0.5rem; pointer-events: auto; background: rgba(255,255,255,0.1); color: black; border-radius: 4px;">
+                    ${presetOptions.map((opt, i) => `<option value="${i}">Duration ${opt.duration}s, Change ${opt.change}s</option>`).join('')}
+                  </select>
+                </label>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Time Duration (seconds): <input type="number" id="pf-timer" value="${defaultPreset.duration}" min="10" max="120" style="width: 80px; pointer-events: auto; color: black;"></label>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Video Change Interval (seconds): <input type="number" id="pf-interval" value="${defaultPreset.change}" min="1" max="30" style="width: 80px; pointer-events: auto; color: black;"></label>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Your guess emoji: </label>
+                <span class="pf-emoji-cycler text-2xl cursor-pointer" style="display: inline-block; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 5px;">🍆</span>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Your guess count: <input type="number" id="pf-guess-count" value="5" min="0" max="100" style="width: 80px; pointer-events: auto; color: black;"></label>
+              </div>
+              <button id="start-pf-btn" class="modal-action-btn">Start Game</button>
+            `;
+            
+            const guessEmojis = ['🍆', '🍑', '👤', '🙂'];
+            const emojiCycler = taskModalBody.querySelector('.pf-emoji-cycler');
+            parseEmojis(emojiCycler);
+            
+            // Preset selector handler
+            const presetSelector = document.getElementById('pf-preset');
+            const timerInput = document.getElementById('pf-timer');
+            const intervalInput = document.getElementById('pf-interval');
+            
+            presetSelector.addEventListener('change', () => {
+              const selectedPreset = presetOptions[parseInt(presetSelector.value)];
+              timerInput.value = selectedPreset.duration;
+              intervalInput.value = selectedPreset.change;
+            });
+            
+            // Ensure inputs are focusable
+            const inputs = taskModalBody.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+              input.style.pointerEvents = 'auto';
+              input.addEventListener('focus', (e) => {
+                e.stopPropagation();
+              });
+            });
+            
+            emojiCycler.addEventListener('click', () => {
+              let currentEmojiIndex = guessEmojis.indexOf(emojiCycler.textContent.trim());
+              currentEmojiIndex = (currentEmojiIndex + 1) % guessEmojis.length;
+              emojiCycler.textContent = guessEmojis[currentEmojiIndex];
+              parseEmojis(emojiCycler);
+            });
+            
+            document.getElementById('start-pf-btn').onclick = () => {
+              if (videoFiles.length === 0) {
+                alert("Please upload videos first.");
+                return;
+              }
+              
+              const duration = parseInt(document.getElementById('pf-timer').value);
+              const interval = parseInt(document.getElementById('pf-interval').value);
+              const guessEmoji = emojiCycler.textContent.trim();
+              const guessCount = parseInt(document.getElementById('pf-guess-count').value);
+              
+              // Hide modal overlay to show video clearly
+              taskModalOverlay.style.pointerEvents = 'none';
+              taskModalBody.innerHTML = '';
+              
+              // Create overlay for tally in corner of video canvas
+              const gameOverlay = document.createElement('div');
+              gameOverlay.id = 'pf-game-overlay';
+              gameOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 250;
+                pointer-events: none;
+              `;
+              
+              // Tally container in top-right corner
+              const tallyContainer = document.createElement('div');
+              tallyContainer.style.cssText = `
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(0,0,0,0.8);
+                padding: 1rem;
+                border-radius: 8px;
+                pointer-events: auto;
+                z-index: 10;
+              `;
+              
+              // Add timer and guess info
+              const infoDiv = document.createElement('div');
+              infoDiv.style.cssText = 'text-align: center; margin-bottom: 1rem;';
+              infoDiv.innerHTML = `
+                <div style="color: #8b5cf6; font-weight: bold; margin-bottom: 0.5rem;">Player ${currentChallengePlayerIndex + 1}</div>
+                <div style="color: #10b981; margin-bottom: 0.5rem;">Guess: ${guessEmoji} × ${guessCount}</div>
+                <div id="pf-timer-display" style="color: #f59e0b; font-size: 1.5rem; font-weight: bold;">Time: ${duration}s</div>
+              `;
+              tallyContainer.appendChild(infoDiv);
+              parseEmojis(infoDiv);
+              
+              // Add emoji tally buttons
+              const tallyGrid = document.createElement('div');
+              tallyGrid.style.cssText = 'display: flex; gap: 0.5rem; flex-wrap: wrap; max-width: 200px;';
+              
+              const tallyCounts = {};
+              
+              // Initialize only the guessed emoji
+              tallyCounts[guessEmoji] = 0;
+              const tallyDiv = document.createElement('div');
+              tallyDiv.style.cssText = 'text-align: center; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; user-select: none; flex: 1 1 100%;';
+              tallyDiv.innerHTML = `<div style="font-size: 1.5rem;">${guessEmoji}</div><div class="tally-count" style="font-size: 1.2rem; font-weight: bold;">0</div>`;
+              
+              tallyDiv.addEventListener('click', () => {
+                tallyCounts[guessEmoji]++;
+                tallyDiv.querySelector('.tally-count').textContent = tallyCounts[guessEmoji];
+              });
+              
+              tallyGrid.appendChild(tallyDiv);
+              
+              tallyContainer.appendChild(tallyGrid);
+              gameOverlay.appendChild(tallyContainer);
+              document.body.appendChild(gameOverlay);
+              
+              parseEmojis(tallyContainer);
+              
+              // Start video rotation
+              let videoChangeTimer = null;
+              if (interval > 0) {
+                advanceVideo(1);
+                videoChangeTimer = setInterval(() => advanceVideo(1), interval * 1000);
+                currentTimers.push(videoChangeTimer);
+              }
+              
+              // Countdown timer
+              let timeLeft = duration;
+              const timerDisplay = document.getElementById('pf-timer-display');
+              const countdownTimer = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `Time: ${timeLeft}s`;
+                
+                if (timeLeft <= 0) {
+                  clearInterval(countdownTimer);
+                  if (videoChangeTimer) clearInterval(videoChangeTimer);
+                  
+                  // Calculate winner
+                  const actualCount = tallyCounts[guessEmoji];
+                  const difference = Math.abs(actualCount - guessCount);
+                  
+                  // Remove overlay and show results in modal
+                  gameOverlay.remove();
+                  taskModalOverlay.style.pointerEvents = 'all';
+                  
+                  taskModalBody.innerHTML = `
+                    <h2>Results</h2>
+                    <p style="font-size: 1.5rem;">Your guess: ${guessEmoji} × ${guessCount}</p>
+                    <p style="font-size: 1.5rem;">Actual count: ${guessEmoji} × ${actualCount}</p>
+                    <p style="font-size: 1.5rem;">Difference: ${difference}</p>
+                    <p style="font-size: 1.2rem; margin-top: 1rem;">${difference <= 2 ? '🎉 Close enough! You win!' : '❌ Not close enough. Try again!'}</p>
+                    <button id="pf-finish-btn" class="modal-action-btn mt-4">${difference <= 2 ? 'Claim Square' : 'Continue'}</button>
+                  `;
+                  
+                  parseEmojis(taskModalBody);
+                  
+                  document.getElementById('pf-finish-btn').onclick = () => {
+                    if (difference <= 2) {
+                      updateMainScore(1500);
+                      markTaskComplete();
+                    } else {
+                      closeTaskModal();
+                    }
+                  };
+                }
+              }, 1000);
+              
+              currentTimers.push(countdownTimer);
+            };
+          }
+
+          // --- Mini Bingo Challenge ---
+          async function setupMiniBingoTask() {
+            taskModalTitle.textContent = "Mini Bingo (2x2)";
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            
+            taskModalBody.innerHTML = `
+              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
+              <p>Create a 2x2 bingo card (select 4 prompts)</p>
+              <button id="start-minibingo-btn" class="modal-action-btn">Start Building</button>
+            `;
+            
+            document.getElementById('start-minibingo-btn').onclick = () => {
+              // Check existing cards limit (max 6 cards)
+              const existingCards = document.querySelectorAll('.bingo-card-widget').length;
+              if (existingCards >= 6) {
+                alert('Maximum 6 mini bingo cards allowed. Complete or close some cards first.');
+                return;
+              }
+              
+              let selectedPrompts = [];
+              // Pick 12 random prompts from the full list
+              const miniPrompts = [...bingoPrompts].sort(() => 0.5 - Math.random()).slice(0, 12);
+              
+              taskModalBody.innerHTML = `
+                <p>Select 4 prompts from the list below:</p>
+                <div id="minibingo-master-list" style="max-height: 300px; overflow-y: auto; margin: 1rem 0;">
+                  ${miniPrompts.map(p => `<div class="bingo-item" style="padding: 0.5rem; margin: 0.25rem 0; background: rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer;">${p}</div>`).join('')}
+                </div>
+                <h3>Your Card Preview (<span id="minibingo-pick-count">0</span>/4)</h3>
+                <div id="minibingo-card-preview" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0;">
+                  ${Array(4).fill('<div class="cell" style="padding: 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; min-height: 60px;"></div>').join('')}
+                </div>
+                <button id="confirm-minibingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>
+              `;
+              
+              const updatePreview = () => {
+                const cells = document.querySelectorAll('#minibingo-card-preview .cell');
+                cells.forEach((cell, i) => {
+                  cell.textContent = selectedPrompts[i] || '';
+                });
+                document.getElementById('bingo-pick-count').textContent = selectedPrompts.length;
+                document.getElementById('confirm-bingo-card').disabled = selectedPrompts.length !== 6;
+              };
+              document.querySelectorAll('#bingo-builder-master-list .bingo-item').forEach(item => {
+                item.addEventListener('pointerdown', () => {
+                  const prompt = item.textContent;
+                  if (item.classList.contains('selected')) {
+                    item.classList.remove('selected');
+                    selectedPrompts = selectedPrompts.filter(p => p !== prompt);
+                  } else if (selectedPrompts.length < 6) {
+                    item.classList.add('selected');
+                    selectedPrompts.push(prompt);
+                  }
+                  updatePreview();
+                };
+              });
+              
+              document.getElementById('confirm-minibingo-card').onclick = () => {
+                // Create the mini bingo card widget
+                const card = document.createElement('div');
+                card.className = 'bingo-card-widget';
+                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 6px; padding: 0.75rem; z-index: 1000; min-width: 220px; width: 220px;';
+                
+                // Snap to corner positions
+                const existingCards = document.querySelectorAll('.bingo-card-widget').length;
+                const corners = [
+                  { top: '20px', left: '20px' },
+                  { top: '20px', right: '20px' },
+                  { bottom: '20px', left: '20px' },
+                  { bottom: '20px', right: '20px' },
+                  { top: '50%', left: '20px', transform: 'translateY(-50%)' },
+                  { top: '50%', right: '20px', transform: 'translateY(-50%)' }
+                ];
+                const position = corners[existingCards % corners.length];
+                Object.assign(card.style, position);
+                
+                const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+                const playerName = currentPlayer ? currentPlayer.name : 'Mini Bingo';
+                card.innerHTML = `
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; padding: 4px 6px;">
+                    <span style="font-weight: bold; font-size: 0.95rem;">${playerName}</span>
+                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.3rem; cursor: pointer; padding: 0; width: 28px; height: 28px; line-height: 1;">&times;</button>
+                  </div>
+                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.4rem;">
+                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.6rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 3px; cursor: pointer; font-size: 0.75rem; text-align: center; line-height: 1.2; min-height: 50px;">${prompt}</div>`).join('')}
+                  </div>
+                `;
+                
+                document.body.appendChild(card);
+                
+                let markedCount = 0;
+                const cells = card.querySelectorAll('.minibingo-cell');
+                cells.forEach(cell => {
+                  cell.addEventListener('click', () => {
+                    if (!cell.classList.contains('marked')) {
+                      cell.classList.add('marked');
+                      cell.style.background = 'rgba(76, 175, 80, 0.5)';
+                      cell.style.textDecoration = 'line-through';
+                      markedCount++;
+                      
+                      if (markedCount === 4) {
+                        setTimeout(() => {
+                          alert('🎉 Mini Bingo! You marked all 4!');
+                          card.remove();
+                          updateMainScore(1000);
+                          markTaskComplete();
+                        }, 300);
+                      }
+                    }
+                  });
+                });
+                
+                card.querySelector('.minibingo-close-btn').onclick = () => {
+                  card.remove();
+                };
+                
+                // Make draggable
+                makeDraggable(card);
+                
                 closeTaskModal();
               };
               updatePreview();
@@ -4873,8 +5693,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 });
                 
                 const canvas = document.createElement('canvas');
-                canvas.width = 160;
-                canvas.height = 90;
+                canvas.width = 240;
+                canvas.height = 135;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
                 
@@ -4893,10 +5713,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const renderSelectionScreen = () => {
                 taskModalBody.innerHTML = `
                   <p style="margin-bottom: 1rem;">Click the clips in the order they were shown:</p>
-                  <div style="margin-bottom: 1rem;">
-                    <strong>Your Selection:</strong> ${userOrder.map((_, i) => i + 1).join(', ') || 'None yet'}
+                  <div style="margin-bottom: 1rem; font-size: 1.1rem;">
+                    <strong>Your Selection:</strong> <span style="color: #10b981;">${userOrder.length}/6 selected</span>
                   </div>
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem; margin-bottom: 1rem; max-width: 600px; margin-left: auto; margin-right: auto;">
                     ${shuffledClips.map((clip, i) => {
                       const orderNum = userOrder.indexOf(clip.videoIndex);
                       const isSelected = orderNum !== -1;
@@ -4904,13 +5724,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                         <div class="clip-selection-tile" data-video-index="${clip.videoIndex}" style="
                           position: relative;
                           cursor: ${isSelected ? 'default' : 'pointer'};
-                          opacity: ${isSelected ? '0.5' : '1'};
-                          border: 2px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.3)'};
+                          opacity: ${isSelected ? '0.6' : '1'};
+                          border: 3px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.3)'};
                           border-radius: 8px;
                           overflow: hidden;
+                          transition: all 0.2s;
                         ">
                           <img src="${clip.thumbnail}" style="width: 100%; display: block;" />
-                          ${isSelected ? `<div style="position: absolute; top: 5px; right: 5px; background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">${orderNum + 1}</div>` : ''}
+                          ${isSelected ? `<div style="position: absolute; top: 8px; right: 8px; background: #10b981; color: white; padding: 0.5rem 0.75rem; border-radius: 50%; font-weight: bold; font-size: 1.2rem; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; box-shadow: 0 2px 8px rgba(0,0,0,0.3);">${orderNum + 1}</div>` : ''}
                         </div>
                       `;
                     }).join('')}
@@ -5532,7 +6353,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               `;
               infoPanel.innerHTML = `
                 <div style="display: flex; gap: 2rem; align-items: center;">
-                  <div id="hunt-score" style="font-size: 1.5rem; color: #10b981;">Score: 0/15</div>
+                  <div id="hunt-score" style="font-size: 1.5rem; color: #10b981; font-weight: bold;">Progress: 0/15</div>
                   <div id="hunt-timer" style="font-size: 1.5rem; color: #f59e0b;">Time: 60s</div>
                 </div>
               `;
@@ -5549,22 +6370,32 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 iconEl.textContent = icon;
                 iconEl.style.cssText = `
                   position: absolute;
-                  font-size: 3rem;
+                  font-size: 3.5rem;
                   cursor: pointer;
                   pointer-events: auto;
-                  top: ${Math.random() * 70 + 15}%;
-                  left: ${Math.random() * 80 + 10}%;
+                  top: ${Math.random() * 60 + 20}%;
+                  left: ${Math.random() * 70 + 15}%;
                   transition: transform 0.1s;
+                  user-select: none;
+                  min-width: 56px;
+                  min-height: 56px;
+                  display: flex;
+                  align-items: center;
+                  justify-content: center;
                 `;
                 
+                let clicked = false;
+                
                 iconEl.onclick = () => {
-                  if (gameOver) return;
+                  if (gameOver || clicked) return;
+                  clicked = true;
                   
                   if (isCorrect) {
                     correctClicks++;
-                    document.getElementById('hunt-score').textContent = `Score: ${correctClicks}/15`;
+                    document.getElementById('hunt-score').textContent = `Progress: ${correctClicks}/15`;
                     iconEl.style.transform = 'scale(1.5)';
                     iconEl.style.opacity = '0';
+                    iconEl.style.pointerEvents = 'none';
                     
                     if (correctClicks >= 15) {
                       gameOver = true;
@@ -5580,9 +6411,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                     }
                   } else {
                     correctClicks = Math.max(0, correctClicks - 1);
-                    document.getElementById('hunt-score').textContent = `Score: ${correctClicks}/15`;
+                    document.getElementById('hunt-score').textContent = `Progress: ${correctClicks}/15`;
                     iconEl.style.background = 'red';
                     iconEl.style.borderRadius = '50%';
+                    iconEl.style.pointerEvents = 'none';
                   }
                   
                   setTimeout(() => iconEl.remove(), 200);
@@ -5792,13 +6624,24 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   ctx.fillRect(dripX, y + radius, 3, dripHeight);
                 }
                 
-                // Calculate coverage
-                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-                let paintedPixels = 0;
-                for (let i = 3; i < imageData.data.length; i += 4) {
-                  if (imageData.data[i] > 0) paintedPixels++;
+                // Calculate coverage using low-res sampling grid (20x20)
+                const sampleSize = 20;
+                const stepX = canvas.width / sampleSize;
+                const stepY = canvas.height / sampleSize;
+                let paintedSamples = 0;
+                
+                for (let sy = 0; sy < sampleSize; sy++) {
+                  for (let sx = 0; sx < sampleSize; sx++) {
+                    const px = Math.floor(sx * stepX + stepX / 2);
+                    const py = Math.floor(sy * stepY + stepY / 2);
+                    const imageData = ctx.getImageData(px, py, 1, 1);
+                    if (imageData.data[3] > 0) {
+                      paintedSamples++;
+                    }
+                  }
                 }
-                coverage = (paintedPixels / (canvas.width * canvas.height)) * 100;
+                
+                coverage = (paintedSamples / (sampleSize * sampleSize)) * 100;
                 document.getElementById('paint-coverage').textContent = `Coverage: ${Math.floor(coverage)}%`;
                 
                 if (coverage >= 90 && !gameOver) {
@@ -5849,7 +6692,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             taskModalBody.innerHTML = `
               <h3>Remember the timestamp!</h3>
-              <p>The video will show a moment, then jump around.</p>
+              <p>The video will show a 4-second moment, then jump around.</p>
               <p>Click when it returns to the SAME moment!</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>
             `;
@@ -5891,10 +6734,10 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 player.onloadedmetadata = () => resolve();
               });
               
-              // Show target timestamp for 2 seconds
+              // Show target timestamp for 4 seconds
               player.currentTime = targetTime;
               await player.play();
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              await new Promise(resolve => setTimeout(resolve, 4000));
               player.pause();
               
               document.getElementById('timestamp-instruction').textContent = 'Video is jumping around... Click when it matches!';
@@ -5903,7 +6746,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               let gameOver = false;
               let currentJumpTime = 0;
               
-              // Jump around every 2 seconds, ensuring clips are at least 10 minutes apart
+              // Jump around every 4 seconds, ensuring clips are at least 10 minutes apart
               const jumpInterval = setInterval(() => {
                 if (gameOver) {
                   clearInterval(jumpInterval);
@@ -5919,7 +6762,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 currentJumpTime = newJumpTime;
                 player.currentTime = currentJumpTime;
                 player.play();
-              }, 2000);
+              }, 4000);
               
               currentTimers.push(jumpInterval);
               
