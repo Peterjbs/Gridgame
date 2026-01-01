@@ -318,6 +318,10 @@
       transition: opacity 0.5s ease-in-out, background-color 0.5s ease-in-out;
       z-index: 100;
       pointer-events: none;
+      padding-top: env(safe-area-inset-top, 0);
+      padding-right: env(safe-area-inset-right, 0);
+      padding-bottom: env(safe-area-inset-bottom, 0);
+      padding-left: env(safe-area-inset-left, 0);
     }
 
     .overlay.visible {
@@ -344,6 +348,10 @@
       align-items: center;
       gap: clamp(1.5rem, 5vw, 3.5rem);
       padding: clamp(1.5rem, 6vw, 5rem);
+      padding-top: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-top, 0));
+      padding-right: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-right, 0));
+      padding-bottom: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-bottom, 0));
+      padding-left: max(clamp(1.5rem, 6vw, 5rem), env(safe-area-inset-left, 0));
       background: rgba(0, 0, 0, 0.55);
       backdrop-filter: blur(6px);
       z-index: 155;
@@ -518,6 +526,8 @@
       position: fixed;
       top: 1rem;
       left: 1rem;
+      top: max(1rem, env(safe-area-inset-top, 1rem));
+      left: max(1rem, env(safe-area-inset-left, 1rem));
       z-index: 150;
       background: rgba(0, 0, 0, 0.6);
       padding: 0.5rem;
@@ -845,6 +855,10 @@
     #task-modal-content {
       background-color: #1f1f1f;
       padding: 2rem;
+      padding-top: max(2rem, env(safe-area-inset-top, 2rem));
+      padding-right: max(2rem, env(safe-area-inset-right, 2rem));
+      padding-bottom: max(2rem, env(safe-area-inset-bottom, 2rem));
+      padding-left: max(2rem, env(safe-area-inset-left, 2rem));
       border-radius: 1rem;
       width: 90%;
       max-width: 800px;
@@ -881,6 +895,10 @@
       cursor: pointer;
       line-height: 1;
       transition: color 0.2s;
+      z-index: 10;
+      padding: 0.5rem;
+      min-width: 44px;
+      min-height: 44px;
     }
 
     #task-modal-close:hover {
@@ -1463,6 +1481,8 @@
     </div>
   </div>
 
+  <div id="toast-container"></div>
+
   <div id="main-score-container">
     <span>Score: <span id="main-score-value">0</span></span>
     <span>Multiplier: <span id="main-score-multiplier">1.0</span>x</span>
@@ -1765,6 +1785,33 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let totalScore = 0;
           let scoreMultiplier = 1.0;
           let scoreDecayInterval = null;
+
+          // --- Toast Notification System ---
+          const toastContainer = document.getElementById('toast-container');
+          
+          function showToast(message, type = 'info', duration = 3000) {
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icon = {
+              success: '✓',
+              error: '✕',
+              warning: '⚠',
+              info: 'ℹ'
+            }[type] || 'ℹ';
+            
+            toast.innerHTML = `<span style="font-size: 1.2rem;">${icon}</span><span>${message}</span>`;
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+              toast.classList.add('removing');
+              setTimeout(() => {
+                if (toast.parentNode) {
+                  toast.parentNode.removeChild(toast);
+                }
+              }, 300);
+            }, duration);
+          }
 
           // --- THEME UPDATE: Cloud-themed categories ---
           const challengeCategories = [
@@ -3514,7 +3561,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             advanceChallengeTurn();
           }
 
-          taskModalCloseBtn.addEventListener('click', closeTaskModal);
+          taskModalCloseBtn.addEventListener('pointerdown', closeTaskModal);
           
           // Add keyboard shortcut to close task modal (Escape key)
           document.addEventListener('keydown', (event) => {
@@ -3600,7 +3647,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 const q = questions[currentQ];
                 taskModalBody.innerHTML =
                   `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
-                document.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = handleAnswer);
+                document.querySelectorAll('.task-option-btn').forEach(btn => btn.addEventListener('pointerdown', handleAnswer));
               }
 
               function handleAnswer(e) {
@@ -3669,7 +3716,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 }
               }, 1000);
               document.querySelectorAll('.emoji-cell').forEach(cell => {
-                cell.onclick = () => {
+                cell.addEventListener('pointerdown', () => {
                   if (!canClick || cell.classList.contains('flipped') || cell.classList.contains('matched') || flipped.length >= 2) return;
                   cell.classList.add('flipped');
                   flipped.push(cell);
@@ -3773,7 +3820,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 thumbDiv.className = 'memory-clip-thumbnail';
                 thumbDiv.dataset.index = data.index;
                 thumbDiv.innerHTML = `<video src="${data.url}#t=${data.startTime+1}" preload="metadata"></video>`;
-                thumbDiv.onclick = () => {
+                thumbDiv.addEventListener('pointerdown', () => {
                   document.querySelectorAll('.memory-clip-thumbnail').forEach(t => t.classList.add('disabled'));
                   if (parseInt(thumbDiv.dataset.index) === hiddenClipIndex) {
                     thumbDiv.style.outline = "4px solid #27ae60";
@@ -3808,7 +3855,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.getElementById('confirm-bingo-card').disabled = selectedPrompts.length !== 6;
               };
               document.querySelectorAll('#bingo-builder-master-list .bingo-item').forEach(item => {
-                item.onclick = () => {
+                item.addEventListener('pointerdown', () => {
                   const prompt = item.textContent;
                   if (item.classList.contains('selected')) {
                     item.classList.remove('selected');
@@ -3820,7 +3867,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   updatePreview();
                 };
               });
-              document.getElementById('confirm-bingo-card').onclick = () => {
+              document.getElementById('confirm-bingo-card').addEventListener('pointerdown', () => {
                 createBingoCardWidget(selectedPrompts, activeTaskElement);
                 closeTaskModal();
               };
@@ -3922,8 +3969,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               };
             };
             
-            document.getElementById('choose-sunny').onclick = () => handleChoice('sunny');
-            document.getElementById('choose-stormy').onclick = () => handleChoice('stormy');
+            document.getElementById('choose-sunny').addEventListener('pointerdown', () => handleChoice('sunny'));
+            document.getElementById('choose-stormy').addEventListener('pointerdown', () => handleChoice('stormy'));
           }
 
           // --- NEW MINI GAMES ---
@@ -4176,24 +4223,24 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.querySelectorAll('.clip-selection-tile').forEach(tile => {
                   const videoIndex = parseInt(tile.dataset.videoIndex);
                   if (!userOrder.includes(videoIndex)) {
-                    tile.onclick = () => {
+                    tile.addEventListener('pointerdown', () => {
                       userOrder.push(videoIndex);
                       renderSelectionScreen();
-                    };
+                    });
                   }
                 });
                 
                 const resetBtn = document.getElementById('reset-order-btn');
                 if (resetBtn && !resetBtn.disabled) {
-                  resetBtn.onclick = () => {
+                  resetBtn.addEventListener('pointerdown', () => {
                     userOrder = [];
                     renderSelectionScreen();
-                  };
+                  });
                 }
                 
                 const confirmBtn = document.getElementById('confirm-order-btn');
                 if (confirmBtn && !confirmBtn.disabled) {
-                  confirmBtn.onclick = () => {
+                  confirmBtn.addEventListener('pointerdown', () => {
                     // Check if order is correct
                     const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
                     
