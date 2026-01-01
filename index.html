@@ -6899,9 +6899,9 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
           }
 
-          // 8. Timestamp Match - Click when video returns to same timestamp
+          // 8. Timestamp Sequencer - Match video moments in sequence
           async function setupTimestampMatchTask() {
-            taskModalTitle.textContent = "Timestamp Match ⏱️";
+            taskModalTitle.textContent = "Timestamp Sequencer ⏱️";
             
             if (videoFiles.length < 1) {
               taskModalBody.innerHTML = `<p class="text-red-500">You need at least 1 video for this challenge.</p>`;
@@ -6909,101 +6909,202 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
             
             taskModalBody.innerHTML = `
-              <h3>Remember the timestamp!</h3>
-              <p>The video will show a 4-second moment, then jump around.</p>
-              <p>Click when it returns to the SAME moment!</p>
+              <h3>Remember the sequence!</h3>
+              <p>Videos will show key moments in order.</p>
+              <p>Then they'll jump around - click when each moment appears!</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>
             `;
             
             document.getElementById('start-challenge-btn').onclick = async () => {
-              const videoIndex = Math.floor(Math.random() * videoFiles.length);
-              const file = videoFiles[videoIndex];
-              const url = createTrackedObjectURL(file);
+              const requiredSeconds = 16;
+              const clipSeconds = 4;
+              const numSteps = 4; // Show 4 different moments
+              const buffer = 5; // Safety buffer
               
-              // Create video element
-              const tempVideo = document.createElement('video');
-              tempVideo.src = url;
-              tempVideo.muted = true;
+              let videoMode = 'single'; // 'single' or 'multi'
+              let videoSources = [];
+              let targetTimes = [];
               
-              await new Promise(resolve => {
-                tempVideo.onloadedmetadata = () => resolve();
-              });
-              
-              // Check if video is long enough (at least 20 minutes to ensure 10+ minute gap is possible)
-              if (tempVideo.duration < 1200) {
-                taskModalBody.innerHTML = `<p class="text-red-500">Video must be at least 20 minutes long for this challenge to ensure clips are sufficiently far apart.</p>`;
-                return;
+              // Try single-video mode first
+              let singleVideoCandidate = null;
+              for (let i = 0; i < videoFiles.length; i++) {
+                const file = videoFiles[i];
+                const url = URL.createObjectURL(file);
+                const tempVideo = document.createElement('video');
+                tempVideo.src = url;
+                
+                await new Promise(resolve => {
+                  tempVideo.onloadedmetadata = () => resolve();
+                });
+                
+                if (tempVideo.duration >= requiredSeconds + buffer) {
+                  singleVideoCandidate = { index: i, file: file, duration: tempVideo.duration, url: url };
+                  URL.revokeObjectURL(url);
+                  break;
+                }
+                URL.revokeObjectURL(url);
               }
               
-              const targetTime = Math.random() * (tempVideo.duration - 10);
+              if (singleVideoCandidate) {
+                // Single-video mode
+                videoMode = 'single';
+                const url = URL.createObjectURL(singleVideoCandidate.file);
+                currentObjectURLs.push(url);
+                
+                // Pick 4 different segments
+                const segmentSize = (singleVideoCandidate.duration - clipSeconds) / numSteps;
+                for (let i = 0; i < numSteps; i++) {
+                  const startTime = i * segmentSize + Math.random() * (segmentSize - clipSeconds);
+                  targetTimes.push({ videoUrl: url, startTime: startTime });
+                  videoSources.push({ url: url, duration: singleVideoCandidate.duration });
+                }
+              } else {
+                // Multi-video mode: pick 4-6 videos
+                videoMode = 'multi';
+                const candidates = [];
+                
+                for (let i = 0; i < videoFiles.length; i++) {
+                  const file = videoFiles[i];
+                  const url = URL.createObjectURL(file);
+                  const tempVideo = document.createElement('video');
+                  tempVideo.src = url;
+                  
+                  await new Promise(resolve => {
+                    tempVideo.onloadedmetadata = () => resolve();
+                  });
+                  
+                  // Skip videos that are too short
+                  if (tempVideo.duration >= clipSeconds + 2) {
+                    candidates.push({ file: file, duration: tempVideo.duration, url: url });
+                  } else {
+                    URL.revokeObjectURL(url);
+                  }
+                  
+                  if (candidates.length >= 6) break;
+                }
+                
+                if (candidates.length < numSteps) {
+                  taskModalBody.innerHTML = `<p class="text-red-500">Not enough suitable videos for this challenge.</p>`;
+                  return;
+                }
+                
+                // Use first numSteps videos
+                for (let i = 0; i < numSteps; i++) {
+                  const vid = candidates[i];
+                  currentObjectURLs.push(vid.url);
+                  
+                  // Choose safe start time
+                  const maxStart = vid.duration - clipSeconds;
+                  const startTime = Math.random() * Math.max(0, maxStart);
+                  targetTimes.push({ videoUrl: vid.url, startTime: startTime });
+                  videoSources.push({ url: vid.url, duration: vid.duration });
+                }
+              }
               
+              // Show sequence
               taskModalBody.innerHTML = `
                 <div style="width: 100%; max-width: 500px; margin: 0 auto;">
                   <video id="timestamp-video" style="width: 100%; height: auto;" muted playsinline></video>
                 </div>
-                <p id="timestamp-instruction" style="margin-top: 1rem; font-size: 1.2rem;">Watch this moment...</p>
-                <button id="timestamp-click-btn" class="modal-action-btn" disabled style="margin-top: 1rem;">Click when it matches!</button>
+                <p id="timestamp-instruction" style="margin-top: 1rem; font-size: 1.2rem;">Watch the sequence...</p>
+                <p id="timestamp-step" style="margin-top: 0.5rem; font-size: 1rem; color: #f59e0b;">Step 1 of ${numSteps}</p>
               `;
               
               const player = document.getElementById('timestamp-video');
-              player.src = url;
+              const instructionEl = document.getElementById('timestamp-instruction');
+              const stepEl = document.getElementById('timestamp-step');
               
-              await new Promise(resolve => {
-                player.onloadedmetadata = () => resolve();
-              });
-              
-              // Show target timestamp for 4 seconds
-              player.currentTime = targetTime;
-              await player.play();
-              await new Promise(resolve => setTimeout(resolve, 4000));
-              player.pause();
-              
-              document.getElementById('timestamp-instruction').textContent = 'Video is jumping around... Click when it matches!';
-              document.getElementById('timestamp-click-btn').disabled = false;
-              
-              let gameOver = false;
-              let currentJumpTime = 0;
-              
-              // Jump around every 4 seconds, ensuring clips are at least 10 minutes apart
-              const jumpInterval = setInterval(() => {
-                if (gameOver) {
-                  clearInterval(jumpInterval);
-                  return;
-                }
+              // Show each moment in sequence
+              for (let i = 0; i < numSteps; i++) {
+                stepEl.textContent = `Step ${i + 1} of ${numSteps}`;
+                player.src = targetTimes[i].videoUrl;
                 
-                // Generate a jump time that is at least 600 seconds (10 minutes) away from target
-                let newJumpTime;
-                do {
-                  newJumpTime = Math.random() * tempVideo.duration;
-                } while (Math.abs(newJumpTime - targetTime) < 600);
+                await new Promise(resolve => {
+                  player.onloadedmetadata = () => resolve();
+                });
                 
-                currentJumpTime = newJumpTime;
-                player.currentTime = currentJumpTime;
-                player.play();
-              }, 4000);
-              
-              currentTimers.push(jumpInterval);
-              
-              document.getElementById('timestamp-click-btn').onclick = () => {
-                if (gameOver) return;
-                gameOver = true;
-                clearInterval(jumpInterval);
+                player.currentTime = targetTimes[i].startTime;
+                await player.play().catch(() => {});
+                await new Promise(resolve => setTimeout(resolve, clipSeconds * 1000));
                 player.pause();
                 
-                // Check if close to target (within 0.5 seconds)
-                const diff = Math.abs(currentJumpTime - targetTime);
+                if (i < numSteps - 1) {
+                  await new Promise(resolve => setTimeout(resolve, 1000)); // Gap between steps
+                }
+              }
+              
+              // Now start the test phase
+              instructionEl.textContent = 'Video is jumping around... Click when each moment appears!';
+              stepEl.textContent = 'Waiting for step 1...';
+              
+              const clickButton = document.createElement('button');
+              clickButton.textContent = 'This is the moment!';
+              clickButton.className = 'modal-action-btn';
+              clickButton.style.cssText = 'margin-top: 1rem;';
+              clickButton.id = 'timestamp-click-btn';
+              document.getElementById('timestamp-instruction').parentElement.appendChild(clickButton);
+              
+              let currentStep = 0;
+              let gameOver = false;
+              let currentJumpTime = 0;
+              let currentJumpUrl = null;
+              
+              // Jump around every 3-4 seconds
+              const performJump = () => {
+                if (gameOver) return;
                 
-                if (diff <= 0.5) {
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect Match!</h2><p>Within 0.5 seconds!</p></div>`;
-                  setTimeout(() => {
-                    updateMainScore(3000);
-                    markTaskComplete();
-                  }, 1500);
+                // Pick random video and time
+                const randomSource = videoSources[Math.floor(Math.random() * videoSources.length)];
+                currentJumpUrl = randomSource.url;
+                currentJumpTime = Math.random() * (randomSource.duration - clipSeconds);
+                
+                player.src = currentJumpUrl;
+                player.onloadedmetadata = () => {
+                  player.currentTime = currentJumpTime;
+                  player.play().catch(() => {});
+                };
+              };
+              
+              performJump();
+              
+              const jumpInterval = setInterval(performJump, 3000 + Math.random() * 1000);
+              currentTimers.push(jumpInterval);
+              
+              clickButton.addEventListener('pointerdown', () => {
+                if (gameOver) return;
+                
+                // Check if current playback matches target
+                const target = targetTimes[currentStep];
+                const timeDiff = Math.abs(currentJumpTime - target.startTime);
+                const urlMatch = currentJumpUrl === target.videoUrl;
+                
+                if (urlMatch && timeDiff <= 1.5) {
+                  // Correct!
+                  currentStep++;
+                  
+                  if (currentStep >= numSteps) {
+                    // All done!
+                    gameOver = true;
+                    clearInterval(jumpInterval);
+                    player.pause();
+                    taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect Sequence!</h2><p>You matched all ${numSteps} moments!</p></div>`;
+                    setTimeout(() => {
+                      updateMainScore(3000);
+                      markTaskComplete();
+                    }, 1500);
+                  } else {
+                    stepEl.textContent = `Waiting for step ${currentStep + 1}...`;
+                    showToast(`Step ${currentStep} correct!`, "success");
+                  }
                 } else {
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Not quite!</h2><p>You were ${diff.toFixed(1)}s off</p></div>`;
+                  // Wrong
+                  gameOver = true;
+                  clearInterval(jumpInterval);
+                  player.pause();
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Not quite!</h2><p>That wasn't the right moment for step ${currentStep + 1}</p></div>`;
                   setTimeout(() => closeTaskModal(), 2000);
                 }
-              };
+              });
             };
           }
 
