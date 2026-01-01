@@ -1277,7 +1277,7 @@
       left: 50%;
       transform: translate(-50%, -50%);
       font-size: 12rem;
-      text-shadow: 0 0 30px black, 0 0 10px rgba(255, 0, 0, 0.8);
+      text-shadow: 0 0 30px black, 0 0 50px rgba(255, 0, 0, 0.8);
       pointer-events: none;
       opacity: 0;
       transition: opacity 0.1s;
@@ -2297,6 +2297,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           let videoFiles = [];
           let currentVideoIndex = -1;
           let currentTimers = [];
+          let currentObjectURLs = [];
           let videoChangeInterval = null;
           let intervalCountdownInterval = null;
           let panelInactivityTimer = null;
@@ -2498,6 +2499,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               clearTimeout(timer);
             });
             currentTimers = [];
+            
+            // Clean up object URLs
+            currentObjectURLs.forEach(url => {
+              URL.revokeObjectURL(url);
+            });
+            currentObjectURLs = [];
+            
             document.querySelectorAll('.overlay:not(#task-modal-overlay)').forEach(o => o.classList.remove('visible'));
             if (onScreenTallyContainer) {
               onScreenTallyContainer.classList.remove('visible');
@@ -3420,9 +3428,38 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               markTaskFailed();
             }
             
-            // B0.1: Comprehensive cleanup
-            // Clear all timers and intervals
-            clearAllTimers();
+            // Clean up any videos in the modal
+            const modalVideos = taskModalBody.querySelectorAll('video');
+            modalVideos.forEach(video => {
+              video.pause();
+              video.src = '';
+            });
+            
+            // Clean up object URLs
+            currentObjectURLs.forEach(url => {
+              URL.revokeObjectURL(url);
+            });
+            currentObjectURLs = [];
+            
+            // Clean up any grid overlays
+            const gridOverlay = document.getElementById('quarter-grid');
+            if (gridOverlay) {
+              const videos = gridOverlay.querySelectorAll('video');
+              videos.forEach(video => {
+                video.pause();
+                video.src = '';
+              });
+              gridOverlay.remove();
+            }
+            
+            // Clean up timer display
+            const timerDiv = document.getElementById('quarter-timer');
+            if (timerDiv) {
+              timerDiv.remove();
+            }
+            
+            taskModalOverlay.classList.remove('visible');
+            taskModalBody.innerHTML = '';
             if (modalTimer) {
               clearInterval(modalTimer);
               modalTimer = null;
@@ -4290,103 +4327,87 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               return;
             }
 
-            taskModalBody.innerHTML = `<h3>Click the button ONLY when you see the 😈 symbol.</h3><p>3 rounds - we'll average your reaction time!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
+            taskModalBody.innerHTML = `<h3>Click the button ONLY when you see the 😈 symbol.</h3><p>Don't click too early!</p><p>3 rounds - get your average reaction time!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
 
-            document.getElementById('start-challenge-btn').onclick = async () => {
+            document.getElementById('start-challenge-btn').onclick = () => {
               const reactionTimes = [];
-              let round = 0;
+              let currentRound = 0;
               
               const runRound = () => {
-                return new Promise((resolve) => {
-                  round++;
-                  const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
-                  const videoURL = createTrackedObjectURL(videoFiles[randomVideoIndex]);
-                  let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
-                  let symbolTimer = null;
-                  let startTime = 0;
+                currentRound++;
+                const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
+                const videoURL = URL.createObjectURL(videoFiles[randomVideoIndex]);
+                currentObjectURLs.push(videoURL);
+                
+                let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
+                let symbolTimer = null;
+                let startTime = null;
 
-                  taskModalBody.innerHTML = `
-                        <div style="text-align: center; margin-bottom: 1rem;">
-                          <strong>Round ${round} of 3</strong>
-                        </div>
-                        <div class="reflex-test-container">
-                            <video class="reflex-test-video" src="${videoURL}" muted autoplay loop></video>
-                            <div class="reflex-test-symbol">😈</div>
-                        </div>
-                        <button id="reflex-click-btn" class="modal-action-btn mt-4">CLICK HERE!</button>
-                    `;
+                taskModalBody.innerHTML = `
+                      <div class="reflex-test-container">
+                          <video class="reflex-test-video" src="${videoURL}" muted autoplay loop></video>
+                          <div class="reflex-test-symbol">😈</div>
+                      </div>
+                      <p style="margin-top: 1rem; font-size: 1.2rem;">Round ${currentRound}/3</p>
+                      <button id="reflex-click-btn" class="modal-action-btn mt-4">CLICK HERE!</button>
+                  `;
 
-                  const symbolEl = document.querySelector('.reflex-test-symbol');
+                const symbolEl = document.querySelector('.reflex-test-symbol');
 
-                  const showSymbolTimeout = setTimeout(() => {
-                    gamePhase = 'active';
-                    startTime = Date.now();
-                    symbolEl.classList.add('visible');
-                    symbolTimer = setTimeout(() => { // Symbol disappears
-                      gamePhase = 'ended';
-                      symbolEl.classList.remove('visible');
-                      if (activeTaskElement && !isTaskCompleted) { // If player hasn't clicked by now
-                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏱️ Too Slow!</h2><p>Try to click faster next time.</p></div>`;
+                const showSymbolTimeout = setTimeout(() => {
+                  gamePhase = 'active';
+                  startTime = Date.now();
+                  symbolEl.classList.add('visible');
+                  symbolTimer = setTimeout(() => { // Symbol disappears
+                    gamePhase = 'ended';
+                    symbolEl.classList.remove('visible');
+                    if (activeTaskElement && !isTaskCompleted) { // If player hasn't clicked by now
+                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Too slow!</h2><p>Round ${currentRound} failed</p></div>`;
+                      setTimeout(() => closeTaskModal(), 2000);
+                    }
+                  }, 1500); // Symbol is visible for 1.5s
+                }, Math.random() * 5000 + 3000); // Random delay 3-8s
+
+                currentTimers.push(showSymbolTimeout, symbolTimer);
+
+                document.getElementById('reflex-click-btn').onclick = () => {
+                    if(gamePhase === 'ended') return;
+
+                    if (gamePhase === 'waiting') {
+                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Too early!</h2><p>Round ${currentRound} failed</p></div>`;
+                      clearTimeout(showSymbolTimeout);
+                      clearTimeout(symbolTimer);
+                      setTimeout(() => closeTaskModal(), 2000);
+                    } else if (gamePhase === 'active') {
+                      const reactionTime = Date.now() - startTime;
+                      reactionTimes.push(reactionTime);
+                      clearTimeout(symbolTimer);
+                      
+                      if (currentRound < 3) {
+                        // Show result and move to next round
+                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Round ${currentRound} Complete!</h2><p>Reaction time: ${reactionTime}ms</p><p>Starting round ${currentRound + 1}...</p></div>`;
+                        setTimeout(() => runRound(), 2000);
+                      } else {
+                        // All rounds complete - show average
+                        const average = Math.round(reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length);
+                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;">
+                          <h2>🎉 All Rounds Complete!</h2>
+                          <p style="margin-top: 1rem;">Round 1: ${reactionTimes[0]}ms</p>
+                          <p>Round 2: ${reactionTimes[1]}ms</p>
+                          <p>Round 3: ${reactionTimes[2]}ms</p>
+                          <p style="margin-top: 1rem; font-size: 1.5rem; font-weight: bold; color: #10b981;">Average: ${average}ms</p>
+                        </div>`;
                         setTimeout(() => {
-                          closeTaskModal();
-                          resolve('failed');
-                        }, 1500);
+                          updateMainScore(2000);
+                          markTaskComplete();
+                        }, 2500);
                       }
-                    }, 1500); // Symbol is visible for 1.5s
-                  }, Math.random() * 5000 + 3000); // Random delay 3-8s
-
-                  currentTimers.push(showSymbolTimeout, symbolTimer);
-
-                  document.getElementById('reflex-click-btn').onclick = () => {
-                      if(gamePhase === 'ended') return;
-
-                      if (gamePhase === 'waiting') {
-                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⚠️ Too Early!</h2><p>Wait for the symbol to appear!</p></div>`;
-                        clearTimeout(showSymbolTimeout);
-                        setTimeout(() => {
-                          closeTaskModal();
-                          resolve('failed');
-                        }, 1500);
-                      } else if (gamePhase === 'active') {
-                        const reactionTime = Date.now() - startTime;
-                        reactionTimes.push(reactionTime);
-                        clearTimeout(symbolTimer);
-                        
-                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Round ${round} Complete!</h2><p>Reaction time: ${reactionTime}ms</p></div>`;
-                        setTimeout(() => {
-                          resolve('success');
-                        }, 1000);
-                      }
-                      gamePhase = 'ended'; // Prevent multiple clicks
-                  };
-                });
+                    }
+                    gamePhase = 'ended'; // Prevent multiple clicks
+                };
               };
               
-              // Run 3 rounds
-              for (let i = 0; i < 3; i++) {
-                const result = await runRound();
-                if (result === 'failed') {
-                  return; // Stop if any round fails
-                }
-              }
-              
-              // All rounds complete - show average
-              const avgTime = Math.round(reactionTimes.reduce((a, b) => a + b, 0) / reactionTimes.length);
-              taskModalBody.innerHTML = `
-                <div style="text-align: center; padding: 2rem;">
-                  <h2>🎉 All Rounds Complete!</h2>
-                  <div style="margin: 1.5rem 0;">
-                    <p><strong>Round 1:</strong> ${reactionTimes[0]}ms</p>
-                    <p><strong>Round 2:</strong> ${reactionTimes[1]}ms</p>
-                    <p><strong>Round 3:</strong> ${reactionTimes[2]}ms</p>
-                  </div>
-                  <p style="font-size: 1.5rem; color: #10b981;"><strong>Average: ${avgTime}ms</strong></p>
-                </div>
-              `;
-              setTimeout(() => {
-                updateMainScore(2000);
-                markTaskComplete();
-              }, 2500);
+              runRound();
             };
           }
 
@@ -5389,6 +5410,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           async function setupVideoClipDetectiveTask() {
             taskModalTitle.textContent = "Video Clip Detective 🔍";
             
+            const THUMBNAIL_CAPTURE_DELAY_MS = 500; // Time to wait before capturing thumbnail
+            
             if (videoFiles.length < 6) {
               taskModalBody.innerHTML = `<p class="text-red-500">You need at least 6 videos for this challenge.</p>`;
               return;
@@ -5420,44 +5443,17 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const effects = ['slomo', 'double', 'reverse', 'short', 'filter'];
               const specialEffect = effects[Math.floor(Math.random() * effects.length)];
               
-              // Show preparing clips message
+              // Show loading state
               taskModalBody.innerHTML = `
-                <div style="text-align: center; padding: 3rem;">
-                  <h2>Preparing clips...</h2>
-                  <p style="font-size: 1.2rem; margin-top: 1rem;">Loading videos for playback</p>
+                <div style="text-align: center; padding: 2rem;">
+                  <p style="font-size: 1.3rem; margin-bottom: 1rem;">Preparing clips...</p>
+                  <div style="font-size: 2rem;">⏳</div>
                 </div>
               `;
               
-              // Create thumbnails for later selection
-              const thumbnails = [];
-              for (let i = 0; i < 6; i++) {
-                const videoIndex = selectedIndices[i];
-                const file = videoFiles[videoIndex];
-                const url = createTrackedObjectURL(file);
-                
-                const video = document.createElement('video');
-                video.src = url;
-                await new Promise(resolve => {
-                  video.onloadedmetadata = () => {
-                    video.currentTime = Math.min(1, video.duration / 2);
-                    resolve();
-                  };
-                });
-                
-                await new Promise(resolve => {
-                  video.onseeked = () => resolve();
-                });
-                
-                const canvas = document.createElement('canvas');
-                canvas.width = 160;
-                canvas.height = 90;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                
-                thumbnails.push(canvas.toDataURL());
-              }
+              // Small delay to show loading
+              await new Promise(resolve => setTimeout(resolve, 1000));
               
-              // Now play the clips
               taskModalBody.innerHTML = `
                 <div id="detective-video-container" style="width: 100%; max-width: 500px; margin: 0 auto;">
                   <video id="detective-player" style="width: 100%; height: auto;" muted playsinline></video>
@@ -5466,12 +5462,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               `;
               
               const player = document.getElementById('detective-player');
+              const clipThumbnails = [];
               
               for (let i = 0; i < 6; i++) {
                 document.getElementById('clip-number').textContent = i + 1;
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = createTrackedObjectURL(file);
+                const url = URL.createObjectURL(file);
+                currentObjectURLs.push(url);
                 
                 // Pause any existing playback before changing source
                 player.pause();
@@ -5501,13 +5499,22 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 player.currentTime = Math.random() * Math.max(0, player.duration - 5);
                 await player.play();
                 
+                // Capture thumbnail while playing
+                await new Promise(resolve => setTimeout(resolve, THUMBNAIL_CAPTURE_DELAY_MS));
+                const canvas = document.createElement('canvas');
+                canvas.width = 160;
+                canvas.height = 90;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(player, 0, 0, canvas.width, canvas.height);
+                clipThumbnails.push(canvas.toDataURL());
+                
                 if (isSpecial && specialEffect === 'double') {
                   // Play twice
-                  await new Promise(resolve => setTimeout(resolve, 2500));
+                  await new Promise(resolve => setTimeout(resolve, 2000));
                   player.currentTime = Math.max(0, player.currentTime - 2.5);
                   await new Promise(resolve => setTimeout(resolve, 2500));
                 } else {
-                  await new Promise(resolve => setTimeout(resolve, playDuration));
+                  await new Promise(resolve => setTimeout(resolve, playDuration - THUMBNAIL_CAPTURE_DELAY_MS));
                 }
                 
                 player.pause();
@@ -5515,7 +5522,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 player.playbackRate = 1;
               }
               
-              // Pause and clean up player
+              // Clear the player
               player.pause();
               player.src = '';
               
@@ -5523,25 +5530,32 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               taskModalTitle.textContent = "Which clip was different?";
               taskModalBody.innerHTML = `
                 <p style="margin-bottom: 1rem;">The special effect was: <strong>${specialEffect}</strong></p>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-                  ${thumbnails.map((thumb, i) => `
-                    <div class="clip-thumbnail" data-clip="${i}" style="cursor: pointer; border: 3px solid rgba(255,255,255,0.3); border-radius: 8px; overflow: hidden; transition: all 0.2s;">
-                      <img src="${thumb}" style="width: 100%; display: block;" />
-                      <div style="text-align: center; padding: 0.5rem; background: rgba(0,0,0,0.5);">Clip ${i + 1}</div>
+                <p style="margin-bottom: 1rem; font-size: 0.9rem; color: #8b5cf6;">Tap a thumbnail to select:</p>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem;">
+                  ${clipThumbnails.map((thumbnail, i) => `
+                    <div class="clip-thumbnail" data-clip="${i}" style="
+                      cursor: pointer;
+                      border: 3px solid rgba(255,255,255,0.3);
+                      border-radius: 8px;
+                      overflow: hidden;
+                      transition: all 0.2s;
+                    ">
+                      <img src="${thumbnail}" style="width: 100%; display: block;" />
+                      <div style="text-align: center; padding: 0.25rem; background: rgba(0,0,0,0.7); font-size: 0.9rem;">Clip ${i + 1}</div>
                     </div>
                   `).join('')}
                 </div>
               `;
               
               document.querySelectorAll('.clip-thumbnail').forEach(thumb => {
-                thumb.addEventListener('mouseenter', () => {
-                  thumb.style.borderColor = '#10b981';
+                thumb.onmouseover = () => {
+                  thumb.style.border = '3px solid #10b981';
                   thumb.style.transform = 'scale(1.05)';
-                });
-                thumb.addEventListener('mouseleave', () => {
-                  thumb.style.borderColor = 'rgba(255,255,255,0.3)';
+                };
+                thumb.onmouseout = () => {
+                  thumb.style.border = '3px solid rgba(255,255,255,0.3)';
                   thumb.style.transform = 'scale(1)';
-                });
+                };
                 thumb.onclick = () => {
                   const chosen = parseInt(thumb.dataset.clip);
                   if (chosen === specialIndex) {
@@ -6740,46 +6754,46 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
             
             taskModalBody.innerHTML = `
-              <h3>Find the common video!</h3>
-              <p>Each corner shows a segment from different videos</p>
-              <p>ONE video appears in ALL 4 corners - find it!</p>
-              <p>Tap corners to LOCK/UNLOCK when you think you see it</p>
-              <p>Win by locking all 4 corners on the correct clip</p>
+              <h3>Find the common clip!</h3>
+              <p>4 corners will cycle through clips showing different segments</p>
+              <p>ONE clip appears in ALL 4 corners</p>
+              <p>Other clips appear in only 2-3 corners (decoys)</p>
+              <p><strong>Tap corner to LOCK/UNLOCK</strong> when you see the common clip</p>
+              <p>Win by locking all 4 corners on the correct clip!</p>
               <p>60 second time limit!</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Puzzle</button>
             `;
             
             document.getElementById('start-challenge-btn').onclick = () => {
-              // Pick 6 videos total
+              // Pick 6 random videos
               const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
               const videoPool = shuffled.slice(0, 6);
               
-              // Pick one to be the "correct" answer that appears in all quarters
+              // Pick one to be the "correct" answer that appears in all corners
               const correctVideoIndex = videoPool[0];
               const decoyIndices = videoPool.slice(1); // 5 decoys
               
-              // For each corner, create a sequence that includes the correct video once
-              // and 2-3 decoys (ensuring each decoy appears in only 2-3 corners, not all 4)
-              const corners = [];
-              const decoyUsage = new Map(decoyIndices.map(idx => [idx, 0])); // Track usage count
+              // For each corner, create a sequence:
+              // - Always includes the correct video
+              // - Each decoy appears in 2 or 3 corners only
+              const quarters = [[], [], [], []];
               
-              for (let c = 0; c < 4; c++) {
-                const cornerSequence = [correctVideoIndex]; // Correct video appears once
-                
-                // Add 2-3 decoys, preferring ones that haven't been used much
-                const numDecoys = 2 + Math.floor(Math.random() * 2); // 2 or 3
-                const availableDecoys = decoyIndices
-                  .filter(idx => decoyUsage.get(idx) < 3) // Don't use if already in 3 corners
-                  .sort(() => 0.5 - Math.random())
-                  .slice(0, numDecoys);
-                
-                availableDecoys.forEach(idx => decoyUsage.set(idx, decoyUsage.get(idx) + 1));
-                cornerSequence.push(...availableDecoys);
-                
-                // Shuffle the sequence
-                cornerSequence.sort(() => 0.5 - Math.random());
-                corners.push(cornerSequence);
+              // Add correct video to all corners
+              for (let q = 0; q < 4; q++) {
+                quarters[q].push(correctVideoIndex);
               }
+              
+              // Distribute decoys: each decoy in 2 or 3 corners
+              decoyIndices.forEach((decoyIndex, i) => {
+                const numCorners = Math.random() < 0.5 ? 2 : 3;
+                const availableCorners = [0, 1, 2, 3].sort(() => 0.5 - Math.random());
+                for (let j = 0; j < numCorners; j++) {
+                  quarters[availableCorners[j]].push(decoyIndex);
+                }
+              });
+              
+              // Shuffle each quarter's sequence
+              quarters.forEach(q => q.sort(() => 0.5 - Math.random()));
               
               taskModalOverlay.style.pointerEvents = 'none';
               
@@ -6800,33 +6814,33 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 background: #000;
               `;
               
-              // Corner positions for video cropping (showing actual corner segment)
               const cornerPositions = [
-                { name: 'Top-Left', objectPosition: '0% 0%' },      // top-left
-                { name: 'Top-Right', objectPosition: '100% 0%' },   // top-right
-                { name: 'Bottom-Left', objectPosition: '0% 100%' }, // bottom-left
-                { name: 'Bottom-Right', objectPosition: '100% 100%' } // bottom-right
+                { name: 'Top-Left', x: 0, y: 0 },
+                { name: 'Top-Right', x: 50, y: 0 },
+                { name: 'Bottom-Left', x: 0, y: 50 },
+                { name: 'Bottom-Right', x: 50, y: 50 }
               ];
               
-              const cornerStates = [];
-              
-              for (let c = 0; c < 4; c++) {
-                const cornerDiv = document.createElement('div');
-                cornerDiv.style.cssText = `
+              for (let q = 0; q < 4; q++) {
+                const quarterDiv = document.createElement('div');
+                quarterDiv.style.cssText = `
                   position: relative;
                   background: #222;
                   cursor: pointer;
                   overflow: hidden;
                 `;
-                cornerDiv.dataset.corner = c;
+                quarterDiv.dataset.quarter = q;
+                quarterDiv.dataset.locked = 'false';
+                quarterDiv.dataset.currentVideo = '';
                 
                 const video = document.createElement('video');
                 video.style.cssText = `
                   width: 200%;
                   height: 200%;
                   object-fit: cover;
-                  object-position: ${cornerPositions[c].objectPosition};
-                  transform: scale(1.5);
+                  position: absolute;
+                  top: -${cornerPositions[q].y}%;
+                  left: -${cornerPositions[q].x}%;
                 `;
                 video.muted = true;
                 video.loop = false;
@@ -6837,18 +6851,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   position: absolute;
                   top: 10px;
                   left: 10px;
-                  background: rgba(0,0,0,0.7);
+                  background: rgba(0,0,0,0.8);
                   padding: 0.5rem 1rem;
                   border-radius: 4px;
                   font-weight: bold;
                   z-index: 10;
                   color: #fff;
                 `;
-                statusLabel.textContent = `${cornerPositions[c].name}`;
-                
-                cornerDiv.appendChild(video);
-                cornerDiv.appendChild(statusLabel);
-                gridOverlay.appendChild(cornerDiv);
+                statusLabel.textContent = `${cornerPositions[q].name}: UNLOCKED`;
                 
                 cornerStates.push({
                   locked: false,
@@ -6869,12 +6879,13 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 top: 20px;
                 left: 50%;
                 transform: translateX(-50%);
-                background: rgba(0,0,0,0.8);
+                background: rgba(0,0,0,0.9);
                 padding: 1rem 2rem;
                 border-radius: 8px;
                 z-index: 260;
                 font-size: 1.5rem;
                 color: #f59e0b;
+                font-weight: bold;
               `;
               timerDiv.id = 'quarter-timer';
               timerDiv.textContent = 'Time: 60s';
@@ -6882,87 +6893,128 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               
               let timeLeft = 60;
               let gameOver = false;
+              const lockedState = {}; // q -> { locked: bool, videoIndex: number, isTransitioning: bool }
               
-              // Cycle videos in each corner
-              const cycleVideos = async () => {
+              for (let q = 0; q < 4; q++) {
+                lockedState[q] = { locked: false, videoIndex: null, isTransitioning: false };
+              }
+              
+              // Cycle videos in each quarter
+              let cycleIndex = {};
+              for (let q = 0; q < 4; q++) {
+                cycleIndex[q] = 0;
+              }
+              
+              const playNextClip = async (q) => {
+                if (gameOver || lockedState[q].locked) return;
+                
+                const quarterDiv = document.querySelector(`[data-quarter="${q}"]`);
+                const video = quarterDiv.querySelector('video');
+                const videoIndex = quarters[q][cycleIndex[q] % quarters[q].length];
+                const file = videoFiles[videoIndex];
+                
+                const url = URL.createObjectURL(file);
+                currentObjectURLs.push(url);
+                
+                video.src = url;
+                quarterDiv.dataset.currentVideo = videoIndex;
+                lockedState[q].videoIndex = videoIndex;
+                
+                await new Promise((resolve, reject) => {
+                  const timeout = setTimeout(() => {
+                    reject(new Error('Video load timeout'));
+                  }, 5000);
+                  
+                  video.onloadedmetadata = () => {
+                    clearTimeout(timeout);
+                    video.currentTime = Math.random() * Math.max(0, video.duration - 5);
+                    video.play().catch(() => {});
+                    resolve();
+                  };
+                  
+                  video.onerror = () => {
+                    clearTimeout(timeout);
+                    reject(new Error('Video load error'));
+                  };
+                }).catch(() => {
+                  // Skip this video if it fails to load
+                  cycleIndex[q]++;
+                });
+                
+                cycleIndex[q]++;
+              };
+              
+              // Start cycling all corners
+              const cycleAllCorners = async () => {
                 while (!gameOver) {
-                  for (let c = 0; c < 4; c++) {
-                    if (cornerStates[c].locked) continue;
-                    
-                    const state = cornerStates[c];
-                    const videoIndex = corners[c][state.sequenceIndex % corners[c].length];
-                    const file = videoFiles[videoIndex];
-                    
-                    // Revoke old URL if exists
-                    if (state.video.src) {
-                      const oldUrl = state.video.src;
-                      state.video.src = '';
-                      if (oldUrl.startsWith('blob:')) {
-                        revokeTrackedObjectURL(oldUrl);
-                      }
+                  const promises = [];
+                  for (let q = 0; q < 4; q++) {
+                    if (!lockedState[q].locked) {
+                      promises.push(playNextClip(q));
                     }
-                    
-                    const url = createTrackedObjectURL(file);
-                    state.currentVideoIndex = videoIndex;
-                    state.video.src = url;
-                    
-                    video.src = createTrackedObjectURL(file);
-                    await new Promise(resolve => {
-                      state.video.onloadedmetadata = () => {
-                        state.video.currentTime = Math.random() * Math.max(0, state.video.duration - 5);
-                        state.video.play();
-                        setTimeout(resolve, 5000);
-                      };
-                    });
-                    
-                    state.sequenceIndex++;
                   }
+                  await Promise.all(promises);
+                  await new Promise(resolve => setTimeout(resolve, 5000));
                 }
               };
               
-              cycleVideos();
+              cycleAllCorners();
               
-              // Click to lock/unlock corner
-              cornerStates.forEach((state, c) => {
-                state.div.onclick = () => {
-                  if (gameOver) return;
+              // Click to toggle lock/unlock
+              document.querySelectorAll('[data-quarter]').forEach(div => {
+                div.onclick = () => {
+                  const q = parseInt(div.dataset.quarter);
+                  if (gameOver || lockedState[q].isTransitioning) return;
                   
-                  state.locked = !state.locked;
+                  const statusLabel = div.querySelector('div');
+                  const video = div.querySelector('video');
                   
-                  if (state.locked) {
-                    state.div.style.border = '5px solid #10b981';
-                    state.label.textContent = `${cornerPositions[c].name}: LOCKED ✓`;
-                    state.label.style.color = '#10b981';
+                  if (lockedState[q].locked) {
+                    // UNLOCK
+                    lockedState[q].locked = false;
+                    div.style.border = '';
+                    statusLabel.textContent = `${cornerPositions[q].name}: UNLOCKED`;
+                    statusLabel.style.color = '#fff';
+                    statusLabel.style.background = 'rgba(0,0,0,0.8)';
+                    
+                    // Resume cycling will happen in next cycle
                   } else {
-                    state.div.style.border = 'none';
-                    state.label.textContent = `${cornerPositions[c].name}`;
-                    state.label.style.color = '#fff';
-                  }
-                  
-                  // Check if all 4 locked
-                  const allLocked = cornerStates.every(s => s.locked);
-                  if (allLocked) {
-                    gameOver = true;
-                    clearInterval(timerInterval);
+                    // LOCK
+                    lockedState[q].locked = true;
+                    video.pause();
+                    div.style.border = '5px solid #10b981';
+                    statusLabel.textContent = `${cornerPositions[q].name}: LOCKED ✓`;
+                    statusLabel.style.color = '#10b981';
+                    statusLabel.style.background = 'rgba(0,0,0,0.9)';
                     
-                    // Check if all locked on correct video
-                    const allCorrect = cornerStates.every(s => s.currentVideoIndex === correctVideoIndex);
-                    
-                    if (allCorrect) {
-                      gridOverlay.remove();
-                      timerDiv.remove();
-                      taskModalOverlay.style.pointerEvents = 'all';
-                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You found the correct video in all corners!</p></div>`;
-                      setTimeout(() => {
-                        updateMainScore(3000);
-                        markTaskComplete();
-                      }, 1500);
-                    } else {
-                      gridOverlay.remove();
-                      timerDiv.remove();
-                      taskModalOverlay.style.pointerEvents = 'all';
-                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Not Quite!</h2><p>Not all corners were showing the same video.</p></div>`;
-                      setTimeout(() => closeTaskModal(), 2000);
+                    // Check if all locked
+                    const allLocked = Object.values(lockedState).every(s => s.locked);
+                    if (allLocked) {
+                      gameOver = true;
+                      clearInterval(timerInterval);
+                      
+                      // Check if all locked on correct video
+                      const allCorrect = Object.values(lockedState).every(s => s.videoIndex === correctVideoIndex);
+                      
+                      // Pause all videos
+                      document.querySelectorAll('[data-quarter] video').forEach(v => v.pause());
+                      
+                      if (allCorrect) {
+                        gridOverlay.remove();
+                        timerDiv.remove();
+                        taskModalOverlay.style.pointerEvents = 'all';
+                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You found the common clip in all corners!</p></div>`;
+                        setTimeout(() => {
+                          updateMainScore(3000);
+                          markTaskComplete();
+                        }, 2000);
+                      } else {
+                        gridOverlay.remove();
+                        timerDiv.remove();
+                        taskModalOverlay.style.pointerEvents = 'all';
+                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Not quite!</h2><p>Not all corners were locked on the same common clip.</p></div>`;
+                        setTimeout(() => closeTaskModal(), 2500);
+                      }
                     }
                   }
                 };
@@ -6975,11 +7027,16 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 if (timeLeft <= 0 && !gameOver) {
                   gameOver = true;
                   clearInterval(timerInterval);
+                  
+                  // Pause all videos
+                  document.querySelectorAll('[data-quarter] video').forEach(v => v.pause());
+                  
                   gridOverlay.remove();
                   timerDiv.remove();
                   taskModalOverlay.style.pointerEvents = 'all';
-                  const lockedCount = cornerStates.filter(s => s.locked).length;
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${lockedCount}/4 locked</p></div>`;
+                  
+                  const lockedCount = Object.values(lockedState).filter(s => s.locked).length;
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${lockedCount}/4 corners locked</p></div>`;
                   setTimeout(() => closeTaskModal(), 2000);
                 }
               }, 1000);
