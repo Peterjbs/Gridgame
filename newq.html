@@ -2006,8 +2006,18 @@
             if (panelInactivityTimer) clearTimeout(panelInactivityTimer);
           };
 
+          // Use pointerup instead of click for better mobile/touch support.
+          // Pointer events work reliably across mouse, touch, and pen input,
+          // preventing the common issue where click events fail on some mobile browsers.
           panelToggles.forEach(toggle => {
-            toggle.addEventListener('click', () => {
+            let pointerHandled = false; // Flag to prevent duplicate firing
+            
+            const handleToggle = () => {
+              // Prevent duplicate execution if called multiple times in quick succession
+              if (pointerHandled) return;
+              pointerHandled = true;
+              setTimeout(() => { pointerHandled = false; }, 300);
+              
               const targetPanelId = toggle.dataset.panel;
               const targetPanel = document.getElementById(targetPanelId);
               const isAlreadyActive = targetPanel.classList.contains('active');
@@ -2031,7 +2041,9 @@
                 else body.classList.add('right-panel-active');
                 resetPanelInactivityTimer();
               }
-            });
+            };
+            
+            toggle.addEventListener('pointerup', handleToggle);
           });
           panels.forEach(panel => {
             panel.addEventListener('mousemove', resetPanelInactivityTimer);
