@@ -1039,6 +1039,10 @@
       cursor: pointer;
       line-height: 1;
       transition: color 0.2s;
+      z-index: 10;
+      padding: 0.5rem;
+      min-width: 44px;
+      min-height: 44px;
     }
 
     #task-modal-close:hover {
@@ -4207,7 +4211,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.getElementById('confirm-bingo-card').disabled = selectedPrompts.length !== 6;
               };
               document.querySelectorAll('#bingo-builder-master-list .bingo-item').forEach(item => {
-                item.onclick = () => {
+                item.addEventListener('pointerdown', () => {
                   const prompt = item.textContent;
                   if (item.classList.contains('selected')) {
                     item.classList.remove('selected');
@@ -4219,7 +4223,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   updatePreview();
                 };
               });
-              document.getElementById('confirm-bingo-card').onclick = () => {
+              document.getElementById('confirm-bingo-card').addEventListener('pointerdown', () => {
                 createBingoCardWidget(selectedPrompts, activeTaskElement);
                 closeTaskModal();
               };
@@ -4776,7 +4780,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               };
               
               document.querySelectorAll('#minibingo-master-list .bingo-item').forEach(item => {
-                item.onclick = () => {
+                item.addEventListener('pointerdown', () => {
                   const prompt = item.textContent;
                   if (item.classList.contains('selected')) {
                     item.classList.remove('selected');
@@ -4791,7 +4795,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 };
               });
               
-              document.getElementById('confirm-minibingo-card').onclick = () => {
+              document.getElementById('confirm-minibingo-card').addEventListener('pointerdown', () => {
                 // Create the mini bingo card widget
                 const card = document.createElement('div');
                 card.className = 'bingo-card-widget';
@@ -5121,8 +5125,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               };
             };
             
-            document.getElementById('choose-sunny').onclick = () => handleChoice('sunny');
-            document.getElementById('choose-stormy').onclick = () => handleChoice('stormy');
+            document.getElementById('choose-sunny').addEventListener('pointerdown', () => handleChoice('sunny'));
+            document.getElementById('choose-stormy').addEventListener('pointerdown', () => handleChoice('stormy'));
           }
 
           // --- NEW MINI GAMES ---
@@ -5376,24 +5380,24 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 document.querySelectorAll('.clip-selection-tile').forEach(tile => {
                   const videoIndex = parseInt(tile.dataset.videoIndex);
                   if (!userOrder.includes(videoIndex)) {
-                    tile.onclick = () => {
+                    tile.addEventListener('pointerdown', () => {
                       userOrder.push(videoIndex);
                       renderSelectionScreen();
-                    };
+                    });
                   }
                 });
                 
                 const resetBtn = document.getElementById('reset-order-btn');
                 if (resetBtn && !resetBtn.disabled) {
-                  resetBtn.onclick = () => {
+                  resetBtn.addEventListener('pointerdown', () => {
                     userOrder = [];
                     renderSelectionScreen();
-                  };
+                  });
                 }
                 
                 const confirmBtn = document.getElementById('confirm-order-btn');
                 if (confirmBtn && !confirmBtn.disabled) {
-                  confirmBtn.onclick = () => {
+                  confirmBtn.addEventListener('pointerdown', () => {
                     // Check if order is correct
                     const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
                     
