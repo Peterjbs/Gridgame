@@ -88,16 +88,16 @@
 
     .right-panel {
       right: 0;
-      transform: translateX(100%);
+      transform: translateX(100%) translate(var(--drag-x, 0px), var(--drag-y, 0px));
     }
 
     .left-panel {
       left: 0;
-      transform: translateX(-100%);
+      transform: translateX(-100%) translate(var(--drag-x, 0px), var(--drag-y, 0px));
     }
 
     .panel.active {
-      transform: translateX(0);
+      transform: translateX(0) translate(var(--drag-x, 0px), var(--drag-y, 0px));
     }
 
     body.right-panel-active .right-bar {
@@ -1183,14 +1183,15 @@
     }
 
     #challenge-turn-indicator {
-      border: 2px solid #3498db;
+      border: 3px solid #3498db;
       border-radius: 0.75rem;
-      padding: 0.4rem 0.75rem;
+      padding: 0.75rem 1rem;
       text-align: center;
-      font-weight: 600;
-      font-size: 1rem;
+      font-weight: 700;
+      font-size: 1.5rem;
       color: #3498db;
-      background: rgba(0, 0, 0, 0.4);
+      background: rgba(0, 0, 0, 0.6);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
     }
 
     #challenge-player-list {
@@ -1360,6 +1361,28 @@
     <div class="panel-header">
       <h2 id="title-challenge" class="title-yellow">The Forecast</h2>
     </div>
+    
+    <!-- Player Setup Section -->
+    <details id="player-setup-section" open>
+      <summary style="cursor: pointer; font-weight: 600; margin-bottom: 0.5rem; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 0.5rem;">
+        Player Setup
+      </summary>
+      <div id="player-setup-container" style="display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1rem;">
+        <!-- Player 1 -->
+        <div class="player-setup-row" style="display: flex; gap: 0.5rem; align-items: center;">
+          <span style="min-width: 30px; font-weight: 600; color: #3498db;">P1:</span>
+          <input type="text" id="player1-name" value="Player 1" 
+                 style="flex: 1; min-width: 0; padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 0.375rem; color: #e2e8f0; font-size: 1rem;">
+        </div>
+        <!-- Player 2 -->
+        <div class="player-setup-row" style="display: flex; gap: 0.5rem; align-items: center;">
+          <span style="min-width: 30px; font-weight: 600; color: #e74c3c;">P2:</span>
+          <input type="text" id="player2-name" value="Player 2" 
+                 style="flex: 1; min-width: 0; padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 0.375rem; color: #e2e8f0; font-size: 1rem;">
+        </div>
+      </div>
+    </details>
+    
     <div id="challenge-status-bar">
       <div id="challenge-turn-indicator"></div>
       <div id="challenge-player-list"></div>
@@ -1443,7 +1466,13 @@
       <h2 id="title-guessing">Pressure Front</h2>
     </div>
     <div id="guessing-inputs-container">
-      </div>
+    </div>
+    <label for="guessEmoji">Target Emoji:</label>
+    <select id="guessEmoji" class="mb-2" style="font-size: 1.5rem; padding: 0.5rem;">
+      <option value="🍆">🍆</option>
+      <option value="🍑">🍑</option>
+      <option value="🧍">🧍</option>
+    </select>
     <label for="guessTimerDuration">Round Duration (s):</label>
     <input type="number" id="guessTimerDuration" value="30" min="5" class="mb-2">
     <label for="guessVideoChangeSeconds">Change Video Every (s):</label>
@@ -1455,19 +1484,25 @@
       <h2 id="title-bingo">Atmospheric Bingo</h2>
     </div>
     <div id="bingo-setup">
-      <label for="playerCount">Players:</label>
-      <select id="playerCount" class="mb-2">
+      <label for="playerCount" style="font-size: 1.1rem;">Players:</label>
+      <select id="playerCount" class="mb-2" style="font-size: 1.1rem; padding: 0.5rem;">
         <option value="1">1</option>
         <option value="2" selected>2</option>
         <option value="3">3</option>
         <option value="4">4</option>
       </select>
-      <button id="setupBingoButton">New Game</button>
+      <label for="bingoGridSize" style="font-size: 1.1rem; margin-top: 0.5rem;">Card Size:</label>
+      <select id="bingoGridSize" class="mb-2" style="font-size: 1.1rem; padding: 0.5rem;">
+        <option value="4">2x2 (4 tiles)</option>
+        <option value="6" selected>3x2 (6 tiles)</option>
+      </select>
+      <button id="setupBingoButton" style="font-size: 1.1rem; padding: 0.75rem;">New Game</button>
     </div>
     <div id="bingo-selection-active" class="hidden mt-2">
-      <div id="bingo-turn-indicator" class="text-center font-bold mb-2"></div>
+      <div id="bingo-turn-indicator" class="text-center font-bold mb-2" style="font-size: 1.2rem; padding: 0.75rem;"></div>
+      <div id="bingo-selection-counter" class="text-center mb-2" style="font-size: 1.1rem; color: #fbbf24;"></div>
       <div id="bingo-master-list"></div>
-      <button id="generateBingoCardsButton" class="mt-4" disabled>Generate Cards</button>
+      <button id="generateBingoCardsButton" class="mt-4" disabled style="font-size: 1.1rem; padding: 0.75rem;">Generate Cards</button>
     </div>
   </div>
   <div id="panel-story-maker" class="panel right-panel">
@@ -1799,6 +1834,22 @@
           ];
           let challengeScores = challengePlayers.map(() => 0);
           let currentChallengePlayerIndex = 0;
+
+          // Setup player name input listeners
+          const player1NameInput = document.getElementById('player1-name');
+          const player2NameInput = document.getElementById('player2-name');
+          if (player1NameInput) {
+            player1NameInput.addEventListener('input', (e) => {
+              challengePlayers[0].name = e.target.value || 'Player 1';
+              renderChallengeHud();
+            });
+          }
+          if (player2NameInput) {
+            player2NameInput.addEventListener('input', (e) => {
+              challengePlayers[1].name = e.target.value || 'Player 2';
+              renderChallengeHud();
+            });
+          }
 
           // =============================================================================
           // SHARED UTILITY FUNCTIONS
@@ -2178,6 +2229,94 @@
             panel.addEventListener('click', resetPanelInactivityTimer);
           });
 
+          // --- Panel Dragging System (using CSS variables) ---
+          function makePanelDraggable(panel) {
+            let isDragging = false;
+            let currentX = 0;
+            let currentY = 0;
+            let initialX = 0;
+            let initialY = 0;
+            let xOffset = 0;
+            let yOffset = 0;
+            
+            // Load saved position from localStorage
+            const savedPos = localStorage.getItem(`panel-position-${panel.id}`);
+            if (savedPos) {
+              const pos = JSON.parse(savedPos);
+              xOffset = pos.x;
+              yOffset = pos.y;
+              panel.style.setProperty('--drag-x', `${xOffset}px`);
+              panel.style.setProperty('--drag-y', `${yOffset}px`);
+            }
+            
+            const header = panel.querySelector('.panel-header');
+            if (!header) return;
+            
+            header.style.cursor = 'move';
+            header.style.touchAction = 'none';
+            
+            function dragStart(e) {
+              if (e.type === 'touchstart') {
+                initialX = e.touches[0].clientX - xOffset;
+                initialY = e.touches[0].clientY - yOffset;
+              } else {
+                initialX = e.clientX - xOffset;
+                initialY = e.clientY - yOffset;
+              }
+              
+              if (e.target === header || header.contains(e.target)) {
+                isDragging = true;
+              }
+            }
+            
+            function drag(e) {
+              if (!isDragging) return;
+              
+              e.preventDefault();
+              
+              if (e.type === 'touchmove') {
+                currentX = e.touches[0].clientX - initialX;
+                currentY = e.touches[0].clientY - initialY;
+              } else {
+                currentX = e.clientX - initialX;
+                currentY = e.clientY - initialY;
+              }
+              
+              xOffset = currentX;
+              yOffset = currentY;
+              
+              // Set CSS variables instead of inline transform
+              panel.style.setProperty('--drag-x', `${currentX}px`);
+              panel.style.setProperty('--drag-y', `${currentY}px`);
+            }
+            
+            function dragEnd(e) {
+              if (isDragging) {
+                initialX = currentX;
+                initialY = currentY;
+                isDragging = false;
+                
+                // Save position to localStorage
+                localStorage.setItem(`panel-position-${panel.id}`, JSON.stringify({
+                  x: xOffset,
+                  y: yOffset
+                }));
+              }
+            }
+            
+            header.addEventListener('mousedown', dragStart);
+            header.addEventListener('touchstart', dragStart, { passive: false });
+            document.addEventListener('mousemove', drag);
+            document.addEventListener('touchmove', drag, { passive: false });
+            document.addEventListener('mouseup', dragEnd);
+            document.addEventListener('touchend', dragEnd);
+          }
+          
+          // Apply draggable to all panels
+          panels.forEach(panel => {
+            makePanelDraggable(panel);
+          });
+
           // --- Video & Playback Logic ---
           const advanceVideo = (direction) => {
             if (videoFiles.length === 0) return;
@@ -2393,6 +2532,28 @@
             currentTimers.push(interval);
           });
           const guessEmojis = ['🍆', '🍑', '🧍'];
+          
+          // Mark inputs as manually set when user changes them
+          const guessEmojiSelect = document.getElementById('guessEmoji');
+          const guessDurationInput = document.getElementById('guessTimerDuration');
+          const guessChangeIntervalInput = document.getElementById('guessVideoChangeSeconds');
+          
+          if (guessEmojiSelect) {
+            guessEmojiSelect.addEventListener('change', () => {
+              guessEmojiSelect.dataset.manuallySet = 'true';
+            });
+          }
+          if (guessDurationInput) {
+            guessDurationInput.addEventListener('input', () => {
+              guessDurationInput.dataset.manuallySet = 'true';
+            });
+          }
+          if (guessChangeIntervalInput) {
+            guessChangeIntervalInput.addEventListener('input', () => {
+              guessChangeIntervalInput.dataset.manuallySet = 'true';
+            });
+          }
+          
           const guessingInputsContainer = document.getElementById('guessing-inputs-container');
           for (let i = 1; i <= 4; i++) {
             const group = document.createElement('div');
@@ -2411,6 +2572,27 @@
           });
           document.getElementById('startGuessGameButton').addEventListener('click', () => {
             if (videoFiles.length === 0) return alert("Please upload videos first.");
+            
+            // Randomize emoji selector (if not manually changed)
+            const guessEmojiSelect = document.getElementById('guessEmoji');
+            if (guessEmojiSelect && !guessEmojiSelect.dataset.manuallySet) {
+              const randomEmoji = guessEmojis[Math.floor(Math.random() * guessEmojis.length)];
+              guessEmojiSelect.value = randomEmoji;
+            }
+            
+            // Randomize duration and change interval from presets (if not manually changed)
+            const durationInput = document.getElementById('guessTimerDuration');
+            const changeIntervalInput = document.getElementById('guessVideoChangeSeconds');
+            const durationPresets = [20, 30, 40, 60];
+            const changeIntervalPresets = [3, 5, 7, 10];
+            
+            if (durationInput && !durationInput.dataset.manuallySet) {
+              durationInput.value = durationPresets[Math.floor(Math.random() * durationPresets.length)];
+            }
+            if (changeIntervalInput && !changeIntervalInput.dataset.manuallySet) {
+              changeIntervalInput.value = changeIntervalPresets[Math.floor(Math.random() * changeIntervalPresets.length)];
+            }
+            
             closeAllPanels();
             clearAllTimers();
             advanceVideo(1);
@@ -2457,29 +2639,42 @@
           setupBingoBtn.addEventListener('click', () => {
             bingoCardsOverlayContainer.innerHTML = '';
             const playerCount = parseInt(document.getElementById('playerCount').value);
+            const gridSize = parseInt(document.getElementById('bingoGridSize').value);
             setupScores(playerCount);
             bingoSelections = Array(playerCount).fill(0).map(() => []);
             bingoCurrentPlayer = 0;
             document.getElementById('bingo-setup').classList.add('hidden');
             bingoSelectionActive.classList.remove('hidden');
             generateBingoCardsBtn.disabled = true;
+            
+            // Select random 15 prompts from master list
+            const shuffled = [...bingoPrompts].sort(() => Math.random() - 0.5);
+            const selectedPrompts = shuffled.slice(0, 15);
+            
             const masterList = document.getElementById('bingo-master-list');
             const turnIndicator = document.getElementById('bingo-turn-indicator');
+            const selectionCounter = document.getElementById('bingo-selection-counter');
             masterList.innerHTML = '';
-            masterList.className = 'grid grid-cols-2 gap-2 max-h-96 overflow-y-auto';
+            masterList.className = 'flex flex-col gap-2 max-h-96 overflow-y-auto';
+            
             const updateTurnIndicator = () => {
-              const picksLeft = 9 - bingoSelections[bingoCurrentPlayer].length;
-              turnIndicator.textContent = `Player ${bingoCurrentPlayer + 1}'s Turn (${picksLeft} left)`;
+              const picksLeft = gridSize - bingoSelections[bingoCurrentPlayer].length;
+              const totalPicks = bingoSelections[bingoCurrentPlayer].length;
+              turnIndicator.textContent = `Player ${bingoCurrentPlayer + 1}'s Turn`;
               turnIndicator.style.color = playerColors[bingoCurrentPlayer];
+              selectionCounter.textContent = `Selected: ${totalPicks}/${gridSize} (${picksLeft} left)`;
             };
-            bingoPrompts.forEach(prompt => {
+            
+            selectedPrompts.forEach(prompt => {
               const item = document.createElement('div');
-              item.className = 'bingo-item p-2 bg-gray-700 rounded cursor-pointer text-xs';
+              item.className = 'bingo-item p-3 bg-gray-700 rounded cursor-pointer';
+              item.style.fontSize = '1.1rem';
+              item.style.transition = 'all 0.2s';
               item.textContent = prompt;
               item.dataset.owner = -1;
               item.addEventListener('click', () => {
                 const currentOwner = parseInt(item.dataset.owner);
-                if (bingoSelections[bingoCurrentPlayer].length < 9 || currentOwner === bingoCurrentPlayer) {
+                if (bingoSelections[bingoCurrentPlayer].length < gridSize || currentOwner === bingoCurrentPlayer) {
                   if (currentOwner !== -1 && currentOwner !== bingoCurrentPlayer) {
                     const oldOwnerList = bingoSelections[currentOwner];
                     const indexToRemove = oldOwnerList.indexOf(prompt);
@@ -2489,17 +2684,20 @@
                     bingoSelections[bingoCurrentPlayer].push(prompt);
                     item.dataset.owner = bingoCurrentPlayer;
                     item.style.backgroundColor = playerColors[bingoCurrentPlayer];
+                    item.style.borderLeft = `4px solid ${playerColors[bingoCurrentPlayer]}`;
                   } else {
                     const indexToRemove = bingoSelections[bingoCurrentPlayer].indexOf(prompt);
                     if (indexToRemove > -1) bingoSelections[bingoCurrentPlayer].splice(indexToRemove, 1);
                     item.dataset.owner = -1;
-                    item.style.backgroundColor = '#333';
+                    item.style.backgroundColor = '#374151';
+                    item.style.borderLeft = 'none';
                   }
                 }
-                const allDone = bingoSelections.every(p => p.length === 9);
+                const allDone = bingoSelections.every(p => p.length === gridSize);
                 generateBingoCardsBtn.disabled = !allDone;
                 if (allDone) {
                   turnIndicator.textContent = "Ready! Generate Cards.";
+                  selectionCounter.textContent = "All players ready!";
                 } else {
                   bingoCurrentPlayer = (bingoCurrentPlayer + 1) % playerCount;
                   updateTurnIndicator();
@@ -2511,19 +2709,29 @@
           });
           generateBingoCardsBtn.addEventListener('click', () => {
             closeAllPanels();
+            const gridSize = parseInt(document.getElementById('bingoGridSize').value);
+            const cols = gridSize === 4 ? 2 : 3;
+            const rows = gridSize === 4 ? 2 : 2;
             bingoCardsOverlayContainer.innerHTML = '';
             bingoSelections.forEach((playerPrompts, i) => {
               const card = document.createElement('div');
               card.className = 'bingo-card-widget';
-              card.style.top = `${15 + i * 15}px`;
-              card.style.left = `${15 + i * 15}px`;
+              // Position cards at top-right, stacked downward with spacing
+              card.style.top = `${80 + i * 60}px`;
+              card.style.right = `${80}px`;
+              card.style.left = 'auto';
               const playerName = challengePlayers[i] ? challengePlayers[i].name : `Player ${i+1}`;
-              card.innerHTML = `<div class="bingo-card-header" style="background-color:${playerColors[i]}"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+              // Add per-card color tint
+              const tintColor = playerColors[i] ? playerColors[i] : '#888';
+              card.innerHTML = `<div class="bingo-card-header" style="background-color:${playerColors[i]}"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container" style="grid-template-columns: repeat(${cols}, 1fr); background-color: ${tintColor}15;"></div>`;
               const gridContainer = card.querySelector('.bingo-grid-container');
               playerPrompts.forEach(prompt => {
                 const cell = document.createElement('div');
                 cell.className = 'cell';
                 cell.textContent = prompt;
+                // Make cells more horizontal (wider than tall)
+                cell.style.aspectRatio = '2 / 1';
+                cell.style.fontSize = '1rem';
                 cell.addEventListener('click', () => {
                   const isMarked = cell.classList.toggle('marked');
                   updateScore(i, isMarked ? 1 : -1);
