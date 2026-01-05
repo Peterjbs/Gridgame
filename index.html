@@ -3673,6 +3673,34 @@
             taskModalOverlay.style.display = ''; // Reset display property
             activeTaskElement = null;
             isTaskCompleted = false;
+            
+            // Clean up any game overlays that might be lingering
+            const overlaysToRemove = [
+              'pf-game-overlay',
+              'trivia-speed-overlay',
+              'paint-splatter-overlay',
+              'video-clip-detective-overlay',
+              'clip-order-overlay',
+              'avatar-sequence-overlay',
+              'icon-click-overlay',
+              'timestamp-overlay',
+              'video-quarter-overlay'
+            ];
+            
+            overlaysToRemove.forEach(id => {
+              const overlay = document.getElementById(id);
+              if (overlay && overlay.parentNode) {
+                overlay.parentNode.removeChild(overlay);
+              }
+            });
+            
+            // Clear all timers in currentTimers array
+            currentTimers.forEach(timer => {
+              clearTimeout(timer);
+              clearInterval(timer);
+            });
+            currentTimers = [];
+            
             startScoreDecay();
           }
 
