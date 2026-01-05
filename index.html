@@ -4052,7 +4052,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 time: 70,
                 gridClass: 'grid-cols-5',
                 emojiSize: '1.5rem'
-              }, // <-- FIX: Added missing comma here
+              },
               {
                 size: 24,
                 time: 90,
@@ -4063,48 +4063,132 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             const config = configs[Math.floor(Math.random() * configs.length)];
 
             taskModalBody.innerHTML = `<h3>Ready to Match?</h3><p>Find all ${config.size / 2} pairs before time runs out.</p><button id="start-challenge-btn" class="modal-action-btn">Start Matching</button>`;
+            
             document.getElementById('start-challenge-btn').onclick = () => {
-              // FIX: Cleaned up emoji list
+              // Hide the task modal
+              hideTaskModal();
+              
+              // Create game overlay with transparent background
+              const overlay = createGameOverlay({ 
+                id: 'match-pairs-overlay', 
+                title: 'Match the Pairs',
+                showExit: true 
+              });
+              
+              // Set transparent background
+              overlay.overlayEl.style.backgroundColor = 'rgba(0, 0, 0, 0.3)';
+              
+              // Helper function: deterministic emoji to color mapping
+              const emojiToColor = (emoji) => {
+                // Create a hash from the emoji
+                let hash = 0;
+                for (let i = 0; i < emoji.length; i++) {
+                  hash = emoji.charCodeAt(i) + ((hash << 5) - hash);
+                }
+                // Convert to HSL color (hue based on hash, saturation and lightness fixed for visibility)
+                const hue = Math.abs(hash % 360);
+                return `hsl(${hue}, 70%, 50%)`;
+              };
+              
               const baseEmojis = ['🍆', '🍑', '💦', '👄', '👅', '💪', '⛓️', '🔥', '😈', '🦄', '🐷', '💨', '🚀', '🫃🏽'];
               const gameEmojis = [...baseEmojis.slice(0, config.size / 2), ...baseEmojis.slice(0, config.size / 2)].sort(() => 0.5 - Math.random());
+              
               let flipped = [];
               let matchedCount = 0;
               let canClick = true;
               let timeLeft = config.time;
-              taskModalBody.innerHTML =
-                `<div class="flex justify-between items-center mb-4"><h3 id="pairs-timer" class="text-2xl font-bold">Time: ${timeLeft}</h3></div><div class="emoji-grid ${config.gridClass}">${gameEmojis.map((emoji, i) => `<div class="emoji-cell" data-index="${i}" style="font-size: ${config.emojiSize};"><div class="emoji-content">${emoji}</div></div>`).join('')}</div>`;
-              modalTimer = setInterval(() => {
+              
+              // Create game container
+              const gameContainer = document.createElement('div');
+              gameContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 1rem;';
+              
+              // Timer display
+              const timerEl = document.createElement('h3');
+              timerEl.id = 'pairs-timer';
+              timerEl.style.cssText = 'font-size: 2rem; font-weight: bold; color: white; text-shadow: 2px 2px 4px black;';
+              timerEl.textContent = `Time: ${timeLeft}`;
+              gameContainer.appendChild(timerEl);
+              
+              // Grid container
+              const gridEl = document.createElement('div');
+              gridEl.className = `emoji-grid ${config.gridClass}`;
+              gridEl.style.cssText = 'max-width: 600px;';
+              
+              // Create tiles with colored backs
+              gameEmojis.forEach((emoji, i) => {
+                const cell = document.createElement('div');
+                cell.className = 'emoji-cell';
+                cell.dataset.index = i;
+                cell.dataset.emoji = emoji;
+                
+                // Set colored back based on emoji
+                const backColor = emojiToColor(emoji);
+                cell.style.backgroundColor = backColor;
+                cell.style.fontSize = config.emojiSize;
+                
+                const content = document.createElement('div');
+                content.className = 'emoji-content';
+                content.textContent = emoji;
+                cell.appendChild(content);
+                
+                gridEl.appendChild(cell);
+              });
+              
+              gameContainer.appendChild(gridEl);
+              overlay.overlayEl.appendChild(gameContainer);
+              
+              // Game timer
+              const gameTimer = setInterval(() => {
                 timeLeft--;
-                const timerEl = document.getElementById('pairs-timer');
-                if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
+                timerEl.textContent = `Time: ${timeLeft}`;
                 if (timeLeft <= 0) {
-                  clearInterval(modalTimer);
+                  clearInterval(gameTimer);
                   updateMainScore(-1000);
-                  alert("Time's up!");
+                  showToast("Time's up!", 'error');
+                  overlay.destroy();
                   closeTaskModal();
                 }
               }, 1000);
-              document.querySelectorAll('.emoji-cell').forEach(cell => {
+              
+              // Register cleanup
+              registerGameCleanup(() => {
+                clearInterval(gameTimer);
+              });
+              
+              // Add click handlers to all cells
+              gridEl.querySelectorAll('.emoji-cell').forEach(cell => {
                 cell.onclick = () => {
                   if (!canClick || cell.classList.contains('flipped') || cell.classList.contains('matched') || flipped.length >= 2) return;
+                  
                   cell.classList.add('flipped');
                   flipped.push(cell);
+                  
                   if (flipped.length === 2) {
                     canClick = false;
                     const [first, second] = flipped;
-                    if (gameEmojis[first.dataset.index] === gameEmojis[second.dataset.index]) {
+                    const emoji1 = first.dataset.emoji;
+                    const emoji2 = second.dataset.emoji;
+                    
+                    if (emoji1 === emoji2) {
+                      // Match found
                       first.classList.add('matched');
                       second.classList.add('matched');
                       matchedCount += 2;
                       flipped = [];
                       canClick = true;
                       updateMainScore(500);
+                      
+                      // Check if all matched
                       if (matchedCount === gameEmojis.length) {
-                        clearInterval(modalTimer);
+                        clearInterval(gameTimer);
                         updateMainScore(timeLeft * 100);
-                        markTaskComplete();
+                        setTimeout(() => {
+                          markTaskComplete();
+                          overlay.destroy();
+                        }, 500);
                       }
                     } else {
+                      // No match
                       setTimeout(() => {
                         first.classList.remove('flipped');
                         second.classList.remove('flipped');
@@ -4501,52 +4585,102 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               return;
             }
 
-            taskModalBody.innerHTML = `<h3>Click the button ONLY when you see the 😈 symbol.</h3><p>Don't click too early!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
+            taskModalBody.innerHTML = `<h3>Tap ANYWHERE when you see the 😈 symbol.</h3><p>Don't tap too early!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
 
             document.getElementById('start-challenge-btn').onclick = () => {
+              // Hide the task modal
+              hideTaskModal();
+              
+              // Create game overlay
+              const overlay = createGameOverlay({ 
+                id: 'reflex-test-overlay', 
+                title: '',
+                showExit: true 
+              });
+              
+              // Set minimal transparent background
+              overlay.overlayEl.style.backgroundColor = 'rgba(0, 0, 0, 0.1)';
+              
               const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
               const videoURL = URL.createObjectURL(videoFiles[randomVideoIndex]);
               let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
               let symbolTimer = null;
-
-              taskModalBody.innerHTML = `
-                    <div class="reflex-test-container">
-                        <video class="reflex-test-video" src="${videoURL}" muted autoplay loop></video>
-                        <div class="reflex-test-symbol">😈</div>
-                    </div>
-                    <button id="reflex-click-btn" class="modal-action-btn mt-4">CLICK HERE!</button>
-                `;
-
-              const symbolEl = document.querySelector('.reflex-test-symbol');
-
-              const showSymbolTimeout = setTimeout(() => {
-                gamePhase = 'active';
-                symbolEl.classList.add('visible');
-                symbolTimer = setTimeout(() => { // Symbol disappears
+              let showSymbolTimeout = null;
+              let tapped = false; // Guard flag to prevent double triggers
+              
+              // Create game container
+              const gameContainer = document.createElement('div');
+              gameContainer.style.cssText = 'position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: auto;';
+              
+              // HUD with round counter and instruction
+              const hudEl = document.createElement('div');
+              hudEl.style.cssText = 'position: absolute; top: 5rem; left: 50%; transform: translateX(-50%); background: rgba(0, 0, 0, 0.6); padding: 1rem 2rem; border-radius: 1rem; text-align: center; z-index: 10;';
+              hudEl.innerHTML = `<div style="font-size: 1.5rem; color: white; text-shadow: 2px 2px 4px black;">Tap when you see 😈</div>`;
+              gameContainer.appendChild(hudEl);
+              
+              // Symbol display (centered over video)
+              const symbolEl = document.createElement('div');
+              symbolEl.style.cssText = 'position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); font-size: 8rem; text-shadow: 0 0 20px black; pointer-events: none; opacity: 0; transition: opacity 0.1s; z-index: 5;';
+              symbolEl.textContent = '😈';
+              gameContainer.appendChild(symbolEl);
+              
+              overlay.overlayEl.appendChild(gameContainer);
+              
+              // Tap handler function
+              const handleTap = (e) => {
+                if (tapped || gamePhase === 'ended') return;
+                tapped = true;
+                
+                if (gamePhase === 'waiting') {
+                  showToast('Too early!', 'error');
+                  if (showSymbolTimeout) clearTimeout(showSymbolTimeout);
+                  if (symbolTimer) clearTimeout(symbolTimer);
                   gamePhase = 'ended';
-                  symbolEl.classList.remove('visible');
-                  if (activeTaskElement && !isTaskCompleted) { // If player hasn't clicked by now
-                    alert('Too slow!');
+                  setTimeout(() => {
+                    overlay.destroy();
                     closeTaskModal();
+                  }, 500);
+                } else if (gamePhase === 'active') {
+                  updateMainScore(2000);
+                  if (showSymbolTimeout) clearTimeout(showSymbolTimeout);
+                  if (symbolTimer) clearTimeout(symbolTimer);
+                  gamePhase = 'ended';
+                  setTimeout(() => {
+                    markTaskComplete();
+                    overlay.destroy();
+                  }, 500);
+                }
+              };
+              
+              // Add pointer event listeners for iPad compatibility
+              document.addEventListener('pointerdown', handleTap);
+              
+              // Start the game
+              showSymbolTimeout = setTimeout(() => {
+                gamePhase = 'active';
+                symbolEl.style.opacity = '1';
+                hudEl.innerHTML = `<div style="font-size: 1.5rem; color: #2ecc71; text-shadow: 2px 2px 4px black;">TAP NOW!</div>`;
+                
+                symbolTimer = setTimeout(() => {
+                  if (gamePhase === 'active') {
+                    gamePhase = 'ended';
+                    symbolEl.style.opacity = '0';
+                    showToast('Too slow!', 'error');
+                    setTimeout(() => {
+                      overlay.destroy();
+                      closeTaskModal();
+                    }, 500);
                   }
                 }, 1500); // Symbol is visible for 1.5s
               }, Math.random() * 5000 + 3000); // Random delay 3-8s
-
-              currentTimers.push(showSymbolTimeout, symbolTimer);
-
-              document.getElementById('reflex-click-btn').onclick = () => {
-                  if(gamePhase === 'ended') return;
-
-                  if (gamePhase === 'waiting') {
-                    alert('Too early!');
-                    clearTimeout(showSymbolTimeout);
-                    closeTaskModal();
-                  } else if (gamePhase === 'active') {
-                    updateMainScore(2000);
-                    markTaskComplete();
-                  }
-                  gamePhase = 'ended'; // Prevent multiple clicks
-              };
+              
+              // Register cleanup
+              registerGameCleanup(() => {
+                if (showSymbolTimeout) clearTimeout(showSymbolTimeout);
+                if (symbolTimer) clearTimeout(symbolTimer);
+                document.removeEventListener('pointerdown', handleTap);
+                URL.revokeObjectURL(videoURL);
+              });
             };
           }
 
@@ -5445,8 +5579,29 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             `;
 
             document.getElementById('start-challenge-btn').onclick = () => {
+              // Hide task modal
+              hideTaskModal();
+              
+              // Create game overlay
+              const overlay = createGameOverlay({ 
+                id: 'avatar-sequence-overlay', 
+                title: 'Avatar Sequence Memory',
+                showExit: true 
+              });
+              
+              // Set semi-transparent background
+              overlay.overlayEl.style.backgroundColor = 'rgba(0, 0, 0, 0.7)';
+              
               let round = 1;
               const maxRounds = 3;
+              const allIntervals = [];
+              const allTimeouts = [];
+              
+              // Helper function: generate deterministic color for tile backs
+              const getTileBackColor = (index) => {
+                const hue = (index * 137.5) % 360; // Golden angle for even distribution
+                return `hsl(${hue}, 60%, 40%)`;
+              };
               
               const playRound = () => {
                 const sequenceLength = 3 + round; // 4, 5, 6
@@ -5458,83 +5613,135 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   sequence.push(Math.floor(Math.random() * gridSize));
                 }
                 
-                // Select 9 images from shuffle-bag (ensures all 34 are used over time)
+                // Select 9 PNG avatars from images folder (1.png - 34.png)
                 const tileImages = [];
                 for (let i = 0; i < gridSize; i++) {
                   const imageNum = getNextImage();
                   tileImages.push(`images/${imageNum}.png`);
                 }
                 
-                taskModalTitle.textContent = `Round ${round}/${maxRounds} - Watch the sequence!`;
-                taskModalBody.innerHTML = `
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-width: 400px; margin: 0 auto;">
-                    ${Array(gridSize).fill(0).map((_, i) => `
-                      <div class="avatar-tile" data-index="${i}" style="
-                        aspect-ratio: 1;
-                        background-image: url('${tileImages[i]}');
-                        background-size: cover;
-                        background-position: center;
-                        border-radius: 8px;
-                        cursor: pointer;
-                        transition: all 0.3s;
-                        border: 3px solid rgba(255,255,255,0.1);
-                      "></div>
-                    `).join('')}
-                  </div>
-                `;
+                // Create game container
+                const gameContainer = document.createElement('div');
+                gameContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem;';
                 
-                // Show sequence
+                // Round title
+                const titleEl = document.createElement('h2');
+                titleEl.id = 'round-title';
+                titleEl.style.cssText = 'font-size: 2rem; color: white; text-shadow: 2px 2px 4px black; margin-bottom: 1rem;';
+                titleEl.textContent = `Round ${round}/${maxRounds} - Watch the sequence!`;
+                gameContainer.appendChild(titleEl);
+                
+                // Grid container
+                const gridEl = document.createElement('div');
+                gridEl.style.cssText = 'display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-width: 450px;';
+                
+                // Create tiles with avatar images and colored backs
+                for (let i = 0; i < gridSize; i++) {
+                  const tile = document.createElement('div');
+                  tile.className = 'avatar-tile';
+                  tile.dataset.index = i;
+                  tile.style.cssText = `
+                    aspect-ratio: 1;
+                    background-color: ${getTileBackColor(i)};
+                    background-image: url('${tileImages[i]}');
+                    background-size: cover;
+                    background-position: center;
+                    border-radius: 8px;
+                    cursor: pointer;
+                    transition: all 0.3s;
+                    border: 3px solid rgba(255,255,255,0.1);
+                    position: relative;
+                    overflow: hidden;
+                  `;
+                  
+                  // Add a colored overlay that shows when not flipped
+                  const colorOverlay = document.createElement('div');
+                  colorOverlay.className = 'tile-color-overlay';
+                  colorOverlay.style.cssText = `
+                    position: absolute;
+                    inset: 0;
+                    background-color: ${getTileBackColor(i)};
+                    transition: opacity 0.3s;
+                    opacity: 1;
+                  `;
+                  tile.appendChild(colorOverlay);
+                  
+                  gridEl.appendChild(tile);
+                }
+                
+                gameContainer.appendChild(gridEl);
+                overlay.overlayEl.innerHTML = '';
+                overlay.overlayEl.appendChild(gameContainer);
+                
+                // Show sequence (SLOWED TO HALF SPEED: 2000ms instead of 1000ms)
                 let showIndex = 0;
                 const showInterval = setInterval(() => {
                   if (showIndex >= sequence.length) {
                     clearInterval(showInterval);
                     // Now let player repeat
-                    startPlayerTurn();
+                    setTimeout(() => startPlayerTurn(), 500);
                     return;
                   }
                   
                   const tileIndex = sequence[showIndex];
-                  const tile = document.querySelector(`.avatar-tile[data-index="${tileIndex}"]`);
+                  const tile = gridEl.querySelector(`.avatar-tile[data-index="${tileIndex}"]`);
+                  const colorOverlay = tile.querySelector('.tile-color-overlay');
+                  
+                  // Flash: hide color overlay to reveal avatar
                   tile.style.borderColor = 'rgba(52, 152, 219, 1)';
                   tile.style.borderWidth = '5px';
                   tile.style.transform = 'scale(1.1)';
                   tile.style.boxShadow = '0 0 20px rgba(52, 152, 219, 0.8)';
+                  colorOverlay.style.opacity = '0';
                   
-                  setTimeout(() => {
+                  const resetTimeout = setTimeout(() => {
                     tile.style.borderColor = 'rgba(255,255,255,0.1)';
                     tile.style.borderWidth = '3px';
                     tile.style.transform = 'scale(1)';
                     tile.style.boxShadow = 'none';
-                  }, 500);
+                    colorOverlay.style.opacity = '1';
+                  }, 1000); // Show for 1 second (half speed)
                   
+                  allTimeouts.push(resetTimeout);
                   showIndex++;
-                }, 1000);
+                }, 2000); // 2000ms interval (half speed from original 1000ms)
                 
-                currentTimers.push(showInterval);
+                allIntervals.push(showInterval);
                 
                 const startPlayerTurn = () => {
-                  taskModalTitle.textContent = `Round ${round}/${maxRounds} - Your turn!`;
+                  titleEl.textContent = `Round ${round}/${maxRounds} - Your turn!`;
                   const playerSequence = [];
                   
-                  document.querySelectorAll('.avatar-tile').forEach(tile => {
+                  gridEl.querySelectorAll('.avatar-tile').forEach(tile => {
                     tile.onclick = () => {
                       const index = parseInt(tile.dataset.index);
                       playerSequence.push(index);
+                      const colorOverlay = tile.querySelector('.tile-color-overlay');
                       
+                      // Flash feedback
                       tile.style.borderColor = 'rgba(46, 204, 113, 1)';
                       tile.style.borderWidth = '5px';
                       tile.style.boxShadow = '0 0 20px rgba(46, 204, 113, 0.8)';
-                      setTimeout(() => {
+                      colorOverlay.style.opacity = '0';
+                      
+                      const feedbackTimeout = setTimeout(() => {
                         tile.style.borderColor = 'rgba(255,255,255,0.1)';
                         tile.style.borderWidth = '3px';
                         tile.style.boxShadow = 'none';
+                        colorOverlay.style.opacity = '1';
                       }, 300);
+                      
+                      allTimeouts.push(feedbackTimeout);
                       
                       // Check if correct so far
                       if (sequence[playerSequence.length - 1] !== index) {
                         // Wrong!
-                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong sequence!</h2></div>`;
-                        setTimeout(() => closeTaskModal(), 2000);
+                        gameContainer.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong sequence!</h2></div>`;
+                        const closeTimeout = setTimeout(() => {
+                          overlay.destroy();
+                          closeTaskModal();
+                        }, 2000);
+                        allTimeouts.push(closeTimeout);
                         return;
                       }
                       
@@ -5543,20 +5750,29 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                         // Correct!
                         round++;
                         if (round > maxRounds) {
-                          taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>All 3 rounds completed!</p></div>`;
-                          setTimeout(() => {
+                          gameContainer.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>All 3 rounds completed!</p></div>`;
+                          const completeTimeout = setTimeout(() => {
                             updateMainScore(3000);
                             markTaskComplete();
+                            overlay.destroy();
                           }, 1500);
+                          allTimeouts.push(completeTimeout);
                         } else {
-                          taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Round ${round - 1} complete!</h2></div>`;
-                          setTimeout(() => playRound(), 1500);
+                          gameContainer.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Round ${round - 1} complete!</h2></div>`;
+                          const nextRoundTimeout = setTimeout(() => playRound(), 1500);
+                          allTimeouts.push(nextRoundTimeout);
                         }
                       }
                     };
                   });
                 };
               };
+              
+              // Register cleanup
+              registerGameCleanup(() => {
+                allIntervals.forEach(id => clearInterval(id));
+                allTimeouts.forEach(id => clearTimeout(id));
+              });
               
               playRound();
             };
@@ -6144,7 +6360,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             };
           }
 
-          // 8. Timestamp Match - Click when video returns to same timestamp
+          // 8. Timestamp Match - Click when video returns to same timestamp (SIMPLIFIED TO ONE MATCH)
           async function setupTimestampMatchTask() {
             taskModalTitle.textContent = "Timestamp Match ⏱️";
             
@@ -6154,13 +6370,16 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
             
             taskModalBody.innerHTML = `
-              <h3>Remember the timestamp!</h3>
+              <h3>Remember the moment!</h3>
               <p>The video will show a moment, then jump around.</p>
               <p>Click when it returns to the SAME moment!</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>
             `;
             
             document.getElementById('start-challenge-btn').onclick = async () => {
+              // Hide task modal
+              hideTaskModal();
+              
               const videoIndex = Math.floor(Math.random() * videoFiles.length);
               const file = videoFiles[videoIndex];
               const url = URL.createObjectURL(file);
@@ -6174,81 +6393,127 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 tempVideo.onloadedmetadata = () => resolve();
               });
               
-              // Check if video is long enough (at least 20 minutes to ensure 10+ minute gap is possible)
-              if (tempVideo.duration < 1200) {
-                taskModalBody.innerHTML = `<p class="text-red-500">Video must be at least 20 minutes long for this challenge to ensure clips are sufficiently far apart.</p>`;
+              // Check if video is long enough (at least 2 minutes)
+              if (tempVideo.duration < 120) {
+                showToast('Video must be at least 2 minutes long', 'error');
+                closeTaskModal();
+                URL.revokeObjectURL(url);
                 return;
               }
               
+              // Create game overlay with minimal UI
+              const overlay = createGameOverlay({ 
+                id: 'timestamp-match-overlay', 
+                title: 'Timestamp Match',
+                showExit: true 
+              });
+              
+              // Semi-transparent background
+              overlay.overlayEl.style.backgroundColor = 'rgba(0, 0, 0, 0.5)';
+              
               const targetTime = Math.random() * (tempVideo.duration - 10);
+              let gameOver = false;
+              let currentJumpTime = 0;
+              let jumpInterval = null;
               
-              taskModalBody.innerHTML = `
-                <div style="width: 100%; max-width: 500px; margin: 0 auto;">
-                  <video id="timestamp-video" style="width: 100%; height: auto;" muted playsinline></video>
-                </div>
-                <p id="timestamp-instruction" style="margin-top: 1rem; font-size: 1.2rem;">Watch this moment...</p>
-                <button id="timestamp-click-btn" class="modal-action-btn" disabled style="margin-top: 1rem;">Click when it matches!</button>
-              `;
+              // Create game container
+              const gameContainer = document.createElement('div');
+              gameContainer.style.cssText = 'display: flex; flex-direction: column; align-items: center; gap: 1rem; padding: 2rem; max-width: 600px;';
               
-              const player = document.getElementById('timestamp-video');
+              // Video player (small, just for reference)
+              const player = document.createElement('video');
+              player.style.cssText = 'width: 100%; max-width: 400px; border-radius: 8px; box-shadow: 0 4px 8px rgba(0,0,0,0.3);';
+              player.muted = true;
+              player.playsInline = true;
               player.src = url;
+              gameContainer.appendChild(player);
               
               await new Promise(resolve => {
                 player.onloadedmetadata = () => resolve();
               });
               
-              // Show target timestamp for 2 seconds
+              // Instruction text
+              const instructionEl = document.createElement('p');
+              instructionEl.id = 'timestamp-instruction';
+              instructionEl.style.cssText = 'font-size: 1.5rem; color: white; text-shadow: 2px 2px 4px black; text-align: center;';
+              instructionEl.textContent = 'Watch this moment...';
+              gameContainer.appendChild(instructionEl);
+              
+              // Click button
+              const clickBtn = document.createElement('button');
+              clickBtn.id = 'timestamp-click-btn';
+              clickBtn.className = 'modal-action-btn';
+              clickBtn.disabled = true;
+              clickBtn.textContent = 'Click when it matches!';
+              clickBtn.style.cssText = 'margin-top: 1rem; font-size: 1.2rem; padding: 1rem 2rem;';
+              gameContainer.appendChild(clickBtn);
+              
+              overlay.overlayEl.appendChild(gameContainer);
+              
+              // Show target timestamp for 3 seconds
               player.currentTime = targetTime;
               await player.play();
-              await new Promise(resolve => setTimeout(resolve, 2000));
+              await new Promise(resolve => setTimeout(resolve, 3000));
               player.pause();
               
-              document.getElementById('timestamp-instruction').textContent = 'Video is jumping around... Click when it matches!';
-              document.getElementById('timestamp-click-btn').disabled = false;
+              instructionEl.textContent = 'Video is jumping around... Click when it matches!';
+              clickBtn.disabled = false;
               
-              let gameOver = false;
-              let currentJumpTime = 0;
-              
-              // Jump around every 2 seconds, ensuring clips are at least 10 minutes apart
-              const jumpInterval = setInterval(() => {
+              // Jump around every 2.5 seconds (randomized within video, avoiding target)
+              jumpInterval = setInterval(() => {
                 if (gameOver) {
                   clearInterval(jumpInterval);
                   return;
                 }
                 
-                // Generate a jump time that is at least 600 seconds (10 minutes) away from target
+                // Generate a jump time that is at least 30 seconds away from target
                 let newJumpTime;
+                const minGap = Math.min(30, tempVideo.duration * 0.15); // At least 30s or 15% of video
                 do {
                   newJumpTime = Math.random() * tempVideo.duration;
-                } while (Math.abs(newJumpTime - targetTime) < 600);
+                } while (Math.abs(newJumpTime - targetTime) < minGap);
+                
+                // Random chance (20%) to show the target
+                if (Math.random() < 0.2) {
+                  newJumpTime = targetTime;
+                }
                 
                 currentJumpTime = newJumpTime;
                 player.currentTime = currentJumpTime;
                 player.play();
-              }, 2000);
+              }, 2500);
               
-              currentTimers.push(jumpInterval);
-              
-              document.getElementById('timestamp-click-btn').onclick = () => {
+              // Button click handler
+              clickBtn.onclick = () => {
                 if (gameOver) return;
                 gameOver = true;
-                clearInterval(jumpInterval);
+                if (jumpInterval) clearInterval(jumpInterval);
                 player.pause();
                 
-                // Check if close to target (within 0.5 seconds)
+                // Check if close to target (within 1 second)
                 const diff = Math.abs(currentJumpTime - targetTime);
                 
-                if (diff <= 0.5) {
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect Match!</h2><p>Within 0.5 seconds!</p></div>`;
+                if (diff <= 1.0) {
+                  gameContainer.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect Match!</h2><p>Within ${diff.toFixed(1)}s!</p></div>`;
                   setTimeout(() => {
                     updateMainScore(3000);
                     markTaskComplete();
+                    overlay.destroy();
                   }, 1500);
                 } else {
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Not quite!</h2><p>You were ${diff.toFixed(1)}s off</p></div>`;
-                  setTimeout(() => closeTaskModal(), 2000);
+                  gameContainer.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Not quite!</h2><p>You were ${diff.toFixed(1)}s off</p></div>`;
+                  setTimeout(() => {
+                    overlay.destroy();
+                    closeTaskModal();
+                  }, 2000);
                 }
               };
+              
+              // Register cleanup
+              registerGameCleanup(() => {
+                if (jumpInterval) clearInterval(jumpInterval);
+                URL.revokeObjectURL(url);
+              });
             };
           }
 
