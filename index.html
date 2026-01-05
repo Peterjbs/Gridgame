@@ -3762,7 +3762,7 @@
           }
 
           // --- Task Setup Functions ---
-          async function setupTrivia1Task(predefinedCategory = null) {
+          async function setupTriviaTask(predefinedCategory = null) {
             taskModalTitle.textContent = "Brain Storm!";
             const categoryName = predefinedCategory || challengeCategories[Math.floor(Math.random() * challengeCategories.length)][Math.floor(Math.random() * challengeCategories[0].length)];
 
@@ -4386,6 +4386,1729 @@
                   }
                   gamePhase = 'ended'; // Prevent multiple clicks
               };
+            };
+          }
+
+          async function setupPressureFrontTask() {
+            taskModalTitle.textContent = "Pressure Front";
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            
+            // Preset options for duration and change interval
+            const presetOptions = [
+              { duration: 100, change: 5 },
+              { duration: 75, change: 5 },
+              { duration: 30, change: 5 },
+              { duration: 100, change: 10 },
+              { duration: 50, change: 10 }
+            ];
+            const defaultPreset = presetOptions[0];
+            
+            taskModalBody.innerHTML = `
+              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
+              <p>Set up your guess and watch the videos!</p>
+              <div style="margin: 1rem 0;">
+                <label>Preset Options: 
+                  <select id="pf-preset" style="padding: 0.5rem; pointer-events: auto; background: rgba(255,255,255,0.1); color: black; border-radius: 4px;">
+                    ${presetOptions.map((opt, i) => `<option value="${i}">Duration ${opt.duration}s, Change ${opt.change}s</option>`).join('')}
+                  </select>
+                </label>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Time Duration (seconds): <input type="number" id="pf-timer" value="${defaultPreset.duration}" min="10" max="120" style="width: 80px; pointer-events: auto; color: black;"></label>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Video Change Interval (seconds): <input type="number" id="pf-interval" value="${defaultPreset.change}" min="1" max="30" style="width: 80px; pointer-events: auto; color: black;"></label>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Your guess emoji: </label>
+                <span class="pf-emoji-cycler text-2xl cursor-pointer" style="display: inline-block; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 5px;">🍆</span>
+              </div>
+              <div style="margin: 1rem 0;">
+                <label>Your guess count: <input type="number" id="pf-guess-count" value="5" min="0" max="100" style="width: 80px; pointer-events: auto; color: black;"></label>
+              </div>
+              <button id="start-pf-btn" class="modal-action-btn">Start Game</button>
+            `;
+            
+            const guessEmojis = ['🍆', '🍑', '👤', '🙂'];
+            const emojiCycler = taskModalBody.querySelector('.pf-emoji-cycler');
+            parseEmojis(emojiCycler);
+            
+            // Preset selector handler
+            const presetSelector = document.getElementById('pf-preset');
+            const timerInput = document.getElementById('pf-timer');
+            const intervalInput = document.getElementById('pf-interval');
+            
+            presetSelector.addEventListener('change', () => {
+              const selectedPreset = presetOptions[parseInt(presetSelector.value)];
+              timerInput.value = selectedPreset.duration;
+              intervalInput.value = selectedPreset.change;
+            });
+            
+            // Ensure inputs are focusable
+            const inputs = taskModalBody.querySelectorAll('input[type="number"]');
+            inputs.forEach(input => {
+              input.style.pointerEvents = 'auto';
+              input.addEventListener('focus', (e) => {
+                e.stopPropagation();
+              });
+            });
+            
+            emojiCycler.addEventListener('click', () => {
+              let currentEmojiIndex = guessEmojis.indexOf(emojiCycler.textContent.trim());
+              currentEmojiIndex = (currentEmojiIndex + 1) % guessEmojis.length;
+              emojiCycler.textContent = guessEmojis[currentEmojiIndex];
+              parseEmojis(emojiCycler);
+            });
+            
+            document.getElementById('start-pf-btn').onclick = () => {
+              if (videoFiles.length === 0) {
+                alert("Please upload videos first.");
+                return;
+              }
+              
+              const duration = parseInt(document.getElementById('pf-timer').value);
+              const interval = parseInt(document.getElementById('pf-interval').value);
+              const guessEmoji = emojiCycler.textContent.trim();
+              const guessCount = parseInt(document.getElementById('pf-guess-count').value);
+              
+              // Hide modal overlay to show video clearly
+              taskModalOverlay.style.pointerEvents = 'none';
+              taskModalBody.innerHTML = '';
+              
+              // Create overlay for tally in corner of video canvas
+              const gameOverlay = document.createElement('div');
+              gameOverlay.id = 'pf-game-overlay';
+              gameOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 250;
+                pointer-events: none;
+              `;
+              
+              // Tally container in top-right corner
+              const tallyContainer = document.createElement('div');
+              tallyContainer.style.cssText = `
+                position: absolute;
+                top: 20px;
+                right: 20px;
+                background: rgba(0,0,0,0.8);
+                padding: 1rem;
+                border-radius: 8px;
+                pointer-events: auto;
+                z-index: 10;
+              `;
+              
+              // Add timer and guess info
+              const infoDiv = document.createElement('div');
+              infoDiv.style.cssText = 'text-align: center; margin-bottom: 1rem;';
+              infoDiv.innerHTML = `
+                <div style="color: #8b5cf6; font-weight: bold; margin-bottom: 0.5rem;">Player ${currentChallengePlayerIndex + 1}</div>
+                <div style="color: #10b981; margin-bottom: 0.5rem;">Guess: ${guessEmoji} × ${guessCount}</div>
+                <div id="pf-timer-display" style="color: #f59e0b; font-size: 1.5rem; font-weight: bold;">Time: ${duration}s</div>
+              `;
+              tallyContainer.appendChild(infoDiv);
+              parseEmojis(infoDiv);
+              
+              // Add emoji tally buttons
+              const tallyGrid = document.createElement('div');
+              tallyGrid.style.cssText = 'display: flex; gap: 0.5rem; flex-wrap: wrap; max-width: 200px;';
+              
+              const tallyCounts = {};
+              
+              guessEmojis.forEach(emoji => {
+                tallyCounts[emoji] = 0;
+                const tallyDiv = document.createElement('div');
+                tallyDiv.style.cssText = 'text-align: center; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; user-select: none; flex: 1 1 45%;';
+                tallyDiv.innerHTML = `<div style="font-size: 1.5rem;">${emoji}</div><div class="tally-count" style="font-size: 1.2rem; font-weight: bold;">0</div>`;
+                
+                tallyDiv.addEventListener('click', () => {
+                  tallyCounts[emoji]++;
+                  tallyDiv.querySelector('.tally-count').textContent = tallyCounts[emoji];
+                });
+                
+                tallyGrid.appendChild(tallyDiv);
+              });
+              
+              tallyContainer.appendChild(tallyGrid);
+              gameOverlay.appendChild(tallyContainer);
+              document.body.appendChild(gameOverlay);
+              
+              parseEmojis(tallyContainer);
+              
+              // Start video rotation
+              let videoChangeTimer = null;
+              if (interval > 0) {
+                advanceVideo(1);
+                videoChangeTimer = setInterval(() => advanceVideo(1), interval * 1000);
+                currentTimers.push(videoChangeTimer);
+              }
+              
+              // Countdown timer
+              let timeLeft = duration;
+              const timerDisplay = document.getElementById('pf-timer-display');
+              const countdownTimer = setInterval(() => {
+                timeLeft--;
+                timerDisplay.textContent = `Time: ${timeLeft}s`;
+                
+                if (timeLeft <= 0) {
+                  clearInterval(countdownTimer);
+                  if (videoChangeTimer) clearInterval(videoChangeTimer);
+                  
+                  // Calculate winner
+                  const actualCount = tallyCounts[guessEmoji];
+                  const difference = Math.abs(actualCount - guessCount);
+                  
+                  // Remove overlay and show results in modal
+                  gameOverlay.remove();
+                  taskModalOverlay.style.pointerEvents = 'all';
+                  
+                  taskModalBody.innerHTML = `
+                    <h2>Results</h2>
+                    <p style="font-size: 1.5rem;">Your guess: ${guessEmoji} × ${guessCount}</p>
+                    <p style="font-size: 1.5rem;">Actual count: ${guessEmoji} × ${actualCount}</p>
+                    <p style="font-size: 1.5rem;">Difference: ${difference}</p>
+                    <p style="font-size: 1.2rem; margin-top: 1rem;">${difference <= 2 ? '🎉 Close enough! You win!' : '❌ Not close enough. Try again!'}</p>
+                    <button id="pf-finish-btn" class="modal-action-btn mt-4">${difference <= 2 ? 'Claim Square' : 'Continue'}</button>
+                  `;
+                  
+                  parseEmojis(taskModalBody);
+                  
+                  document.getElementById('pf-finish-btn').onclick = () => {
+                    if (difference <= 2) {
+                      updateMainScore(1500);
+                      markTaskComplete();
+                    } else {
+                      closeTaskModal();
+                    }
+                  };
+                }
+              }, 1000);
+              
+              currentTimers.push(countdownTimer);
+            };
+          }
+
+          async function setupMiniBingoTask() {
+            taskModalTitle.textContent = "Mini Bingo (2x2)";
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            
+            taskModalBody.innerHTML = `
+              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
+              <p>Create a 2x2 bingo card (select 4 prompts)</p>
+              <button id="start-minibingo-btn" class="modal-action-btn">Start Building</button>
+            `;
+            
+            document.getElementById('start-minibingo-btn').onclick = () => {
+              let selectedPrompts = [];
+              // Pick 12 random prompts from the full list
+              const miniPrompts = [...bingoPrompts].sort(() => 0.5 - Math.random()).slice(0, 12);
+              
+              taskModalBody.innerHTML = `
+                <p>Select 4 prompts from the list below:</p>
+                <div id="minibingo-master-list" style="max-height: 300px; overflow-y: auto; margin: 1rem 0;">
+                  ${miniPrompts.map(p => `<div class="bingo-item" style="padding: 0.5rem; margin: 0.25rem 0; background: rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer;">${p}</div>`).join('')}
+                </div>
+                <h3>Your Card Preview (<span id="minibingo-pick-count">0</span>/4)</h3>
+                <div id="minibingo-card-preview" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin: 1rem 0;">
+                  ${Array(4).fill('<div class="cell" style="padding: 1rem; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.2); border-radius: 4px; min-height: 60px;"></div>').join('')}
+                </div>
+                <button id="confirm-minibingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>
+              `;
+              
+              const updatePreview = () => {
+                const cells = document.querySelectorAll('#minibingo-card-preview .cell');
+                cells.forEach((cell, i) => {
+                  cell.textContent = selectedPrompts[i] || '';
+                });
+                document.getElementById('minibingo-pick-count').textContent = selectedPrompts.length;
+                document.getElementById('confirm-minibingo-card').disabled = selectedPrompts.length !== 4;
+              };
+              
+              document.querySelectorAll('#minibingo-master-list .bingo-item').forEach(item => {
+                item.onclick = () => {
+                  const prompt = item.textContent;
+                  if (item.classList.contains('selected')) {
+                    item.classList.remove('selected');
+                    item.style.background = 'rgba(255,255,255,0.1)';
+                    selectedPrompts = selectedPrompts.filter(p => p !== prompt);
+                  } else if (selectedPrompts.length < 4) {
+                    item.classList.add('selected');
+                    item.style.background = 'rgba(76, 175, 80, 0.3)';
+                    selectedPrompts.push(prompt);
+                  }
+                  updatePreview();
+                };
+              });
+              
+              document.getElementById('confirm-minibingo-card').onclick = () => {
+                // Create the mini bingo card widget
+                const card = document.createElement('div');
+                card.className = 'bingo-card-widget';
+                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 8px; padding: 1rem; z-index: 1000; min-width: 250px;';
+                card.style.top = `${Math.random() * 30 + 30}vh`;
+                card.style.left = `${Math.random() * 40 + 30}vw`;
+                
+                card.innerHTML = `
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span style="font-weight: bold;">Mini Bingo Card</span>
+                    <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 0; width: 30px; height: 30px;">&times;</button>
+                  </div>
+                  <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
+                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer; font-size: 0.8rem; text-align: center;">${prompt}</div>`).join('')}
+                  </div>
+                `;
+                
+                document.body.appendChild(card);
+                
+                let markedCount = 0;
+                const cells = card.querySelectorAll('.minibingo-cell');
+                cells.forEach(cell => {
+                  cell.addEventListener('click', () => {
+                    if (!cell.classList.contains('marked')) {
+                      cell.classList.add('marked');
+                      cell.style.background = 'rgba(76, 175, 80, 0.5)';
+                      cell.style.textDecoration = 'line-through';
+                      markedCount++;
+                      
+                      if (markedCount === 4) {
+                        setTimeout(() => {
+                          alert('🎉 Mini Bingo! You marked all 4!');
+                          card.remove();
+                          updateMainScore(1000);
+                          markTaskComplete();
+                        }, 300);
+                      }
+                    }
+                  });
+                });
+                
+                card.querySelector('.minibingo-close-btn').onclick = () => {
+                  card.remove();
+                };
+                
+                closeTaskModal();
+              };
+              
+              updatePreview();
+            };
+          }
+
+          async function setupWeatherGambleTask() {
+            taskModalTitle.textContent = "Weather Gamble";
+            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            
+            taskModalBody.innerHTML = `
+              <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
+              <p style="font-size: 1.3rem; margin: 2rem 0;">Will the forecast be sunny or stormy?</p>
+              <div style="display: flex; gap: 2rem; justify-content: center; margin: 2rem 0;">
+                <button id="choose-sunny" class="modal-action-btn" style="font-size: 2rem; padding: 2rem;">☁️ Sunny</button>
+                <button id="choose-stormy" class="modal-action-btn" style="font-size: 2rem; padding: 2rem;">⚡ Stormy</button>
+              </div>
+            `;
+            
+            parseEmojis(taskModalBody);
+            
+            const SUNNY_PROBABILITY = 0.7; // 70% sunny, 30% stormy
+            
+            const handleChoice = (choice) => {
+              const result = Math.random() < SUNNY_PROBABILITY ? 'sunny' : 'stormy';
+              const resultEmoji = result === 'sunny' ? '☁️' : '⚡';
+              const resultText = result === 'sunny' ? 'Sunny' : 'Stormy';
+              
+              taskModalBody.innerHTML = `
+                <div style="text-align: center;">
+                  <h2>The forecast is...</h2>
+                  <div style="font-size: 8rem; margin: 2rem 0; animation: pulse 0.5s;">${resultEmoji}</div>
+                  <h2>${resultText}!</h2>
+                  <p style="font-size: 1.2rem; margin: 2rem 0;">You chose: ${choice === 'sunny' ? '☁️ Sunny' : '⚡ Stormy'}</p>
+                  <div style="display: flex; gap: 1rem; justify-content: center; margin-top: 2rem;">
+                    <button id="claim-square-btn" class="modal-action-btn">✅ Claim Square</button>
+                    <button id="pass-btn" class="modal-action-btn">❌ Pass</button>
+                  </div>
+                </div>
+              `;
+              
+              parseEmojis(taskModalBody);
+              
+              document.getElementById('claim-square-btn').onclick = () => {
+                if (choice === result) {
+                  taskModalBody.innerHTML = '<div style="text-align: center; font-size: 2rem; padding: 2rem;">🎉 You win the square!</div>';
+                  setTimeout(() => {
+                    updateMainScore(1000);
+                    markTaskComplete();
+                  }, 1000);
+                } else {
+                  taskModalBody.innerHTML = '<div style="text-align: center; font-size: 2rem; padding: 2rem;">❌ Wrong guess! No square.</div>';
+                  setTimeout(() => closeTaskModal(), 1500);
+                }
+              };
+              
+              document.getElementById('pass-btn').onclick = () => {
+                closeTaskModal();
+              };
+            };
+            
+            document.getElementById('choose-sunny').onclick = () => handleChoice('sunny');
+            document.getElementById('choose-stormy').onclick = () => handleChoice('stormy');
+          }
+
+          async function setupVideoClipDetectiveTask() {
+            taskModalTitle.textContent = "Video Clip Detective 🔍";
+            
+            if (videoFiles.length < 6) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least 6 videos for this challenge.</p>`;
+              return;
+            }
+
+            taskModalBody.innerHTML = `
+              <h3>Watch closely!</h3>
+              <p>6 clips will play. One has a special effect:</p>
+              <ul style="list-style: disc; margin-left: 2rem; margin-top: 1rem;">
+                <li>Slowed down (half speed)</li>
+                <li>Played twice</li>
+                <li>Played in reverse</li>
+                <li>Shorter duration</li>
+                <li>Filter applied</li>
+              </ul>
+              <p style="margin-top: 1rem;">Identify which clip at the end!</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Watching</button>
+            `;
+
+            document.getElementById('start-challenge-btn').onclick = async () => {
+              // Pick 6 random videos
+              const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
+              const selectedIndices = shuffled.slice(0, 6);
+              
+              // Pick which one will be special (0-5)
+              const specialIndex = Math.floor(Math.random() * 6);
+              
+              // Pick what effect
+              const effects = ['slomo', 'double', 'reverse', 'short', 'filter'];
+              const specialEffect = effects[Math.floor(Math.random() * effects.length)];
+              
+              taskModalBody.innerHTML = `
+                <div id="detective-video-container" style="width: 100%; max-width: 500px; margin: 0 auto;">
+                  <video id="detective-player" style="width: 100%; height: auto;" muted playsinline></video>
+                </div>
+                <p style="margin-top: 1rem; font-size: 1.2rem;">Watching clip <span id="clip-number">1</span>/6...</p>
+              `;
+              
+              const player = document.getElementById('detective-player');
+              
+              for (let i = 0; i < 6; i++) {
+                document.getElementById('clip-number').textContent = i + 1;
+                const videoIndex = selectedIndices[i];
+                const file = videoFiles[videoIndex];
+                const url = URL.createObjectURL(file);
+                
+                player.src = url;
+                await new Promise(resolve => {
+                  player.onloadedmetadata = () => resolve();
+                });
+                
+                const isSpecial = i === specialIndex;
+                let playDuration = 5000; // 5 seconds default
+                
+                if (isSpecial) {
+                  if (specialEffect === 'slomo') {
+                    player.playbackRate = 0.5;
+                  } else if (specialEffect === 'reverse') {
+                    player.classList.add('video-reversed');
+                  } else if (specialEffect === 'short') {
+                    playDuration = 3000; // 3 seconds
+                  } else if (specialEffect === 'filter') {
+                    player.classList.add('video-sepia');
+                  }
+                } else {
+                  player.playbackRate = 1;
+                  player.className = '';
+                }
+                
+                player.currentTime = Math.random() * Math.max(0, player.duration - 5);
+                await player.play();
+                
+                if (isSpecial && specialEffect === 'double') {
+                  // Play twice
+                  await new Promise(resolve => setTimeout(resolve, 2500));
+                  player.currentTime = Math.max(0, player.currentTime - 2.5);
+                  await new Promise(resolve => setTimeout(resolve, 2500));
+                } else {
+                  await new Promise(resolve => setTimeout(resolve, playDuration));
+                }
+                
+                player.pause();
+                player.className = '';
+                player.playbackRate = 1;
+              }
+              
+              // Show selection screen
+              taskModalTitle.textContent = "Which clip was different?";
+              taskModalBody.innerHTML = `
+                <p style="margin-bottom: 1rem;">The special effect was: <strong>${specialEffect}</strong></p>
+                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                  ${[0, 1, 2, 3, 4, 5].map(i => `
+                    <button class="modal-action-btn" data-clip="${i}" style="font-size: 1.5rem;">
+                      Clip ${i + 1}
+                    </button>
+                  `).join('')}
+                </div>
+              `;
+              
+              document.querySelectorAll('button[data-clip]').forEach(btn => {
+                btn.onclick = () => {
+                  const chosen = parseInt(btn.dataset.clip);
+                  if (chosen === specialIndex) {
+                    taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Correct!</h2><p>You found the ${specialEffect} clip!</p></div>`;
+                    setTimeout(() => {
+                      updateMainScore(2000);
+                      markTaskComplete();
+                    }, 1500);
+                  } else {
+                    taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong!</h2><p>It was clip ${specialIndex + 1}</p></div>`;
+                    setTimeout(() => closeTaskModal(), 2000);
+                  }
+                };
+              });
+            };
+          }
+
+          async function setupClipOrderMemoryTask() {
+            taskModalTitle.textContent = "Clip Order Memory 🎬";
+            
+            if (videoFiles.length < 6) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least 6 videos for this challenge.</p>`;
+              return;
+            }
+
+            taskModalBody.innerHTML = `
+              <h3>Memory Challenge!</h3>
+              <p>Watch 6 clips play in order.</p>
+              <p>Then, select them in the correct order!</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Watching</button>
+            `;
+
+            document.getElementById('start-challenge-btn').onclick = async () => {
+              // Pick 6 random videos
+              const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
+              const selectedIndices = shuffled.slice(0, 6);
+              const correctOrder = [...selectedIndices];
+              
+              // Play all 6 clips in sequence
+              taskModalBody.innerHTML = `
+                <div id="memory-video-container" style="width: 100%; max-width: 500px; margin: 0 auto;">
+                  <video id="memory-player" style="width: 100%; height: auto;" muted playsinline></video>
+                </div>
+                <p style="margin-top: 1rem; font-size: 1.2rem;">Clip <span id="clip-number">1</span>/6</p>
+                <p style="font-size: 0.9rem; color: #8b5cf6;">Remember the order!</p>
+              `;
+              
+              const player = document.getElementById('memory-player');
+              const createdUrls = []; // Track URLs for cleanup
+              
+              for (let i = 0; i < 6; i++) {
+                document.getElementById('clip-number').textContent = i + 1;
+                const videoIndex = selectedIndices[i];
+                const file = videoFiles[videoIndex];
+                const url = URL.createObjectURL(file);
+                createdUrls.push(url);
+                
+                player.src = url;
+                await new Promise(resolve => {
+                  player.onloadedmetadata = () => resolve();
+                });
+                
+                // Play 5-second clip
+                player.currentTime = Math.random() * Math.max(0, player.duration - 5);
+                await player.play();
+                await new Promise(resolve => setTimeout(resolve, 5000));
+                player.pause();
+              }
+              
+              // Now show selection screen with video thumbnails
+              taskModalTitle.textContent = "Select the Order";
+              
+              // Create video thumbnails for selection
+              const clipThumbnails = await Promise.all(selectedIndices.map(async (videoIndex, i) => {
+                const file = videoFiles[videoIndex];
+                const url = URL.createObjectURL(file);
+                createdUrls.push(url);
+                const video = document.createElement('video');
+                video.src = url;
+                await new Promise(resolve => {
+                  video.onloadedmetadata = () => {
+                    video.currentTime = Math.random() * Math.max(0, video.duration - 1);
+                    resolve();
+                  };
+                });
+                
+                // Wait for seek to complete
+                await new Promise(resolve => {
+                  video.onseeked = () => resolve();
+                });
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = 160;
+                canvas.height = 90;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                
+                return {
+                  videoIndex,
+                  thumbnail: canvas.toDataURL(),
+                  originalIndex: i
+                };
+              }));
+              
+              // Shuffle clips for display
+              const shuffledClips = [...clipThumbnails].sort(() => 0.5 - Math.random());
+              
+              let userOrder = [];
+              
+              const renderSelectionScreen = () => {
+                taskModalBody.innerHTML = `
+                  <p style="margin-bottom: 1rem;">Click the clips in the order they were shown:</p>
+                  <div style="margin-bottom: 1rem;">
+                    <strong>Your Selection:</strong> ${userOrder.map((_, i) => i + 1).join(', ') || 'None yet'}
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
+                    ${shuffledClips.map((clip, i) => {
+                      const orderNum = userOrder.indexOf(clip.videoIndex);
+                      const isSelected = orderNum !== -1;
+                      return `
+                        <div class="clip-selection-tile" data-video-index="${clip.videoIndex}" style="
+                          position: relative;
+                          cursor: ${isSelected ? 'default' : 'pointer'};
+                          opacity: ${isSelected ? '0.5' : '1'};
+                          border: 2px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.3)'};
+                          border-radius: 8px;
+                          overflow: hidden;
+                        ">
+                          <img src="${clip.thumbnail}" style="width: 100%; display: block;" />
+                          ${isSelected ? `<div style="position: absolute; top: 5px; right: 5px; background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">${orderNum + 1}</div>` : ''}
+                        </div>
+                      `;
+                    }).join('')}
+                  </div>
+                  <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button id="reset-order-btn" class="modal-action-btn" ${userOrder.length === 0 ? 'disabled' : ''}>Reset</button>
+                    <button id="confirm-order-btn" class="modal-action-btn" ${userOrder.length !== 6 ? 'disabled' : ''}>Confirm</button>
+                  </div>
+                `;
+                
+                // Add click handlers
+                document.querySelectorAll('.clip-selection-tile').forEach(tile => {
+                  const videoIndex = parseInt(tile.dataset.videoIndex);
+                  if (!userOrder.includes(videoIndex)) {
+                    tile.onclick = () => {
+                      userOrder.push(videoIndex);
+                      renderSelectionScreen();
+                    };
+                  }
+                });
+                
+                const resetBtn = document.getElementById('reset-order-btn');
+                if (resetBtn && !resetBtn.disabled) {
+                  resetBtn.onclick = () => {
+                    userOrder = [];
+                    renderSelectionScreen();
+                  };
+                }
+                
+                const confirmBtn = document.getElementById('confirm-order-btn');
+                if (confirmBtn && !confirmBtn.disabled) {
+                  confirmBtn.onclick = () => {
+                    // Check if order is correct
+                    const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
+                    
+                    if (isCorrect) {
+                      // Clean up URLs
+                      createdUrls.forEach(url => URL.revokeObjectURL(url));
+                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You got the order exactly right!</p></div>`;
+                      setTimeout(() => {
+                        updateMainScore(3000);
+                        markTaskComplete();
+                      }, 1500);
+                    } else {
+                      // Clean up URLs
+                      createdUrls.forEach(url => URL.revokeObjectURL(url));
+                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Incorrect!</h2><p>The order wasn't quite right.</p></div>`;
+                      setTimeout(() => closeTaskModal(), 2000);
+                    }
+                  };
+                }
+              };
+              
+              renderSelectionScreen();
+            };
+          }
+
+          async function setupAvatarSequenceTask() {
+            taskModalTitle.textContent = "Avatar Sequence Memory 🧠";
+            
+            taskModalBody.innerHTML = `
+              <h3>Memorize the sequence!</h3>
+              <p>Grid tiles will flash in sequence.</p>
+              <p>You must click them in the same order.</p>
+              <p><strong>Complete 3 rounds to win!</strong></p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start</button>
+            `;
+
+            document.getElementById('start-challenge-btn').onclick = () => {
+              let round = 1;
+              const maxRounds = 3;
+              
+              const playRound = () => {
+                const sequenceLength = 3 + round; // 4, 5, 6
+                const gridSize = 9; // 3x3 grid
+                
+                // Generate random sequence
+                const sequence = [];
+                for (let i = 0; i < sequenceLength; i++) {
+                  sequence.push(Math.floor(Math.random() * gridSize));
+                }
+                
+                // Select 9 images from shuffle-bag (ensures all 34 are used over time)
+                const tileImages = [];
+                for (let i = 0; i < gridSize; i++) {
+                  const imageNum = getNextImage();
+                  tileImages.push(`images/${imageNum}.png`);
+                }
+                
+                taskModalTitle.textContent = `Round ${round}/${maxRounds} - Watch the sequence!`;
+                taskModalBody.innerHTML = `
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; max-width: 400px; margin: 0 auto;">
+                    ${Array(gridSize).fill(0).map((_, i) => `
+                      <div class="avatar-tile" data-index="${i}" style="
+                        aspect-ratio: 1;
+                        background-image: url('${tileImages[i]}');
+                        background-size: cover;
+                        background-position: center;
+                        border-radius: 8px;
+                        cursor: pointer;
+                        transition: all 0.3s;
+                        border: 3px solid rgba(255,255,255,0.1);
+                      "></div>
+                    `).join('')}
+                  </div>
+                `;
+                
+                // Show sequence
+                let showIndex = 0;
+                const showInterval = setInterval(() => {
+                  if (showIndex >= sequence.length) {
+                    clearInterval(showInterval);
+                    // Now let player repeat
+                    startPlayerTurn();
+                    return;
+                  }
+                  
+                  const tileIndex = sequence[showIndex];
+                  const tile = document.querySelector(`.avatar-tile[data-index="${tileIndex}"]`);
+                  tile.style.borderColor = 'rgba(52, 152, 219, 1)';
+                  tile.style.borderWidth = '5px';
+                  tile.style.transform = 'scale(1.1)';
+                  tile.style.boxShadow = '0 0 20px rgba(52, 152, 219, 0.8)';
+                  
+                  setTimeout(() => {
+                    tile.style.borderColor = 'rgba(255,255,255,0.1)';
+                    tile.style.borderWidth = '3px';
+                    tile.style.transform = 'scale(1)';
+                    tile.style.boxShadow = 'none';
+                  }, 500);
+                  
+                  showIndex++;
+                }, 1000);
+                
+                currentTimers.push(showInterval);
+                
+                const startPlayerTurn = () => {
+                  taskModalTitle.textContent = `Round ${round}/${maxRounds} - Your turn!`;
+                  const playerSequence = [];
+                  
+                  document.querySelectorAll('.avatar-tile').forEach(tile => {
+                    tile.onclick = () => {
+                      const index = parseInt(tile.dataset.index);
+                      playerSequence.push(index);
+                      
+                      tile.style.borderColor = 'rgba(46, 204, 113, 1)';
+                      tile.style.borderWidth = '5px';
+                      tile.style.boxShadow = '0 0 20px rgba(46, 204, 113, 0.8)';
+                      setTimeout(() => {
+                        tile.style.borderColor = 'rgba(255,255,255,0.1)';
+                        tile.style.borderWidth = '3px';
+                        tile.style.boxShadow = 'none';
+                      }, 300);
+                      
+                      // Check if correct so far
+                      if (sequence[playerSequence.length - 1] !== index) {
+                        // Wrong!
+                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong sequence!</h2></div>`;
+                        setTimeout(() => closeTaskModal(), 2000);
+                        return;
+                      }
+                      
+                      // Check if complete
+                      if (playerSequence.length === sequence.length) {
+                        // Correct!
+                        round++;
+                        if (round > maxRounds) {
+                          taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>All 3 rounds completed!</p></div>`;
+                          setTimeout(() => {
+                            updateMainScore(3000);
+                            markTaskComplete();
+                          }, 1500);
+                        } else {
+                          taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Round ${round - 1} complete!</h2></div>`;
+                          setTimeout(() => playRound(), 1500);
+                        }
+                      }
+                    };
+                  });
+                };
+              };
+              
+              playRound();
+            };
+          }
+
+          async function setupFilmTitleScramblerTask() {
+            taskModalTitle.textContent = "Film Title Scrambler 🎬";
+            
+            // Hardcoded film titles for now
+            const filmTitles = [
+              "The Dark Knight",
+              "Pulp Fiction",
+              "Fight Club",
+              "The Matrix",
+              "Inception",
+              "The Shawshank Redemption",
+              "Forrest Gump",
+              "The Godfather",
+              "Star Wars",
+              "Jurassic Park",
+              "Back to the Future",
+              "The Lion King",
+              "Toy Story",
+              "Finding Nemo",
+              "The Avengers"
+            ];
+            
+            const selectedTitle = filmTitles[Math.floor(Math.random() * filmTitles.length)];
+            const words = selectedTitle.split(' ');
+            const scrambledWords = [...words].sort(() => 0.5 - Math.random());
+            
+            taskModalBody.innerHTML = `
+              <h3>Unscramble the film title!</h3>
+              <p style="margin: 1rem 0;">Drag the words into the correct order:</p>
+              <div id="word-slots" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center; min-height: 60px; padding: 1rem; background: rgba(0,0,0,0.3); border-radius: 8px; margin-bottom: 1rem;">
+                ${words.map((_, i) => `<div class="word-slot" data-position="${i}" style="min-width: 100px; padding: 0.5rem 1rem; border: 2px dashed #666; border-radius: 4px; text-align: center;"></div>`).join('')}
+              </div>
+              <div id="word-pool" style="display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: center;">
+                ${scrambledWords.map((word, i) => `
+                  <div class="word-tile" draggable="true" data-word="${word}" style="
+                    padding: 0.5rem 1rem;
+                    background: rgba(52, 152, 219, 0.8);
+                    border-radius: 4px;
+                    cursor: grab;
+                    user-select: none;
+                  ">${word}</div>
+                `).join('')}
+              </div>
+              <button id="check-answer-btn" class="modal-action-btn" style="margin-top: 1rem;">Check Answer</button>
+            `;
+            
+            const userAnswer = Array(words.length).fill(null);
+            
+            // Drag and drop logic
+            const wordTiles = document.querySelectorAll('.word-tile');
+            const wordSlots = document.querySelectorAll('.word-slot');
+            
+            wordTiles.forEach(tile => {
+              tile.addEventListener('dragstart', (e) => {
+                e.dataTransfer.setData('word', tile.dataset.word);
+                e.dataTransfer.setData('fromSlot', tile.parentElement.classList.contains('word-slot') ? tile.parentElement.dataset.position : 'pool');
+                setTimeout(() => tile.style.opacity = '0.5', 0);
+              });
+              tile.addEventListener('dragend', () => {
+                tile.style.opacity = '1';
+              });
+            });
+            
+            wordSlots.forEach(slot => {
+              slot.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                slot.style.borderColor = '#fff';
+              });
+              slot.addEventListener('dragleave', () => {
+                slot.style.borderColor = '#666';
+              });
+              slot.addEventListener('drop', (e) => {
+                e.preventDefault();
+                slot.style.borderColor = '#666';
+                const word = e.dataTransfer.getData('word');
+                const fromSlot = e.dataTransfer.getData('fromSlot');
+                const tile = document.querySelector(`.word-tile[data-word="${word}"]`);
+                
+                // If slot already has a word, send it back to pool
+                if (slot.firstChild) {
+                  document.getElementById('word-pool').appendChild(slot.firstChild);
+                }
+                
+                // If tile was in another slot, clear that position
+                if (fromSlot !== 'pool') {
+                  userAnswer[parseInt(fromSlot)] = null;
+                }
+                
+                slot.appendChild(tile);
+                userAnswer[parseInt(slot.dataset.position)] = word;
+              });
+            });
+            
+            // Also allow dropping back to pool
+            document.getElementById('word-pool').addEventListener('dragover', (e) => e.preventDefault());
+            document.getElementById('word-pool').addEventListener('drop', (e) => {
+              e.preventDefault();
+              const word = e.dataTransfer.getData('word');
+              const fromSlot = e.dataTransfer.getData('fromSlot');
+              const tile = document.querySelector(`.word-tile[data-word="${word}"]`);
+              
+              if (fromSlot !== 'pool') {
+                userAnswer[parseInt(fromSlot)] = null;
+              }
+              
+              document.getElementById('word-pool').appendChild(tile);
+            });
+            
+            document.getElementById('check-answer-btn').onclick = () => {
+              const playerTitle = userAnswer.join(' ');
+              if (playerTitle === selectedTitle) {
+                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Correct!</h2><p>"${selectedTitle}"</p></div>`;
+                setTimeout(() => {
+                  updateMainScore(2000);
+                  markTaskComplete();
+                }, 1500);
+              } else {
+                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong!</h2><p>It was: "${selectedTitle}"</p><p>You said: "${playerTitle}"</p></div>`;
+                setTimeout(() => closeTaskModal(), 3000);
+              }
+            };
+          }
+
+          async function setupHigherLowerViewsTask() {
+            taskModalTitle.textContent = "Higher or Lower 📊";
+            
+            // Check if we have uploaded film data
+            const savedFilmData = JSON.parse(localStorage.getItem('filmViewsData') || '[]');
+            
+            let filmData = [];
+            if (savedFilmData.length >= 2) {
+              // Use uploaded film data
+              filmData = savedFilmData;
+            } else if (videoFiles.length >= 2) {
+              // Fallback to video files with random view counts
+              filmData = videoFiles.map((file, i) => ({
+                title: file.name.replace(/\.[^/.]+$/, ''), // Remove extension
+                views: Math.floor(Math.random() * 10000) + 100
+              }));
+            } else {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least 2 videos or uploaded film data for this challenge.</p>`;
+              return;
+            }
+            
+            let correctAnswers = 0;
+            let wrongAnswers = 0;
+            const maxRounds = 5;
+            
+            const playRound = () => {
+              if (wrongAnswers >= 1) {
+                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ You Lost!</h2><p>One wrong answer and you're out!</p></div>`;
+                setTimeout(() => closeTaskModal(), 2000);
+                return;
+              }
+              
+              if (correctAnswers >= maxRounds) {
+                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 You Win!</h2><p>5 correct in a row!</p></div>`;
+                setTimeout(() => {
+                  updateMainScore(3000);
+                  markTaskComplete();
+                }, 1500);
+                return;
+              }
+              
+              // Pick 2 random films
+              const indices = [...Array(filmData.length).keys()];
+              const shuffled = indices.sort(() => 0.5 - Math.random());
+              const film1Index = shuffled[0];
+              const film2Index = shuffled[1];
+              
+              const film1 = filmData[film1Index];
+              const film2 = filmData[film2Index];
+              
+              taskModalTitle.textContent = `Round ${correctAnswers + 1}/${maxRounds}`;
+              taskModalBody.innerHTML = `
+                <div style="text-align: center;">
+                  <div style="margin-bottom: 2rem;">
+                    <h3>${film1.title}</h3>
+                    <p style="font-size: 2rem; color: #3498db;">${film1.views.toLocaleString()} views</p>
+                  </div>
+                  <div style="font-size: 2rem; margin: 1rem 0;">🆚</div>
+                  <div style="margin-bottom: 2rem;">
+                    <h3>${film2.title}</h3>
+                    <p style="font-size: 2rem;">??? views</p>
+                  </div>
+                  <div style="display: flex; gap: 1rem; justify-content: center;">
+                    <button id="guess-higher" class="modal-action-btn">📈 Higher</button>
+                    <button id="guess-lower" class="modal-action-btn">📉 Lower</button>
+                  </div>
+                </div>
+              `;
+              
+              document.getElementById('guess-higher').onclick = () => checkAnswer(film2.views > film1.views, film2.views);
+              document.getElementById('guess-lower').onclick = () => checkAnswer(film2.views < film1.views, film2.views);
+              
+              const checkAnswer = (isCorrect, actualViews) => {
+                if (isCorrect) {
+                  correctAnswers++;
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>✅ Correct!</h2><p>${actualViews.toLocaleString()} views</p></div>`;
+                  setTimeout(() => playRound(), 1500);
+                } else {
+                  wrongAnswers++;
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong!</h2><p>It was ${actualViews.toLocaleString()} views</p></div>`;
+                  setTimeout(() => playRound(), 1500);
+                }
+              };
+            };
+            
+            taskModalBody.innerHTML = `
+              <h3>Rules:</h3>
+              <ul style="list-style: disc; margin-left: 2rem; margin-top: 1rem;">
+                <li>You'll see 2 ${savedFilmData.length >= 2 ? 'film titles' : 'video titles'}</li>
+                <li>One shows its view count</li>
+                <li>Guess if the other has Higher or Lower views</li>
+                <li>Get 5 correct in a row</li>
+                <li>One wrong answer = game over!</li>
+              </ul>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Game</button>
+            `;
+            
+            document.getElementById('start-challenge-btn').onclick = () => playRound();
+          }
+
+          async function setupIconClickHuntTask() {
+            taskModalTitle.textContent = "Icon Click Hunt 🎯";
+            
+            // For this demo, we'll use emojis instead of image files
+            const correctIcon = '✅';
+            const wrongIcons = ['❌', '⛔', '🚫', '❗'];
+            
+            taskModalBody.innerHTML = `
+              <h3>Click the correct icon!</h3>
+              <p>Find and click <span style="font-size: 2rem;">${correctIcon}</span> 15 times</p>
+              <p>Time limit: 60 seconds</p>
+              <p style="color: #e74c3c;">Wrong click = -1 point</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Hunt</button>
+            `;
+            
+            parseEmojis(taskModalBody);
+
+            document.getElementById('start-challenge-btn').onclick = () => {
+              let correctClicks = 0;
+              let timeLeft = 60;
+              let gameOver = false;
+              
+              taskModalOverlay.style.pointerEvents = 'none';
+              
+              const gameOverlay = document.createElement('div');
+              gameOverlay.id = 'icon-hunt-overlay';
+              gameOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 250;
+                pointer-events: none;
+              `;
+              
+              const infoPanel = document.createElement('div');
+              infoPanel.style.cssText = `
+                position: absolute;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.8);
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                z-index: 10;
+                pointer-events: none;
+              `;
+              infoPanel.innerHTML = `
+                <div style="display: flex; gap: 2rem; align-items: center;">
+                  <div id="hunt-score" style="font-size: 1.5rem; color: #10b981;">Score: 0/15</div>
+                  <div id="hunt-timer" style="font-size: 1.5rem; color: #f59e0b;">Time: 60s</div>
+                </div>
+              `;
+              gameOverlay.appendChild(infoPanel);
+              document.body.appendChild(gameOverlay);
+              
+              const spawnIcon = () => {
+                if (gameOver) return;
+                
+                const isCorrect = Math.random() < 0.4; // 40% chance of correct icon
+                const icon = isCorrect ? correctIcon : wrongIcons[Math.floor(Math.random() * wrongIcons.length)];
+                
+                const iconEl = document.createElement('div');
+                iconEl.textContent = icon;
+                iconEl.style.cssText = `
+                  position: absolute;
+                  font-size: 3rem;
+                  cursor: pointer;
+                  pointer-events: auto;
+                  top: ${Math.random() * 70 + 15}%;
+                  left: ${Math.random() * 80 + 10}%;
+                  transition: transform 0.1s;
+                `;
+                
+                iconEl.onclick = () => {
+                  if (gameOver) return;
+                  
+                  if (isCorrect) {
+                    correctClicks++;
+                    document.getElementById('hunt-score').textContent = `Score: ${correctClicks}/15`;
+                    iconEl.style.transform = 'scale(1.5)';
+                    iconEl.style.opacity = '0';
+                    
+                    if (correctClicks >= 15) {
+                      gameOver = true;
+                      clearInterval(spawnInterval);
+                      clearInterval(timerInterval);
+                      gameOverlay.remove();
+                      taskModalOverlay.style.pointerEvents = 'all';
+                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Success!</h2><p>15 correct clicks!</p></div>`;
+                      setTimeout(() => {
+                        updateMainScore(3000);
+                        markTaskComplete();
+                      }, 1500);
+                    }
+                  } else {
+                    correctClicks = Math.max(0, correctClicks - 1);
+                    document.getElementById('hunt-score').textContent = `Score: ${correctClicks}/15`;
+                    iconEl.style.background = 'red';
+                    iconEl.style.borderRadius = '50%';
+                  }
+                  
+                  setTimeout(() => iconEl.remove(), 200);
+                };
+                
+                gameOverlay.appendChild(iconEl);
+                parseEmojis(iconEl);
+                
+                setTimeout(() => {
+                  if (iconEl.parentNode && !gameOver) {
+                    iconEl.remove();
+                  }
+                }, 2000);
+              };
+              
+              const spawnInterval = setInterval(() => spawnIcon(), 800);
+              currentTimers.push(spawnInterval);
+              
+              const timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('hunt-timer').textContent = `Time: ${timeLeft}s`;
+                
+                if (timeLeft <= 0 && !gameOver) {
+                  gameOver = true;
+                  clearInterval(spawnInterval);
+                  clearInterval(timerInterval);
+                  gameOverlay.remove();
+                  taskModalOverlay.style.pointerEvents = 'all';
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${correctClicks}/15</p></div>`;
+                  setTimeout(() => closeTaskModal(), 2000);
+                }
+              }, 1000);
+              
+              currentTimers.push(timerInterval);
+            };
+          }
+
+          async function setupTriviaSpeedQuizTask() {
+            taskModalTitle.textContent = "Trivia Speed Quiz ⚡";
+            
+            taskModalBody.innerHTML = `<h3>Loading questions...</h3><p>Please wait...</p>`;
+            
+            const questions = await fetchTriviaQuestions(10, null, 'medium');
+            
+            if (!questions) {
+              taskModalBody.innerHTML = `<p class="text-red-500">Failed to load questions. Please try again.</p>`;
+              return;
+            }
+            
+            let correctAnswers = 0;
+            let currentQ = 0;
+            let timeLeft = 45;
+            let quizOver = false;
+            
+            taskModalBody.innerHTML = `
+              <h3>Answer 5 questions correctly!</h3>
+              <p>Time limit: 45 seconds</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Quiz</button>
+            `;
+            
+            document.getElementById('start-challenge-btn').onclick = () => {
+              const timerInterval = setInterval(() => {
+                timeLeft--;
+                const timerEl = document.getElementById('quiz-timer');
+                if (timerEl) timerEl.innerHTML = `Time: ${timeLeft}s`;
+                
+                if (timeLeft <= 0 && !quizOver) {
+                  quizOver = true;
+                  clearInterval(timerInterval);
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>${correctAnswers}/5 correct</p><p>You needed 5 correct answers to win.</p></div>`;
+                  setTimeout(() => closeTaskModal(), 2000);
+                }
+              }, 1000);
+              
+              currentTimers.push(timerInterval);
+              modalTimer = timerInterval;
+              
+              const renderQuestion = () => {
+                if (quizOver) return;
+                
+                if (correctAnswers >= 5) {
+                  quizOver = true;
+                  clearInterval(timerInterval);
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Success!</h2><p>5 correct in ${45 - timeLeft}s</p></div>`;
+                  setTimeout(() => {
+                    updateMainScore(3000);
+                    markTaskComplete();
+                  }, 1500);
+                  return;
+                }
+                
+                if (currentQ >= questions.length) {
+                  // Need more questions but didn't get 5 correct
+                  quizOver = true;
+                  clearInterval(timerInterval);
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>📝 Not enough!</h2><p>Only ${correctAnswers}/5 correct</p></div>`;
+                  setTimeout(() => closeTaskModal(), 2000);
+                  return;
+                }
+                
+                const q = questions[currentQ];
+                taskModalBody.innerHTML = `
+                  <div id="quiz-timer" style="text-align: center; font-size: 1.5rem; margin-bottom: 1rem; font-weight: bold; color: #f59e0b;">Time: ${timeLeft}s</div>
+                  <div style="text-align: center; font-size: 1.2rem; margin-bottom: 0.5rem; font-weight: bold; color: #10b981;">Score: ${correctAnswers}/5</div>
+                  <p class="text-xl mb-4">${q.question}</p>
+                  <div class="task-option-grid">
+                    ${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}
+                  </div>
+                `;
+                
+                document.querySelectorAll('.task-option-btn').forEach(btn => {
+                  btn.onclick = () => {
+                    if (quizOver) return;
+                    
+                    const selectedIndex = parseInt(btn.dataset.index);
+                    const correctIndex = q.correctAnswerIndex;
+                    
+                    if (selectedIndex === correctIndex) {
+                      correctAnswers++;
+                      btn.style.background = '#27ae60';
+                    } else {
+                      btn.style.background = '#e74c3c';
+                      document.querySelectorAll('.task-option-btn')[correctIndex].style.background = '#27ae60';
+                    }
+                    
+                    setTimeout(() => {
+                      currentQ++;
+                      renderQuestion();
+                    }, 800);
+                  };
+                });
+              };
+              
+              renderQuestion();
+            };
+          }
+
+          async function setupPaintSplatterTask() {
+            taskModalTitle.textContent = "Paint Splatter 🎨";
+            
+            taskModalBody.innerHTML = `
+              <h3>Cover the video with paint!</h3>
+              <p>Click/tap to splatter white paint</p>
+              <p>Goal: Cover 90% of the video in 30 seconds</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Painting</button>
+            `;
+            
+            document.getElementById('start-challenge-btn').onclick = () => {
+              // Create canvas overlay
+              taskModalOverlay.style.pointerEvents = 'none';
+              
+              const canvas = document.createElement('canvas');
+              canvas.id = 'paint-canvas';
+              canvas.width = window.innerWidth;
+              canvas.height = window.innerHeight;
+              canvas.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 250;
+                cursor: crosshair;
+                pointer-events: auto;
+              `;
+              document.body.appendChild(canvas);
+              
+              const ctx = canvas.getContext('2d');
+              let coverage = 0;
+              let timeLeft = 30;
+              let gameOver = false;
+              
+              // Info panel
+              const infoPanel = document.createElement('div');
+              infoPanel.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.8);
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                z-index: 260;
+                pointer-events: none;
+              `;
+              infoPanel.innerHTML = `
+                <div style="display: flex; gap: 2rem;">
+                  <div id="paint-coverage" style="font-size: 1.5rem; color: #10b981;">Coverage: 0%</div>
+                  <div id="paint-timer" style="font-size: 1.5rem; color: #f59e0b;">Time: 30s</div>
+                </div>
+              `;
+              document.body.appendChild(infoPanel);
+              
+              const splatter = (x, y) => {
+                const radius = 40 + Math.random() * 30;
+                ctx.fillStyle = 'rgba(255, 255, 255, 0.7)';
+                ctx.beginPath();
+                ctx.arc(x, y, radius, 0, Math.PI * 2);
+                ctx.fill();
+                
+                // Drips
+                for (let i = 0; i < 3; i++) {
+                  const dripX = x + (Math.random() - 0.5) * radius;
+                  const dripHeight = Math.random() * 50;
+                  ctx.fillRect(dripX, y + radius, 3, dripHeight);
+                }
+                
+                // Calculate coverage
+                const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+                let paintedPixels = 0;
+                for (let i = 3; i < imageData.data.length; i += 4) {
+                  if (imageData.data[i] > 0) paintedPixels++;
+                }
+                coverage = (paintedPixels / (canvas.width * canvas.height)) * 100;
+                document.getElementById('paint-coverage').textContent = `Coverage: ${Math.floor(coverage)}%`;
+                
+                if (coverage >= 90 && !gameOver) {
+                  gameOver = true;
+                  clearInterval(timerInterval);
+                  canvas.remove();
+                  infoPanel.remove();
+                  taskModalOverlay.style.pointerEvents = 'all';
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Success!</h2><p>${Math.floor(coverage)}% covered!</p></div>`;
+                  setTimeout(() => {
+                    updateMainScore(2500);
+                    markTaskComplete();
+                  }, 1500);
+                }
+              };
+              
+              canvas.addEventListener('click', (e) => {
+                if (!gameOver) splatter(e.clientX, e.clientY);
+              });
+              
+              const timerInterval = setInterval(() => {
+                timeLeft--;
+                document.getElementById('paint-timer').textContent = `Time: ${timeLeft}s`;
+                
+                if (timeLeft <= 0 && !gameOver) {
+                  gameOver = true;
+                  clearInterval(timerInterval);
+                  canvas.remove();
+                  infoPanel.remove();
+                  taskModalOverlay.style.pointerEvents = 'all';
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${Math.floor(coverage)}% covered</p></div>`;
+                  setTimeout(() => closeTaskModal(), 2000);
+                }
+              }, 1000);
+              
+              currentTimers.push(timerInterval);
+            };
+          }
+
+          async function setupTimestampMatchTask() {
+            taskModalTitle.textContent = "Timestamp Match ⏱️";
+            
+            if (videoFiles.length < 1) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least 1 video for this challenge.</p>`;
+              return;
+            }
+            
+            taskModalBody.innerHTML = `
+              <h3>Remember the timestamp!</h3>
+              <p>The video will show a moment, then jump around.</p>
+              <p>Click when it returns to the SAME moment!</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>
+            `;
+            
+            document.getElementById('start-challenge-btn').onclick = async () => {
+              const videoIndex = Math.floor(Math.random() * videoFiles.length);
+              const file = videoFiles[videoIndex];
+              const url = URL.createObjectURL(file);
+              
+              // Create video element
+              const tempVideo = document.createElement('video');
+              tempVideo.src = url;
+              tempVideo.muted = true;
+              
+              await new Promise(resolve => {
+                tempVideo.onloadedmetadata = () => resolve();
+              });
+              
+              // Check if video is long enough (at least 20 minutes to ensure 10+ minute gap is possible)
+              if (tempVideo.duration < 1200) {
+                taskModalBody.innerHTML = `<p class="text-red-500">Video must be at least 20 minutes long for this challenge to ensure clips are sufficiently far apart.</p>`;
+                return;
+              }
+              
+              const targetTime = Math.random() * (tempVideo.duration - 10);
+              
+              taskModalBody.innerHTML = `
+                <div style="width: 100%; max-width: 500px; margin: 0 auto;">
+                  <video id="timestamp-video" style="width: 100%; height: auto;" muted playsinline></video>
+                </div>
+                <p id="timestamp-instruction" style="margin-top: 1rem; font-size: 1.2rem;">Watch this moment...</p>
+                <button id="timestamp-click-btn" class="modal-action-btn" disabled style="margin-top: 1rem;">Click when it matches!</button>
+              `;
+              
+              const player = document.getElementById('timestamp-video');
+              player.src = url;
+              
+              await new Promise(resolve => {
+                player.onloadedmetadata = () => resolve();
+              });
+              
+              // Show target timestamp for 2 seconds
+              player.currentTime = targetTime;
+              await player.play();
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              player.pause();
+              
+              document.getElementById('timestamp-instruction').textContent = 'Video is jumping around... Click when it matches!';
+              document.getElementById('timestamp-click-btn').disabled = false;
+              
+              let gameOver = false;
+              let currentJumpTime = 0;
+              
+              // Jump around every 2 seconds, ensuring clips are at least 10 minutes apart
+              const jumpInterval = setInterval(() => {
+                if (gameOver) {
+                  clearInterval(jumpInterval);
+                  return;
+                }
+                
+                // Generate a jump time that is at least 600 seconds (10 minutes) away from target
+                let newJumpTime;
+                do {
+                  newJumpTime = Math.random() * tempVideo.duration;
+                } while (Math.abs(newJumpTime - targetTime) < 600);
+                
+                currentJumpTime = newJumpTime;
+                player.currentTime = currentJumpTime;
+                player.play();
+              }, 2000);
+              
+              currentTimers.push(jumpInterval);
+              
+              document.getElementById('timestamp-click-btn').onclick = () => {
+                if (gameOver) return;
+                gameOver = true;
+                clearInterval(jumpInterval);
+                player.pause();
+                
+                // Check if close to target (within 0.5 seconds)
+                const diff = Math.abs(currentJumpTime - targetTime);
+                
+                if (diff <= 0.5) {
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect Match!</h2><p>Within 0.5 seconds!</p></div>`;
+                  setTimeout(() => {
+                    updateMainScore(3000);
+                    markTaskComplete();
+                  }, 1500);
+                } else {
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Not quite!</h2><p>You were ${diff.toFixed(1)}s off</p></div>`;
+                  setTimeout(() => closeTaskModal(), 2000);
+                }
+              };
+            };
+          }
+
+          async function setupVideoQuarterPuzzleTask() {
+            taskModalTitle.textContent = "Video Quarter Puzzle 🧩";
+            
+            if (videoFiles.length < 8) {
+              taskModalBody.innerHTML = `<p class="text-red-500">You need at least 8 videos for this challenge.</p>`;
+              return;
+            }
+            
+            taskModalBody.innerHTML = `
+              <h3>Find the common video!</h3>
+              <p>4 quarters will play different 5-second clips</p>
+              <p>Only ONE video appears in ALL quarters</p>
+              <p>Click each quarter to lock it when you see the common video</p>
+              <p>60 second time limit!</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start Puzzle</button>
+            `;
+            
+            document.getElementById('start-challenge-btn').onclick = () => {
+              // Pick 7-8 random videos
+              const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
+              const videoPool = shuffled.slice(0, 8);
+              
+              // Pick one to be the "correct" answer that appears in all quarters
+              const correctVideoIndex = videoPool[0];
+              
+              // For each quarter, create a sequence that includes the correct video
+              const quarters = [];
+              for (let q = 0; q < 4; q++) {
+                const quarterVideos = [correctVideoIndex];
+                // Add 2-3 random others
+                const others = videoPool.filter(v => v !== correctVideoIndex).sort(() => 0.5 - Math.random()).slice(0, 3);
+                quarterVideos.push(...others);
+                quarterVideos.sort(() => 0.5 - Math.random());
+                quarters.push(quarterVideos);
+              }
+              
+              taskModalOverlay.style.pointerEvents = 'none';
+              
+              // Create 2x2 grid overlay
+              const gridOverlay = document.createElement('div');
+              gridOverlay.id = 'quarter-grid';
+              gridOverlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 250;
+                display: grid;
+                grid-template-columns: 1fr 1fr;
+                grid-template-rows: 1fr 1fr;
+                gap: 2px;
+                background: #000;
+              `;
+              
+              for (let q = 0; q < 4; q++) {
+                const quarterDiv = document.createElement('div');
+                quarterDiv.style.cssText = `
+                  position: relative;
+                  background: #222;
+                  cursor: pointer;
+                  overflow: hidden;
+                `;
+                quarterDiv.dataset.quarter = q;
+                
+                const video = document.createElement('video');
+                video.style.cssText = `
+                  width: 100%;
+                  height: 100%;
+                  object-fit: cover;
+                `;
+                video.muted = true;
+                video.loop = false;
+                video.playsinline = true;
+                
+                const statusLabel = document.createElement('div');
+                statusLabel.style.cssText = `
+                  position: absolute;
+                  top: 10px;
+                  left: 10px;
+                  background: rgba(0,0,0,0.7);
+                  padding: 0.5rem 1rem;
+                  border-radius: 4px;
+                  font-weight: bold;
+                  z-index: 10;
+                `;
+                statusLabel.textContent = `Q${q + 1}: Cycling`;
+                
+                quarterDiv.appendChild(video);
+                quarterDiv.appendChild(statusLabel);
+                gridOverlay.appendChild(quarterDiv);
+              }
+              
+              document.body.appendChild(gridOverlay);
+              
+              // Timer
+              const timerDiv = document.createElement('div');
+              timerDiv.style.cssText = `
+                position: fixed;
+                top: 20px;
+                left: 50%;
+                transform: translateX(-50%);
+                background: rgba(0,0,0,0.8);
+                padding: 1rem 2rem;
+                border-radius: 8px;
+                z-index: 260;
+                font-size: 1.5rem;
+                color: #f59e0b;
+              `;
+              timerDiv.id = 'quarter-timer';
+              timerDiv.textContent = 'Time: 60s';
+              document.body.appendChild(timerDiv);
+              
+              let timeLeft = 60;
+              let gameOver = false;
+              const lockedQuarters = new Set();
+              
+              // Cycle videos in each quarter
+              const cycleVideos = async () => {
+                while (!gameOver) {
+                  for (let q = 0; q < 4; q++) {
+                    if (lockedQuarters.has(q)) continue;
+                    
+                    const quarterDiv = document.querySelector(`[data-quarter="${q}"]`);
+                    const video = quarterDiv.querySelector('video');
+                    const videoIndex = quarters[q][Math.floor(Math.random() * quarters[q].length)];
+                    const file = videoFiles[videoIndex];
+                    
+                    video.src = URL.createObjectURL(file);
+                    await new Promise(resolve => {
+                      video.onloadedmetadata = () => {
+                        video.currentTime = Math.random() * Math.max(0, video.duration - 5);
+                        video.play();
+                        setTimeout(resolve, 5000);
+                      };
+                    });
+                  }
+                }
+              };
+              
+              cycleVideos();
+              
+              // Click to lock quarter
+              document.querySelectorAll('[data-quarter]').forEach(div => {
+                div.onclick = () => {
+                  const q = parseInt(div.dataset.quarter);
+                  if (lockedQuarters.has(q) || gameOver) return;
+                  
+                  lockedQuarters.add(q);
+                  div.style.border = '5px solid #10b981';
+                  div.querySelector('div').textContent = `Q${q + 1}: LOCKED ✓`;
+                  div.querySelector('div').style.color = '#10b981';
+                  
+                  // Check if all locked
+                  if (lockedQuarters.size === 4) {
+                    gameOver = true;
+                    clearInterval(timerInterval);
+                    
+                    // Check if all locked on correct video (simplified - just give success)
+                    gridOverlay.remove();
+                    timerDiv.remove();
+                    taskModalOverlay.style.pointerEvents = 'all';
+                    taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Puzzle Complete!</h2><p>You locked all quarters!</p></div>`;
+                    setTimeout(() => {
+                      updateMainScore(3000);
+                      markTaskComplete();
+                    }, 1500);
+                  }
+                };
+              });
+              
+              const timerInterval = setInterval(() => {
+                timeLeft--;
+                timerDiv.textContent = `Time: ${timeLeft}s`;
+                
+                if (timeLeft <= 0 && !gameOver) {
+                  gameOver = true;
+                  clearInterval(timerInterval);
+                  gridOverlay.remove();
+                  timerDiv.remove();
+                  taskModalOverlay.style.pointerEvents = 'all';
+                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${lockedQuarters.size}/4 locked</p></div>`;
+                  setTimeout(() => closeTaskModal(), 2000);
+                }
+              }, 1000);
+              
+              currentTimers.push(timerInterval);
+            };
+          }
+
+          async function setupCreativeChallengeTask() {
+            taskModalTitle.textContent = "Creative Challenge 💡";
+            
+            // Check if there are any custom challenges stored
+            const customChallenges = JSON.parse(localStorage.getItem('customCreativeChallenges') || '[]');
+            
+            let challengeText = '';
+            if (customChallenges.length > 0) {
+              challengeText = customChallenges[Math.floor(Math.random() * customChallenges.length)];
+            } else {
+              challengeText = "Tell us your funniest cloud-related story!";
+            }
+            
+            // Get active players with their global indices
+            const activePlayers = challengePlayers
+              .map((p, globalIdx) => ({ player: p, globalIndex: globalIdx }))
+              .filter(item => item.player.active);
+            
+            taskModalBody.innerHTML = `
+              <div style="text-align: center;">
+                <h3 style="margin-bottom: 2rem;">Your Challenge:</h3>
+                <p style="font-size: 1.3rem; font-style: italic; margin-bottom: 2rem; padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 8px;">
+                  "${challengeText}"
+                </p>
+                
+                <div style="margin-bottom: 2rem;">
+                  <a href="https://chat.openai.com/" target="_blank" rel="noopener noreferrer" class="modal-action-btn" style="display: inline-block; text-decoration: none;">
+                    🎤 Open ChatGPT Voice Chat
+                  </a>
+                </div>
+                
+                <h3 style="margin-bottom: 1rem;">Who completed it better?</h3>
+                <div style="display: flex; gap: 1rem; justify-content: center; margin-bottom: 1rem; flex-wrap: wrap;">
+                  ${activePlayers.map(item => {
+                    return `<button id="player${item.globalIndex}-win" class="modal-action-btn" style="background: ${item.player.color};">
+                      ${item.player.badge} Wins
+                    </button>`;
+                  }).join('')}
+                </div>
+                
+                <button id="skip-challenge" class="modal-action-btn" style="background: rgba(100,100,100,0.5);">
+                  Skip Challenge
+                </button>
+              </div>
+            `;
+            
+            // Set up winner click handlers
+            activePlayers.forEach(item => {
+              document.getElementById(`player${item.globalIndex}-win`).onclick = () => {
+                currentChallengePlayerIndex = item.globalIndex;
+                taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🏆 ${item.player.badge} Wins!</h2><p>They get the next turn!</p></div>`;
+                setTimeout(() => {
+                  closeTaskModal();
+                  // Winner gets next turn, so don't advance
+                  renderChallengeHud();
+                }, 1500);
+              };
+            });
+            
+            document.getElementById('skip-challenge').onclick = () => {
+              closeTaskModal();
             };
           }
 
