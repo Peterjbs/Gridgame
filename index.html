@@ -88,7 +88,7 @@
 
     .right-panel {
       right: 0;
-      transform: translateX(100%) translate(var(--drag-x, 0px), var(--drag-y, 0px));
+      transform: translateX(100%);
     }
 
     .left-panel {
@@ -205,6 +205,10 @@
     .overlay.visible {
       opacity: 1;
       visibility: visible;
+    }
+
+    .overlay.interactive {
+      pointer-events: all;
     }
 
     .countdown-overlay {
@@ -1254,12 +1258,22 @@
       inset: 0;
       z-index: 320;
       pointer-events: auto;
-      background-color: rgba(0, 0, 0, 0.95);
+      background-color: transparent;
       display: flex;
       flex-direction: column;
       align-items: center;
       justify-content: center;
       padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+    }
+
+    /* Optional HUD card for game overlays that need text backgrounds */
+    .game-hud-card {
+      background: rgba(0, 0, 0, 0.8);
+      padding: 1.5rem;
+      border-radius: 1rem;
+      border: 2px solid rgba(255, 255, 255, 0.2);
+      max-width: 90%;
+      backdrop-filter: blur(10px);
     }
 
     .game-overlay-exit-btn {
@@ -1310,7 +1324,7 @@
   <div id="story-maker-container"></div>
   <div id="movie-playback-overlay" class="overlay"></div>
 
-  <div id="task-modal-overlay" class="overlay">
+  <div id="task-modal-overlay" class="overlay interactive">
     <div id="task-modal-content">
       <button id="task-modal-close">&times;</button>
       <h2 id="task-modal-title">Task Title</h2>
@@ -1663,14 +1677,25 @@
             exitBtn.className = 'game-overlay-exit-btn';
             exitBtn.textContent = '✕ Exit';
             exitBtn.setAttribute('aria-label', 'Exit game');
+            exitBtn.setAttribute('tabindex', '0');
             
             // Exit handler: cleanup and remove overlay
-            exitBtn.onclick = () => {
+            const exitHandler = (event) => {
+              if (event) event.preventDefault();
               runGameCleanup();
               if (overlayEl.parentNode) {
                 overlayEl.parentNode.removeChild(overlayEl);
               }
             };
+            
+            exitBtn.addEventListener('pointerdown', exitHandler);
+            
+            // Add keyboard accessibility
+            exitBtn.addEventListener('keydown', (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                exitHandler(event);
+              }
+            });
             
             // Append exit button and overlay to body
             overlayEl.appendChild(exitBtn);
@@ -1713,6 +1738,35 @@
               }
             });
             gameCleanupTasks = [];
+          }
+
+          /**
+           * Wires up a Start Game button with consistent behavior:
+           * - Disables the button to prevent double-start
+           * - Hides the task modal first
+           * - Then starts the minigame
+           * @param {HTMLElement} startBtn - The start button element
+           * @param {Function} startFn - The function to call to start the game
+           */
+          function wireStartButton(startBtn, startFn) {
+            startBtn.addEventListener('pointerdown', (event) => {
+              event.preventDefault();
+              if (startBtn.disabled) return;
+              startBtn.disabled = true;
+              hideTaskModal();
+              startFn();
+            });
+            
+            // Add keyboard accessibility
+            startBtn.addEventListener('keydown', (event) => {
+              if (event.key === 'Enter' || event.key === ' ') {
+                event.preventDefault();
+                if (startBtn.disabled) return;
+                startBtn.disabled = true;
+                hideTaskModal();
+                startFn();
+              }
+            });
           }
 
           // --- THEME UPDATE: Cloud-themed categories ---
@@ -3529,11 +3583,11 @@
             activeTaskElement = document.querySelector(`.challenge-square[data-challenge-index='${index}']`);
             isTaskCompleted = false;
             stopScoreDecay();
-            taskModalOverlay.style.pointerEvents = 'all'; // Reset pointer events
+            taskModalOverlay.style.pointerEvents = ''; // Reset pointer events to use CSS classes
             taskModalOverlay.style.display = ''; // Reset display property
 
             taskModalBody.innerHTML = `<div class="text-center p-8"><h3 class="text-2xl mb-2">Preparing Challenge...</h3><p class="text-gray-400">Please wait a moment.</p></div>`;
-            taskModalOverlay.classList.add('visible');
+            taskModalOverlay.classList.add('visible', 'interactive');
 
             // Check if this tile was previously failed and has a last game type
             const lastGameType = tileLastGameType[index];
@@ -3655,6 +3709,7 @@
            */
           function hideTaskModal() {
             // Hide the task modal overlay completely
+            taskModalOverlay.classList.remove('visible');
             taskModalOverlay.style.display = 'none';
             taskModalOverlay.style.pointerEvents = 'none';
           }
@@ -3663,13 +3718,13 @@
             if (!isTaskCompleted && activeTaskElement) {
               markTaskFailed();
             }
-            taskModalOverlay.classList.remove('visible');
+            taskModalOverlay.classList.remove('visible', 'interactive');
             taskModalBody.innerHTML = '';
             if (modalTimer) {
               clearInterval(modalTimer);
               modalTimer = null;
             }
-            taskModalOverlay.style.pointerEvents = 'all';
+            taskModalOverlay.style.pointerEvents = '';
             taskModalOverlay.style.display = ''; // Reset display property
             activeTaskElement = null;
             isTaskCompleted = false;
@@ -3753,7 +3808,15 @@
             advanceChallengeTurn();
           }
 
-          taskModalCloseBtn.addEventListener('click', closeTaskModal);
+          taskModalCloseBtn.addEventListener('pointerdown', closeTaskModal);
+          
+          // Add keyboard accessibility for close button
+          taskModalCloseBtn.addEventListener('keydown', (event) => {
+            if (event.key === 'Enter' || event.key === ' ') {
+              event.preventDefault();
+              closeTaskModal();
+            }
+          });
           
           // Add keyboard shortcut to close task modal (Escape key)
           document.addEventListener('keydown', (event) => {
