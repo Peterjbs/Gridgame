@@ -5855,25 +5855,25 @@
               <button id="start-challenge-btn" class="modal-action-btn">Start Painting</button>
             `;
             
-            document.getElementById('start-challenge-btn').onclick = () => {
-              // Create canvas overlay
-              taskModalOverlay.style.pointerEvents = 'none';
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, () => {
+              // Create game overlay
+              const { overlayEl } = createGameOverlay({ id: 'paint-splatter-overlay' });
               
               const canvas = document.createElement('canvas');
               canvas.id = 'paint-canvas';
               canvas.width = window.innerWidth;
               canvas.height = window.innerHeight;
               canvas.style.cssText = `
-                position: fixed;
+                position: absolute;
                 top: 0;
                 left: 0;
                 width: 100vw;
                 height: 100vh;
-                z-index: 250;
                 cursor: crosshair;
-                pointer-events: auto;
+                z-index: 324;
               `;
-              document.body.appendChild(canvas);
+              overlayEl.appendChild(canvas);
               
               const ctx = canvas.getContext('2d');
               let coverage = 0;
@@ -5884,14 +5884,13 @@
               const infoPanel = document.createElement('div');
               infoPanel.style.cssText = `
                 position: fixed;
-                top: 20px;
+                top: 80px;
                 left: 50%;
                 transform: translateX(-50%);
                 background: rgba(0,0,0,0.8);
                 padding: 1rem 2rem;
                 border-radius: 8px;
-                z-index: 260;
-                pointer-events: none;
+                z-index: 325;
               `;
               infoPanel.innerHTML = `
                 <div style="display: flex; gap: 2rem;">
@@ -5899,7 +5898,7 @@
                   <div id="paint-timer" style="font-size: 1.5rem; color: #f59e0b;">Time: 30s</div>
                 </div>
               `;
-              document.body.appendChild(infoPanel);
+              overlayEl.appendChild(infoPanel);
               
               const splatter = (x, y) => {
                 const radius = 40 + Math.random() * 30;
@@ -5927,14 +5926,9 @@
                 if (coverage >= 90 && !gameOver) {
                   gameOver = true;
                   clearInterval(timerInterval);
-                  canvas.remove();
-                  infoPanel.remove();
-                  taskModalOverlay.style.pointerEvents = 'all';
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Success!</h2><p>${Math.floor(coverage)}% covered!</p></div>`;
-                  setTimeout(() => {
-                    updateMainScore(2500);
-                    markTaskComplete();
-                  }, 1500);
+                  overlayEl.remove();
+                  updateMainScore(2500);
+                  markTaskComplete();
                 }
               };
               
@@ -5949,16 +5943,12 @@
                 if (timeLeft <= 0 && !gameOver) {
                   gameOver = true;
                   clearInterval(timerInterval);
-                  canvas.remove();
-                  infoPanel.remove();
-                  taskModalOverlay.style.pointerEvents = 'all';
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${Math.floor(coverage)}% covered</p></div>`;
-                  setTimeout(() => closeTaskModal(), 2000);
+                  overlayEl.remove();
                 }
               }, 1000);
               
-              currentTimers.push(timerInterval);
-            };
+              registerGameCleanup(() => clearInterval(timerInterval));
+            });
           }
 
           async function setupTimestampMatchTask() {
