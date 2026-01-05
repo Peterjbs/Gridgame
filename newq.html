@@ -1299,7 +1299,7 @@
   </style>
 </head>
 
-<body>
+<body class="left-panel-active">
   <div class="video-full-screen"><video id="mainVideo" muted playsinline></video></div>
   <div id="story-maker-bg">
     <div id="story-maker-progress"></div>
@@ -1357,7 +1357,7 @@
     </div>
   </div>
 
-  <div id="challenge-panel" class="panel left-panel">
+  <div id="challenge-panel" class="panel left-panel active">
     <div class="panel-header">
       <h2 id="title-challenge" class="title-yellow">The Forecast</h2>
     </div>
@@ -1532,7 +1532,7 @@
   </div>
 
   <div class="panel-toggle-bar left-bar">
-    <button class="panel-toggle-button" data-panel="challenge-panel" data-color="yellow" title="The Forecast">🏆</button>
+    <button class="panel-toggle-button active highlight-yellow" data-panel="challenge-panel" data-color="yellow" title="The Forecast">🏆</button>
   </div>
   <div class="panel-toggle-bar right-bar">
     <button class="panel-toggle-button" data-panel="panel-playback-settings" data-color="red"
@@ -4129,6 +4129,71 @@
           mainVideo.volume = 0;
           volumeSlider.value = 0;
         });
+  </script>
+  
+  <!-- Fallback Panel Toggle Script -->
+  <script>
+    // This fallback script runs even if the main script has errors
+    // It ensures panels can be toggled
+    (function() {
+      try {
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', initPanelToggles);
+        } else {
+          initPanelToggles();
+        }
+        
+        function initPanelToggles() {
+          const panelToggles = document.querySelectorAll('.panel-toggle-button');
+          const panels = document.querySelectorAll('.panel');
+          const body = document.body;
+          
+          // Only initialize if not already done
+          if (panelToggles.length > 0 && !panelToggles[0].dataset.initialized) {
+            panelToggles.forEach(toggle => {
+              toggle.dataset.initialized = 'true';
+              toggle.addEventListener('click', function() {
+                const targetPanelId = this.dataset.panel;
+                const targetPanel = document.getElementById(targetPanelId);
+                if (!targetPanel) return;
+                
+                const isAlreadyActive = targetPanel.classList.contains('active');
+                const color = this.dataset.color;
+                const isLeftPanel = targetPanel.classList.contains('left-panel');
+                
+                // Close all panels
+                panels.forEach(p => p.classList.remove('active'));
+                panelToggles.forEach(t => {
+                  t.classList.remove('active');
+                  const tColor = t.dataset.color;
+                  if (tColor) t.classList.remove(`highlight-${tColor}`);
+                });
+                body.classList.remove('right-panel-active', 'left-panel-active');
+                
+                // Open clicked panel if it wasn't already active
+                if (!isAlreadyActive) {
+                  targetPanel.classList.add('active');
+                  this.classList.add('active');
+                  if (color) {
+                    this.classList.add(`highlight-${color}`);
+                    const title = targetPanel.querySelector('.panel-header h2');
+                    if (title) {
+                      title.className = "";
+                      title.classList.add(`title-${color}`);
+                    }
+                  }
+                  if (isLeftPanel) body.classList.add('left-panel-active');
+                  else body.classList.add('right-panel-active');
+                }
+              });
+            });
+          }
+        }
+      } catch (e) {
+        console.error('Fallback panel toggle script error:', e);
+      }
+    })();
   </script>
 </body>
 
