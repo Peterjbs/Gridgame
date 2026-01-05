@@ -2201,13 +2201,24 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
           // --- PR1 Helper Functions for Minigames ---
           let gameCleanupFunctions = [];
           const trackedObjectURLs = new Set();
+          const VIDEO_LOAD_TIMEOUT_MS = 5000;
+          const MAX_VIDEO_LOAD_FAILURES = 10;
 
+          /**
+           * Creates an object URL from a File and tracks it for automatic cleanup
+           * @param {File} file - The file to create an object URL for
+           * @returns {string} The created object URL
+           */
           function createTrackedObjectURL(file) {
             const url = URL.createObjectURL(file);
             trackedObjectURLs.add(url);
             return url;
           }
 
+          /**
+           * Manually revokes a tracked object URL
+           * @param {string} url - The object URL to revoke
+           */
           function revokeTrackedObjectURL(url) {
             if (trackedObjectURLs.has(url)) {
               URL.revokeObjectURL(url);
@@ -2215,12 +2226,19 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           }
 
+          /**
+           * Registers a cleanup function to be called later
+           * @param {Function} fn - The cleanup function to register
+           */
           function registerGameCleanup(fn) {
             if (typeof fn === 'function') {
               gameCleanupFunctions.push(fn);
             }
           }
 
+          /**
+           * Executes all registered cleanup functions and clears the registry
+           */
           function runGameCleanup() {
             gameCleanupFunctions.forEach(fn => {
               try {
@@ -2236,11 +2254,21 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             trackedObjectURLs.clear();
           }
 
+          /**
+           * Hides the task modal overlay
+           */
           function hideTaskModal() {
             taskModalOverlay.classList.remove('visible');
             taskModalOverlay.style.pointerEvents = 'all';
           }
 
+          /**
+           * Creates a full-screen game overlay with optional title and exit button
+           * @param {Object} options - Configuration options
+           * @param {string} options.title - Optional title text to display
+           * @param {boolean} options.showExit - Whether to show an exit button (default: true)
+           * @returns {Object} Object containing overlay and content DOM elements
+           */
           function createGameOverlay({ title = '', showExit = true } = {}) {
             const overlay = document.createElement('div');
             overlay.style.cssText = `
@@ -5163,13 +5191,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             `;
 
             document.getElementById('start-challenge-btn').onclick = async () => {
-              // Hide task modal and save main video state
-              hideTaskModal();
-              
+              // Save main video state before hiding modal
               const savedVideoIndex = currentVideoIndex;
               const savedTime = mainVideo.currentTime;
               const wasPlaying = !mainVideo.paused;
               const savedSrc = mainVideo.src;
+              
+              // Hide task modal
+              hideTaskModal();
               
               // Pick 6 random videos
               const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
@@ -5356,13 +5385,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             `;
 
             document.getElementById('start-challenge-btn').onclick = async () => {
-              // Hide task modal and save main video state
-              hideTaskModal();
-              
+              // Save main video state before hiding modal
               const savedVideoIndex = currentVideoIndex;
               const savedTime = mainVideo.currentTime;
               const wasPlaying = !mainVideo.paused;
               const savedSrc = mainVideo.src;
+              
+              // Hide task modal
+              hideTaskModal();
               
               // Pick 6 random videos from different sources
               const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
@@ -6632,7 +6662,6 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               let gameOver = false;
               const lockedQuarters = new Set();
               let loadFailures = 0;
-              const maxFailures = 10;
               
               const cleanupGame = () => {
                 gameOver = true;
@@ -6666,7 +6695,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                       await new Promise((resolve, reject) => {
                         const timeout = setTimeout(() => {
                           reject(new Error('Load timeout'));
-                        }, 5000);
+                        }, VIDEO_LOAD_TIMEOUT_MS);
                         
                         video.onloadedmetadata = () => {
                           clearTimeout(timeout);
@@ -6684,7 +6713,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                       loadFailures = 0; // Reset on success
                     } catch (error) {
                       loadFailures++;
-                      if (loadFailures >= maxFailures) {
+                      if (loadFailures >= MAX_VIDEO_LOAD_FAILURES) {
                         gameOver = true;
                         cleanupGame();
                         taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⚠️ Too Many Load Failures</h2><p>Videos failed to load properly.</p></div>`;
