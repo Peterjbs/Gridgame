@@ -1468,10 +1468,10 @@
     <div id="guessing-inputs-container">
     </div>
     <label for="guessEmoji">Target Emoji:</label>
-    <select id="guessEmoji" class="mb-2" style="font-size: 1.5rem; padding: 0.5rem;">
-      <option value="🍆">🍆</option>
-      <option value="🍑">🍑</option>
-      <option value="🧍">🧍</option>
+    <select id="guessEmoji" class="mb-2" style="font-size: 1.5rem; padding: 0.5rem;" aria-label="Select target emoji for guessing game">
+      <option value="🍆" aria-label="Eggplant emoji">🍆</option>
+      <option value="🍑" aria-label="Peach emoji">🍑</option>
+      <option value="🧍" aria-label="Person standing emoji">🧍</option>
     </select>
     <label for="guessTimerDuration">Round Duration (s):</label>
     <input type="number" id="guessTimerDuration" value="30" min="5" class="mb-2">
@@ -2647,8 +2647,12 @@
             bingoSelectionActive.classList.remove('hidden');
             generateBingoCardsBtn.disabled = true;
             
-            // Select random 15 prompts from master list
-            const shuffled = [...bingoPrompts].sort(() => Math.random() - 0.5);
+            // Select random 15 prompts from master list using Fisher-Yates shuffle
+            const shuffled = [...bingoPrompts];
+            for (let i = shuffled.length - 1; i > 0; i--) {
+              const j = Math.floor(Math.random() * (i + 1));
+              [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+            }
             const selectedPrompts = shuffled.slice(0, 15);
             
             const masterList = document.getElementById('bingo-master-list');
