@@ -1769,6 +1769,49 @@
             });
           }
 
+          /**
+           * Temporarily takes over #mainVideo for a minigame, then restores state.
+           * Snapshots current video state, stops rotation, allows minigame to play clips,
+           * then restores everything on finish/exit.
+           * @param {Function} minigameFn - async function that uses #mainVideo
+           */
+          async function withMainVideoOverride(minigameFn) {
+            const mainVideo = document.getElementById('mainVideo');
+            
+            // Snapshot current state
+            const snapshot = {
+              src: mainVideo.currentSrc,
+              currentTime: mainVideo.currentTime,
+              paused: mainVideo.paused,
+              loop: mainVideo.loop,
+              onended: mainVideo.onended,
+              currentVideoIndex: currentVideoIndex
+            };
+            
+            // Temporarily stop auto-advance
+            mainVideo.onended = null;
+            mainVideo.loop = false;
+            
+            try {
+              // Run minigame
+              await minigameFn(mainVideo);
+            } finally {
+              // Restore state
+              mainVideo.onended = snapshot.onended;
+              mainVideo.loop = snapshot.loop;
+              
+              if (snapshot.src) {
+                mainVideo.src = snapshot.src;
+                mainVideo.currentTime = snapshot.currentTime;
+                if (!snapshot.paused) {
+                  await mainVideo.play().catch(() => {});
+                }
+              }
+              
+              currentVideoIndex = snapshot.currentVideoIndex;
+            }
+          }
+
           // --- THEME UPDATE: Cloud-themed categories ---
           const challengeCategories = [
            ["Cinematic Classics 🎬", "Underground Eats 🍔", "Mythical Realms 🐉", "Bytes & Beeps 💾", "Wild Kingdom 🐾", "Watery Wonders 🌊", "Cosmic Conundrums 🌌", "Artful Aesthetics 🖼️", "The Great Outdoors 🏕️", "Ancient History 🏺"],
@@ -4950,102 +4993,106 @@
               <button id="start-challenge-btn" class="modal-action-btn">Start Watching</button>
             `;
 
-            document.getElementById('start-challenge-btn').onclick = async () => {
-              // Pick 6 random videos
-              const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
-              const selectedIndices = shuffled.slice(0, 6);
-              
-              // Pick which one will be special (0-5)
-              const specialIndex = Math.floor(Math.random() * 6);
-              
-              // Pick what effect
-              const effects = ['slomo', 'double', 'reverse', 'short', 'filter'];
-              const specialEffect = effects[Math.floor(Math.random() * effects.length)];
-              
-              taskModalBody.innerHTML = `
-                <div id="detective-video-container" style="width: 100%; max-width: 500px; margin: 0 auto;">
-                  <video id="detective-player" style="width: 100%; height: auto;" muted playsinline></video>
-                </div>
-                <p style="margin-top: 1rem; font-size: 1.2rem;">Watching clip <span id="clip-number">1</span>/6...</p>
-              `;
-              
-              const player = document.getElementById('detective-player');
-              
-              for (let i = 0; i < 6; i++) {
-                document.getElementById('clip-number').textContent = i + 1;
-                const videoIndex = selectedIndices[i];
-                const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, async () => {
+              await withMainVideoOverride(async (mainVideo) => {
+                // Create game overlay
+                const { overlayEl } = createGameOverlay({ id: 'video-detective-overlay' });
                 
-                player.src = url;
-                await new Promise(resolve => {
-                  player.onloadedmetadata = () => resolve();
-                });
+                // Pick 6 random videos
+                const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
+                const selectedIndices = shuffled.slice(0, 6);
                 
-                const isSpecial = i === specialIndex;
-                let playDuration = 5000; // 5 seconds default
+                // Pick which one will be special (0-5)
+                const specialIndex = Math.floor(Math.random() * 6);
                 
-                if (isSpecial) {
-                  if (specialEffect === 'slomo') {
-                    player.playbackRate = 0.5;
-                  } else if (specialEffect === 'reverse') {
-                    player.classList.add('video-reversed');
-                  } else if (specialEffect === 'short') {
-                    playDuration = 3000; // 3 seconds
-                  } else if (specialEffect === 'filter') {
-                    player.classList.add('video-sepia');
-                  }
-                } else {
-                  player.playbackRate = 1;
-                  player.className = '';
-                }
+                // Pick what effect
+                const effects = ['slomo', 'double', 'reverse', 'short', 'filter'];
+                const specialEffect = effects[Math.floor(Math.random() * effects.length)];
                 
-                player.currentTime = Math.random() * Math.max(0, player.duration - 5);
-                await player.play();
+                // HUD for clip counter
+                const hudCard = document.createElement('div');
+                hudCard.className = 'game-hud-card';
+                hudCard.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 325; text-align: center;';
+                hudCard.innerHTML = `<p style="font-size: 1.5rem; margin: 0;">Watching clip <span id="clip-number">1</span>/6...</p>`;
+                overlayEl.appendChild(hudCard);
                 
-                if (isSpecial && specialEffect === 'double') {
-                  // Play twice
-                  await new Promise(resolve => setTimeout(resolve, 2500));
-                  player.currentTime = Math.max(0, player.currentTime - 2.5);
-                  await new Promise(resolve => setTimeout(resolve, 2500));
-                } else {
-                  await new Promise(resolve => setTimeout(resolve, playDuration));
-                }
-                
-                player.pause();
-                player.className = '';
-                player.playbackRate = 1;
-              }
-              
-              // Show selection screen
-              taskModalTitle.textContent = "Which clip was different?";
-              taskModalBody.innerHTML = `
-                <p style="margin-bottom: 1rem;">The special effect was: <strong>${specialEffect}</strong></p>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-                  ${[0, 1, 2, 3, 4, 5].map(i => `
-                    <button class="modal-action-btn" data-clip="${i}" style="font-size: 1.5rem;">
-                      Clip ${i + 1}
-                    </button>
-                  `).join('')}
-                </div>
-              `;
-              
-              document.querySelectorAll('button[data-clip]').forEach(btn => {
-                btn.onclick = () => {
-                  const chosen = parseInt(btn.dataset.clip);
-                  if (chosen === specialIndex) {
-                    taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Correct!</h2><p>You found the ${specialEffect} clip!</p></div>`;
-                    setTimeout(() => {
-                      updateMainScore(2000);
-                      markTaskComplete();
-                    }, 1500);
+                // Play 6 clips in mainVideo
+                for (let i = 0; i < 6; i++) {
+                  document.getElementById('clip-number').textContent = i + 1;
+                  const videoIndex = selectedIndices[i];
+                  const file = videoFiles[videoIndex];
+                  const url = URL.createObjectURL(file);
+                  
+                  mainVideo.src = url;
+                  await new Promise(resolve => {
+                    mainVideo.onloadedmetadata = () => resolve();
+                  });
+                  
+                  const isSpecial = i === specialIndex;
+                  let playDuration = 5000; // 5 seconds default
+                  
+                  if (isSpecial) {
+                    if (specialEffect === 'slomo') {
+                      mainVideo.playbackRate = 0.5;
+                    } else if (specialEffect === 'short') {
+                      playDuration = 3000; // 3 seconds
+                    }
                   } else {
-                    taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong!</h2><p>It was clip ${specialIndex + 1}</p></div>`;
-                    setTimeout(() => closeTaskModal(), 2000);
+                    mainVideo.playbackRate = 1;
                   }
-                };
+                  
+                  mainVideo.currentTime = Math.random() * Math.max(0, mainVideo.duration - 5);
+                  await mainVideo.play();
+                  
+                  if (isSpecial && specialEffect === 'double') {
+                    // Play twice
+                    await new Promise(resolve => setTimeout(resolve, 2500));
+                    mainVideo.currentTime = Math.max(0, mainVideo.currentTime - 2.5);
+                    await new Promise(resolve => setTimeout(resolve, 2500));
+                  } else {
+                    await new Promise(resolve => setTimeout(resolve, playDuration));
+                  }
+                  
+                  mainVideo.pause();
+                  mainVideo.playbackRate = 1;
+                }
+                
+                // Stop video and show selection UI
+                mainVideo.pause();
+                hudCard.remove();
+                
+                // Show selection screen in HUD
+                const selectionCard = document.createElement('div');
+                selectionCard.className = 'game-hud-card';
+                selectionCard.style.cssText = 'max-width: 600px;';
+                selectionCard.innerHTML = `
+                  <h2 style="text-align: center; margin-bottom: 1rem;">Which clip was different?</h2>
+                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
+                    ${selectedIndices.map((idx, i) => `<button class="task-option-btn" data-index="${i}">Clip ${i + 1}</button>`).join('')}
+                  </div>
+                `;
+                overlayEl.appendChild(selectionCard);
+                
+                // Handle selection
+                selectionCard.querySelectorAll('.task-option-btn').forEach(btn => {
+                  btn.onclick = () => {
+                    const selected = parseInt(btn.dataset.index);
+                    if (selected === specialIndex) {
+                      selectionCard.innerHTML = '<h2 style="text-align: center; color: #10b981;">🎉 Correct!</h2>';
+                      setTimeout(() => {
+                        overlayEl.remove();
+                        updateMainScore(3000);
+                        markTaskComplete();
+                      }, 1500);
+                    } else {
+                      selectionCard.innerHTML = `<h2 style="text-align: center; color: #e74c3c;">❌ Wrong! It was Clip ${specialIndex + 1}</h2>`;
+                      setTimeout(() => overlayEl.remove(), 2000);
+                    }
+                  };
+                });
               });
-            };
+            });
           }
 
           async function setupClipOrderMemoryTask() {
