@@ -1,0 +1,1266 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Lines Bingo — Cascading Reels + Full-Column Wild Auto-Respin + Free Spin</title>
+  <style>
+    :root{
+      --gap: 14px;
+      --r: 20px;
+
+      /* Column hues */
+      --b: 200 95% 56%;
+      --i: 155 95% 52%;
+      --n: 285 95% 68%;
+      --g: 45 95% 58%;
+      --o: 10 95% 60%;
+
+      --glass: rgba(255,255,255,0.075);
+      --stroke: rgba(255,255,255,0.15);
+      --shadow: 0 18px 60px rgba(0,0,0,0.35);
+    }
+
+    *{ box-sizing:border-box; }
+
+    body{
+      font-family: system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;
+      margin:0; padding:18px;
+      color:#eef2ff;
+      background:
+        radial-gradient(1200px 900px at 18% 0%, rgba(110, 200, 255, 0.20), transparent 55%),
+        radial-gradient(900px 800px at 92% 18%, rgba(255, 120, 210, 0.18), transparent 55%),
+        radial-gradient(800px 600px at 50% 100%, rgba(80, 255, 190, 0.10), transparent 55%),
+        #070b16;
+    }
+
+    /* Neon frame animation */
+    .neonFrame{
+      position:fixed; inset:10px;
+      pointer-events:none;
+      border-radius:28px;
+      background:
+        radial-gradient(600px 220px at 30% 0%, rgba(120,210,255,0.10), transparent 60%),
+        radial-gradient(600px 220px at 70% 0%, rgba(255,140,220,0.10), transparent 60%),
+        radial-gradient(600px 220px at 50% 100%, rgba(90,255,200,0.07), transparent 60%);
+      border:1px solid rgba(255,255,255,0.06);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.05) inset;
+      animation: frameGlow 6s ease-in-out infinite;
+      opacity:.85;
+    }
+    @keyframes frameGlow{
+      0%,100%{ filter: saturate(1.0) brightness(1.0); }
+      50%{ filter: saturate(1.25) brightness(1.08); }
+    }
+
+    .header{
+      display:flex;
+      align-items:flex-end;
+      justify-content:space-between;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom: 14px;
+    }
+    .title{
+      display:flex; flex-direction:column; gap:4px;
+    }
+    .title h1{
+      margin:0;
+      font-size:20px;
+      letter-spacing:.01em;
+      text-shadow: 0 14px 40px rgba(0,0,0,0.55);
+    }
+    .title .sub{
+      opacity:.88;
+      font-size:12px;
+      line-height:1.35;
+    }
+    .chipRow{ display:flex; gap:10px; flex-wrap:wrap; }
+    .chip{
+      padding:8px 12px;
+      border-radius:999px;
+      border:1px solid rgba(255,255,255,0.14);
+      background: rgba(0,0,0,0.18);
+      font-weight:950;
+      font-size:12px;
+      backdrop-filter: blur(10px);
+    }
+
+    .row{ display:flex; flex-wrap:wrap; gap:var(--gap); align-items:stretch; }
+    .panel{
+      background: var(--glass);
+      border:1px solid rgba(255,255,255,0.12);
+      border-radius: var(--r);
+      padding:14px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      position:relative;
+      overflow:hidden;
+    }
+    .panel::before{
+      content:"";
+      position:absolute; inset:-2px;
+      background: radial-gradient(240px 180px at 20% 0%, rgba(255,255,255,0.09), transparent 60%),
+                  radial-gradient(260px 180px at 80% 0%, rgba(255,255,255,0.06), transparent 62%);
+      pointer-events:none;
+      opacity:.9;
+    }
+    .panel > *{ position:relative; z-index:1; }
+    .panel h2{ margin:0 0 10px; font-size:14px; opacity:.92; letter-spacing:.02em; }
+
+    button{
+      appearance:none;
+      border:1px solid rgba(255,255,255,0.18);
+      background: rgba(255,255,255,0.10);
+      color:#f3f6ff;
+      border-radius: 16px;
+      padding: 12px 14px;
+      cursor:pointer;
+      font-weight: 1000;
+      letter-spacing:.02em;
+      transition: transform .06s ease, background .2s ease, box-shadow .2s ease, filter .2s ease, opacity .2s ease;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.20);
+    }
+    button:hover{
+      background: rgba(255,255,255,0.16);
+      filter: brightness(1.05);
+    }
+    button:active{ transform: translateY(1px); }
+    button[disabled]{ opacity:.45; cursor:not-allowed; box-shadow:none; }
+
+    .btnPrimary{
+      background: linear-gradient(135deg, rgba(110,200,255,0.22), rgba(255,140,220,0.18), rgba(80,255,200,0.18));
+      border-color: rgba(255,255,255,0.22);
+      box-shadow: 0 20px 50px rgba(0,0,0,0.28);
+    }
+    .btnPrimary:hover{ background: linear-gradient(135deg, rgba(110,200,255,0.28), rgba(255,140,220,0.22), rgba(80,255,200,0.22)); }
+
+    .btns{ display:flex; gap:10px; flex-wrap:wrap; align-items:center; }
+
+    .grid2{ display:grid; grid-template-columns:repeat(2,minmax(170px,1fr)); gap:10px; }
+    .stat{
+      padding:10px;
+      border-radius: 16px;
+      background: rgba(255,255,255,0.06);
+      border:1px solid rgba(255,255,255,0.10);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    }
+    .k{ font-size:12px; opacity:.85; }
+    .v{ font-size:18px; font-weight: 1050; margin-top:4px; }
+    .tiny{ font-size:12px; opacity:.88; line-height:1.45; }
+    .mono{ font-family: ui-monospace,SFMono-Regular,Menlo,Monaco,Consolas,"Liberation Mono",monospace; }
+
+    .divider{ height:1px; background:rgba(255,255,255,0.12); margin:12px 0; }
+
+    .msg{
+      margin-top:10px;
+      padding:12px;
+      border-radius:16px;
+      border:1px solid rgba(255,255,255,0.12);
+      background:rgba(255,255,255,0.06);
+      font-size:12px;
+      line-height:1.45;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.14);
+    }
+    .warn{ color:#ffd48a; }
+
+    input[type="number"]{
+      width:100%;
+      padding:10px 10px;
+      border-radius:12px;
+      border:1px solid rgba(255,255,255,0.16);
+      background:rgba(0,0,0,0.20);
+      color:#e8ecff;
+      font-weight:1000;
+      outline:none;
+    }
+    label{ display:block; font-size:12px; opacity:.86; margin-bottom:6px; }
+
+    /* ---------- REELS ---------- */
+    .topBar{
+      display:flex;
+      justify-content:space-between;
+      align-items:center;
+      gap:12px;
+      flex-wrap:wrap;
+      margin-bottom: 10px;
+    }
+
+    .reelsWrap{
+      display:grid;
+      grid-template-columns: repeat(5, minmax(92px, 1fr));
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+    .reel{
+      border-radius: 22px;
+      border: 1px solid rgba(255,255,255,0.16);
+      background:
+        radial-gradient(220px 140px at 50% 15%, rgba(255,255,255,0.16), transparent 58%),
+        rgba(255,255,255,0.06);
+      overflow:hidden;
+      position:relative;
+      box-shadow: 0 16px 34px rgba(0,0,0,0.30);
+      cursor: pointer;
+      user-select:none;
+      transform: translateZ(0);
+      transition: transform .12s ease, filter .2s ease;
+    }
+    .reel:hover{ transform: translateZ(0) translateY(-1px); filter: brightness(1.05); }
+
+    .reelHdr{
+      text-align:center;
+      font-weight: 1200;
+      letter-spacing: .16em;
+      font-size: 13px;
+      padding: 9px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.14);
+      text-shadow: 0 10px 20px rgba(0,0,0,0.35);
+    }
+    .reelWindow{
+      height: 102px;
+      display:grid;
+      place-items:center;
+      position:relative;
+    }
+    .reelValue{
+      font-weight: 1200;
+      font-size: 42px;
+      text-shadow: 0 14px 30px rgba(0,0,0,0.45);
+      letter-spacing:-0.02em;
+    }
+    .reelSub{
+      position:absolute;
+      bottom:10px;
+      font-size: 11px;
+      font-weight: 1100;
+      opacity: .95;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.18);
+    }
+    .reelGlow{
+      position:absolute; inset:-2px;
+      border-radius: 22px;
+      opacity: .0;
+      pointer-events:none;
+      transition: opacity .18s ease;
+    }
+    .reel.spinning .reelGlow{ opacity: .70; }
+    .reel.spinning .reelValue{ filter: blur(0.7px); opacity: .96; transform: translateY(-1px) scale(1.01); }
+
+    .reel.landed{
+      animation: reelLand .22s ease-out;
+    }
+    @keyframes reelLand{
+      0%{ transform: translateZ(0) scale(1); }
+      60%{ transform: translateZ(0) scale(1.02); }
+      100%{ transform: translateZ(0) scale(1); }
+    }
+
+    .reel.needsPick .reelGlow{ opacity: .85; }
+    .reel.needsPick{
+      animation: pulse 1.2s ease-in-out infinite;
+    }
+    @keyframes pulse{
+      0%,100%{ transform: translateZ(0) scale(1); }
+      50%{ transform: translateZ(0) scale(1.012); }
+    }
+    .reel.activePick{
+      outline: 2px solid rgba(40,255,170,0.92);
+      animation:none;
+      filter: brightness(1.08);
+    }
+
+    /* per-column tint glow */
+    .tB .reelGlow{ box-shadow: 0 0 0 2px hsla(var(--b) / .60) inset, 0 0 60px hsla(var(--b) / .22); }
+    .tI .reelGlow{ box-shadow: 0 0 0 2px hsla(var(--i) / .60) inset, 0 0 60px hsla(var(--i) / .22); }
+    .tN .reelGlow{ box-shadow: 0 0 0 2px hsla(var(--n) / .60) inset, 0 0 60px hsla(var(--n) / .22); }
+    .tG .reelGlow{ box-shadow: 0 0 0 2px hsla(var(--g) / .60) inset, 0 0 60px hsla(var(--g) / .22); }
+    .tO .reelGlow{ box-shadow: 0 0 0 2px hsla(var(--o) / .60) inset, 0 0 60px hsla(var(--o) / .22); }
+
+    /* ---------- BINGO GRID ---------- */
+    .bingoHeader{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:12px;
+      margin-bottom: 10px;
+    }
+    .hdr{
+      text-align:center;
+      font-weight: 1250;
+      border-radius: 18px;
+      padding: 11px 0;
+      border: 1px solid rgba(255,255,255,0.18);
+      letter-spacing: .18em;
+      background: rgba(255,255,255,0.09);
+      text-shadow: 0 10px 18px rgba(0,0,0,0.25);
+    }
+    .hdr.b{ background: linear-gradient(135deg, hsla(var(--b)/.34), rgba(255,255,255,0.06)); }
+    .hdr.i{ background: linear-gradient(135deg, hsla(var(--i)/.34), rgba(255,255,255,0.06)); }
+    .hdr.n{ background: linear-gradient(135deg, hsla(var(--n)/.34), rgba(255,255,255,0.06)); }
+    .hdr.g{ background: linear-gradient(135deg, hsla(var(--g)/.34), rgba(255,255,255,0.06)); }
+    .hdr.o{ background: linear-gradient(135deg, hsla(var(--o)/.34), rgba(255,255,255,0.06)); }
+
+    .bingoGrid{
+      display:grid;
+      grid-template-columns:repeat(5,1fr);
+      gap:12px;
+    }
+
+    .cell{
+      user-select:none;
+      min-height: 96px;
+      border-radius: 20px;
+      display:grid;
+      place-items:center;
+      font-weight: 1250;
+      font-size: 38px;
+      border: 1px solid rgba(255,255,255,0.18);
+      position:relative;
+      cursor:pointer;
+      overflow:hidden;
+      box-shadow: 0 14px 30px rgba(0,0,0,0.28);
+      background: rgba(255,255,255,0.07);
+      transform: translateZ(0);
+      transition: transform .10s ease, filter .2s ease;
+    }
+    .cell:hover{ transform: translateZ(0) translateY(-1px); filter: brightness(1.06); }
+
+    .cell::before{
+      content:"";
+      position:absolute; inset:-2px;
+      opacity:.98;
+      background:
+        radial-gradient(160px 130px at 25% 20%, rgba(255,255,255,0.16), transparent 62%),
+        linear-gradient(135deg, rgba(255,255,255,0.07), rgba(0,0,0,0.14));
+      pointer-events:none;
+    }
+    .cell[data-col="B"]::before{ background: radial-gradient(160px 130px at 25% 20%, hsla(var(--b)/.30), transparent 62%), linear-gradient(135deg, hsla(var(--b)/.12), rgba(0,0,0,0.14)); }
+    .cell[data-col="I"]::before{ background: radial-gradient(160px 130px at 25% 20%, hsla(var(--i)/.30), transparent 62%), linear-gradient(135deg, hsla(var(--i)/.12), rgba(0,0,0,0.14)); }
+    .cell[data-col="N"]::before{ background: radial-gradient(160px 130px at 25% 20%, hsla(var(--n)/.30), transparent 62%), linear-gradient(135deg, hsla(var(--n)/.12), rgba(0,0,0,0.14)); }
+    .cell[data-col="G"]::before{ background: radial-gradient(160px 130px at 25% 20%, hsla(var(--g)/.30), transparent 62%), linear-gradient(135deg, hsla(var(--g)/.12), rgba(0,0,0,0.14)); }
+    .cell[data-col="O"]::before{ background: radial-gradient(160px 130px at 25% 20%, hsla(var(--o)/.30), transparent 62%), linear-gradient(135deg, hsla(var(--o)/.12), rgba(0,0,0,0.14)); }
+
+    /* MARKED: super obvious */
+    .cell.marked{
+      background: linear-gradient(135deg, rgba(40, 255, 160, 0.22), rgba(0,0,0,0.22));
+      outline: 4px solid rgba(40,255,170,0.97);
+      box-shadow: 0 0 0 2px rgba(0,0,0,0.30) inset, 0 16px 34px rgba(0,0,0,0.30);
+    }
+    .cell.marked .num{ opacity:.26; transform: translateY(-2px) scale(0.99); }
+    .cell.marked::after{
+      content:"✓";
+      position:absolute;
+      font-size: 52px;
+      font-weight: 1200;
+      color: rgba(70,255,190,0.92);
+      text-shadow: 0 14px 30px rgba(0,0,0,0.45);
+      transform: rotate(-10deg);
+      pointer-events:none;
+    }
+
+    .cell.inLine{
+      box-shadow:
+        0 0 0 4px rgba(255,210,90,0.92) inset,
+        0 16px 34px rgba(0,0,0,0.30);
+    }
+    .cell.allowed{
+      box-shadow:
+        0 0 0 4px rgba(120, 200, 255, 0.92) inset,
+        0 16px 34px rgba(0,0,0,0.30);
+    }
+    .cell.disabled{ opacity:.80; cursor:not-allowed; filter: saturate(0.9); }
+
+    .cell .sub{
+      position:absolute;
+      bottom:10px;
+      font-size: 11px;
+      font-weight: 1100;
+      opacity: .96;
+      padding: 5px 10px;
+      border-radius: 999px;
+      border: 1px solid rgba(255,255,255,0.12);
+      background: rgba(0,0,0,0.18);
+    }
+    .num{ position:relative; z-index:1; }
+
+    .cell.justMarked{ animation: pop .20s ease-out; }
+    @keyframes pop{
+      0%{ transform: translateZ(0) scale(1); }
+      55%{ transform: translateZ(0) scale(1.05); }
+      100%{ transform: translateZ(0) scale(1); }
+    }
+
+    /* Flying token animation */
+    .fly{
+      position: fixed;
+      z-index: 9999;
+      width: 44px; height: 44px;
+      border-radius: 999px;
+      display:grid;
+      place-items:center;
+      font-weight: 1200;
+      font-size: 18px;
+      color:#0a1020;
+      background: radial-gradient(18px 18px at 30% 30%, rgba(255,255,255,0.85), rgba(255,255,255,0.35));
+      border: 1px solid rgba(255,255,255,0.40);
+      box-shadow: 0 18px 40px rgba(0,0,0,0.40);
+      pointer-events:none;
+      transform: translate(-50%,-50%);
+    }
+
+    /* Confetti canvas overlay */
+    #fx{
+      position: fixed;
+      inset: 0;
+      pointer-events:none;
+      z-index: 9998;
+    }
+
+    @media (max-width: 920px){
+      .cell{ font-size: 32px; min-height: 86px; }
+      .reelValue{ font-size: 36px; }
+    }
+  </style>
+</head>
+
+<body>
+  <canvas id="fx"></canvas>
+  <div class="neonFrame"></div>
+
+  <div class="header">
+    <div class="title">
+      <h1>Lines Bingo — Flash Mode</h1>
+      <div class="sub">
+        1 reel per column (B/I/N/G/O). If a reel lands on a number that’s on your card, it auto-marks and that reel instantly drops again (same spin).<br/>
+        <b>New:</b> if a <b>WILD</b> appears for a column that is already <b>fully complete</b>, it auto-respins (no placement needed).
+      </div>
+    </div>
+    <div class="chipRow">
+      <div class="chip">Free spin chance: <b>1/8</b> per PAID spin (≈ 1 free per game)</div>
+      <div class="chip">Click a reel with <b>W</b> / <b>S</b>, then click a <b>blue</b> tile</div>
+      <div class="chip">Active reel: <span class="mono" id="activeReel">—</span></div>
+    </div>
+  </div>
+
+  <div class="row">
+    <!-- LEFT: stats/config -->
+    <div class="panel" style="flex: 1 1 360px;">
+      <h2>Bank & Payouts</h2>
+
+      <div class="btns">
+        <button id="btnNewPlay" class="btnPrimary">New Play (20p)</button>
+        <button id="btnResetBank">Reset Bank</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid2">
+        <div class="stat"><div class="k">Bank</div><div class="v"><span id="bank">1000</span>p</div></div>
+        <div class="stat"><div class="k">Spins used</div><div class="v"><span id="spinsUsed">0</span></div></div>
+        <div class="stat"><div class="k">Paid spins left</div><div class="v"><span id="paidLeft">0</span></div></div>
+        <div class="stat"><div class="k">Free spins left</div><div class="v"><span id="freeLeft">0</span></div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid2">
+        <div class="stat"><div class="k">Lines</div><div class="v"><span id="lines">0</span></div></div>
+        <div class="stat"><div class="k">Projected payout</div><div class="v"><span id="proj">0</span>p</div></div>
+        <div class="stat"><div class="k">Cards left in pool</div><div class="v"><span id="left">—</span></div></div>
+        <div class="stat"><div class="k">Lifetime (spent / won)</div><div class="v"><span id="spent">0</span>p / <span id="won">0</span>p</div></div>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="grid2">
+        <div><label>Play cost (p)</label><input id="cfgCost" type="number" min="0" step="1" value="20"/></div>
+        <div><label>Extra spin cost (p)</label><input id="cfgExtraCost" type="number" min="0" step="1" value="20"/></div>
+
+        <div><label>Payout 3 lines</label><input id="p3" type="number" min="0" step="1" value="20"/></div>
+        <div><label>Payout 4 lines</label><input id="p4" type="number" min="0" step="1" value="60"/></div>
+        <div><label>Payout 5 lines</label><input id="p5" type="number" min="0" step="1" value="100"/></div>
+        <div><label>Payout 6 lines</label><input id="p6" type="number" min="0" step="1" value="200"/></div>
+        <div><label>Payout 7 lines</label><input id="p7" type="number" min="0" step="1" value="480"/></div>
+        <div><label>Payout 8+ lines</label><input id="p8" type="number" min="0" step="1" value="480"/></div>
+      </div>
+
+      <div id="status" class="msg tiny warn" style="display:none;"></div>
+
+      <div class="msg tiny">
+        <b>Wild rules:</b> WILD marks 1 tile in that column only. SUPER marks 1 tile anywhere. <br/>
+        <b>Auto-respin:</b> WILD on a completed column re-rolls instantly (no placement).
+      </div>
+    </div>
+
+    <!-- RIGHT: reels + grid + next button beside grid -->
+    <div class="panel" style="flex: 2 1 760px;">
+      <div class="topBar">
+        <div class="btns">
+          <button id="btnNextSpin" class="btnPrimary" disabled>Next Spin</button>
+          <button id="btnAuto" disabled>Auto (until W/S)</button>
+          <button id="btnExtra" disabled>Buy Extra Spin</button>
+        </div>
+        <div class="chip">Tip: marked tiles show a big ✓ and faded number</div>
+      </div>
+
+      <div class="reelsWrap">
+        <div class="reel tB" id="reelB"><div class="reelHdr">B</div><div class="reelWindow"><div class="reelValue" id="rvB">—</div><div class="reelSub" id="rsB">READY</div><div class="reelGlow"></div></div></div>
+        <div class="reel tI" id="reelI"><div class="reelHdr">I</div><div class="reelWindow"><div class="reelValue" id="rvI">—</div><div class="reelSub" id="rsI">READY</div><div class="reelGlow"></div></div></div>
+        <div class="reel tN" id="reelN"><div class="reelHdr">N</div><div class="reelWindow"><div class="reelValue" id="rvN">—</div><div class="reelSub" id="rsN">READY</div><div class="reelGlow"></div></div></div>
+        <div class="reel tG" id="reelG"><div class="reelHdr">G</div><div class="reelWindow"><div class="reelValue" id="rvG">—</div><div class="reelSub" id="rsG">READY</div><div class="reelGlow"></div></div></div>
+        <div class="reel tO" id="reelO"><div class="reelHdr">O</div><div class="reelWindow"><div class="reelValue" id="rvO">—</div><div class="reelSub" id="rsO">READY</div><div class="reelGlow"></div></div></div>
+      </div>
+
+      <div class="bingoHeader">
+        <div class="hdr b">B</div><div class="hdr i">I</div><div class="hdr n">N</div><div class="hdr g">G</div><div class="hdr o">O</div>
+      </div>
+      <div id="grid" class="bingoGrid"></div>
+    </div>
+  </div>
+
+  <script>
+    // ===== Constants =====
+    const GRID = 5;
+    const COLS = ['B','I','N','G','O'];
+    const BASE_PAID_SPINS = 8;
+    const FREE_SPIN_CHANCE_PER_PAID = 1/8;
+
+    // ===== DOM helpers =====
+    const $ = (id) => document.getElementById(id);
+    const clampInt = (x) => {
+      x = Number(x);
+      return Number.isFinite(x) ? Math.max(0, Math.floor(x)) : 0;
+    };
+
+    function cfg(){
+      return {
+        cost: clampInt($('cfgCost').value),
+        extraCost: clampInt($('cfgExtraCost').value),
+        payout: {
+          3: clampInt($('p3').value),
+          4: clampInt($('p4').value),
+          5: clampInt($('p5').value),
+          6: clampInt($('p6').value),
+          7: clampInt($('p7').value),
+          8: clampInt($('p8').value),
+        }
+      };
+    }
+
+    function payoutFor(lines){
+      const p = cfg().payout;
+      if (lines >= 8) return p[8] ?? 0;
+      if (lines >= 7) return p[7] ?? 0;
+      if (lines >= 6) return p[6] ?? 0;
+      if (lines >= 5) return p[5] ?? 0;
+      if (lines >= 4) return p[4] ?? 0;
+      if (lines >= 3) return p[3] ?? 0;
+      return 0;
+    }
+
+    function setStatus(text, show){
+      const el = $('status');
+      el.style.display = show ? 'block' : 'none';
+      el.textContent = text;
+    }
+
+    function shuffleInPlace(arr){
+      for (let i=arr.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [arr[i],arr[j]] = [arr[j],arr[i]];
+      }
+    }
+
+    function rangeForCol(col){
+      if (col==='B') return [1,15];
+      if (col==='I') return [16,30];
+      if (col==='N') return [31,45];
+      if (col==='G') return [46,60];
+      return [61,75];
+    }
+
+    function colLetterForIndex(idx){
+      return COLS[idx % GRID];
+    }
+
+    // ===== Bingo card generation =====
+    function sampleUnique(min, max, count){
+      const pool = [];
+      for (let x=min;x<=max;x++) pool.push(x);
+      shuffleInPlace(pool);
+      return pool.slice(0, count);
+    }
+    function generateCardNumbers(){
+      const cols = [
+        sampleUnique(1, 15, 5),
+        sampleUnique(16, 30, 5),
+        sampleUnique(31, 45, 5),
+        sampleUnique(46, 60, 5),
+        sampleUnique(61, 75, 5),
+      ];
+      const nums = [];
+      for (let r=0;r<5;r++){
+        for (let c=0;c<5;c++){
+          nums.push(cols[c][r]);
+        }
+      }
+      return nums;
+    }
+
+    // ===== Lines detection =====
+    function getLineIndices(){
+      const lines = [];
+      for (let r=0;r<GRID;r++){
+        const line = [];
+        for (let c=0;c<GRID;c++) line.push(r*GRID + c);
+        lines.push(line);
+      }
+      for (let c=0;c<GRID;c++){
+        const line = [];
+        for (let r=0;r<GRID;r++) line.push(r*GRID + c);
+        lines.push(line);
+      }
+      lines.push([0,6,12,18,24]);
+      lines.push([4,8,12,16,20]);
+      return lines;
+    }
+    const ALL_LINES = getLineIndices();
+
+    function completedLines(cells){
+      let count = 0;
+      const completed = [];
+      for (const line of ALL_LINES){
+        const ok = line.every(idx => cells[idx].marked);
+        if (ok){ count++; completed.push(line); }
+      }
+      return { count, completed };
+    }
+
+    // ===== Column decks =====
+    function buildColumnDecks(){
+      const decks = { B:[], I:[], N:[], G:[], O:[] };
+
+      for (const col of COLS){
+        const [a,b] = rangeForCol(col);
+        for (let n=a;n<=b;n++){
+          decks[col].push({ kind:'number', col, n });
+        }
+      }
+      for (const col of COLS){
+        for (let i=0;i<4;i++){
+          decks[col].push({ kind:'wild', col });
+        }
+      }
+      for (let i=0;i<5;i++){
+        const col = COLS[Math.floor(Math.random()*COLS.length)];
+        decks[col].push({ kind:'super', col });
+      }
+
+      for (const col of COLS) shuffleInPlace(decks[col]);
+      return decks;
+    }
+
+    function cardsLeftTotal(decks){
+      let t = 0;
+      for (const col of COLS) t += (decks[col]?.length ?? 0);
+      return t;
+    }
+
+    function drawOneFromCol(decks, col){
+      const deck = decks[col];
+      if (!deck || deck.length === 0) return null;
+      const idx = Math.floor(Math.random()*deck.length);
+      return deck.splice(idx, 1)[0];
+    }
+
+    // ===== Flash FX (confetti) =====
+    const fx = $('fx');
+    const fxc = fx.getContext('2d');
+    let confetti = [];
+    function resizeFx(){
+      fx.width = window.innerWidth * devicePixelRatio;
+      fx.height = window.innerHeight * devicePixelRatio;
+      fx.style.width = window.innerWidth + 'px';
+      fx.style.height = window.innerHeight + 'px';
+      fxc.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+    }
+    window.addEventListener('resize', resizeFx);
+    resizeFx();
+
+    function burstConfetti(x, y, count=90){
+      for (let i=0;i<count;i++){
+        confetti.push({
+          x, y,
+          vx: (Math.random()*6 - 3),
+          vy: (Math.random()*-7 - 2),
+          g: 0.18 + Math.random()*0.10,
+          r: 2 + Math.random()*4,
+          rot: Math.random()*Math.PI,
+          vr: (Math.random()*0.2 - 0.1),
+          life: 70 + Math.floor(Math.random()*40)
+        });
+      }
+    }
+    function tickFx(){
+      fxc.clearRect(0,0,window.innerWidth,window.innerHeight);
+      confetti = confetti.filter(p => p.life > 0);
+      for (const p of confetti){
+        p.life--;
+        p.vy += p.g;
+        p.x += p.vx;
+        p.y += p.vy;
+        p.rot += p.vr;
+        const hue = (p.life*6) % 360;
+        fxc.save();
+        fxc.translate(p.x, p.y);
+        fxc.rotate(p.rot);
+        fxc.fillStyle = `hsla(${hue}, 95%, 62%, 0.9)`;
+        fxc.fillRect(-p.r, -p.r/2, p.r*2, p.r);
+        fxc.restore();
+      }
+      requestAnimationFrame(tickFx);
+    }
+    tickFx();
+
+    // ===== Flying token =====
+    function flyToken(fromEl, toEl, label){
+      const a = fromEl.getBoundingClientRect();
+      const b = toEl.getBoundingClientRect();
+      const startX = a.left + a.width/2;
+      const startY = a.top + a.height/2;
+      const endX = b.left + b.width/2;
+      const endY = b.top + b.height/2;
+
+      const el = document.createElement('div');
+      el.className = 'fly';
+      el.textContent = label;
+      el.style.left = startX + 'px';
+      el.style.top = startY + 'px';
+      document.body.appendChild(el);
+
+      el.animate([
+        { transform: 'translate(-50%,-50%) scale(1)', opacity: 1 },
+        { transform: 'translate(-50%,-50%) scale(1.05)', opacity: 1, offset: 0.3 },
+        { transform: 'translate(-50%,-50%) scale(0.85)', opacity: 0.9, offset: 0.75 },
+        { transform: 'translate(-50%,-50%) scale(0.6)', opacity: 0.0 }
+      ], { duration: 520, easing: 'cubic-bezier(.18,.86,.25,1)' });
+
+      el.animate([
+        { left: startX + 'px', top: startY + 'px' },
+        { left: (startX + endX)/2 + 'px', top: (startY + endY)/2 - 80 + 'px', offset: 0.55 },
+        { left: endX + 'px', top: endY + 'px' }
+      ], { duration: 520, easing: 'cubic-bezier(.18,.86,.25,1)' }).onfinish = () => el.remove();
+    }
+
+    // ===== Reels animation =====
+    const reelIntervals = { B:null, I:null, N:null, G:null, O:null };
+
+    function randomReelFace(col){
+      const [a,b] = rangeForCol(col);
+      const r = Math.random();
+      if (r < 0.10) return { v:'W', s:`WILD-${col}` };
+      if (r < 0.12) return { v:'S', s:'SUPER' };
+      const n = a + Math.floor(Math.random()*(b-a+1));
+      return { v:String(n), s:'NUMBER' };
+    }
+
+    function faceForCard(card){
+      if (!card) return { v:'—', s:'EMPTY' };
+      if (card.kind === 'number') return { v:String(card.n), s:'NUMBER' };
+      if (card.kind === 'wild') return { v:'W', s:`WILD-${card.col}` };
+      return { v:'S', s:'SUPER' };
+    }
+
+    function spinReelTo(col, card, durationMs=520){
+      return new Promise(resolve => {
+        const reel = $(`reel${col}`);
+        const valueEl = $(`rv${col}`);
+        const subEl = $(`rs${col}`);
+
+        if (reelIntervals[col]) clearInterval(reelIntervals[col]);
+        reel.classList.remove('landed');
+        reel.classList.add('spinning');
+        subEl.textContent = 'SPINNING';
+
+        reelIntervals[col] = setInterval(() => {
+          const f = randomReelFace(col);
+          valueEl.textContent = f.v;
+          subEl.textContent = f.s;
+        }, 50);
+
+        setTimeout(() => {
+          clearInterval(reelIntervals[col]);
+          reelIntervals[col] = null;
+
+          const fin = faceForCard(card);
+          valueEl.textContent = fin.v;
+          subEl.textContent = fin.s;
+
+          reel.classList.remove('spinning');
+          reel.classList.add('landed');
+          setTimeout(() => reel.classList.remove('landed'), 240);
+
+          resolve();
+        }, durationMs);
+      });
+    }
+
+    function setReelSub(col, text){
+      $(`rs${col}`).textContent = text;
+    }
+
+    // ===== Game state =====
+    let bank = 1000, spent = 0, won = 0;
+    let started = false;
+    let busy = false;
+
+    let decks = null;
+    let paidLeft = 0;
+    let freeLeft = 0;
+    let spinsUsed = 0;
+
+    let extraBought = false;
+    let extraLeft = 0;
+
+    let cells = [];                  // 25 {number, marked}
+    let numberToIndex = new Map();   // number -> index
+    let reelCard = { B:null, I:null, N:null, G:null, O:null };
+    let activeReel = null;
+
+    function setActiveReel(col){
+      activeReel = col;
+      $('activeReel').textContent = col ? col : '—';
+      renderReelClasses();
+      renderGrid();
+    }
+
+    function reelNeedsPick(col){
+      const c = reelCard[col];
+      return !!c && (c.kind === 'wild' || c.kind === 'super');
+    }
+    function anyReelNeedsPick(){
+      return COLS.some(reelNeedsPick);
+    }
+
+    function renderReelClasses(){
+      for (const col of COLS){
+        const el = $(`reel${col}`);
+        el.classList.toggle('needsPick', reelNeedsPick(col));
+        el.classList.toggle('activePick', activeReel === col && reelNeedsPick(col));
+      }
+    }
+
+    function isPlayOver(){
+      return (paidLeft + freeLeft + extraLeft) <= 0;
+    }
+
+    function canBuyExtra(){
+      return started && !busy && !anyReelNeedsPick() && paidLeft === 0 && freeLeft === 0 && extraLeft === 0 && !extraBought;
+    }
+
+    function isColumnComplete(col){
+      for (let i=0;i<25;i++){
+        if (colLetterForIndex(i) === col && !cells[i].marked) return false;
+      }
+      return true;
+    }
+
+    function markCell(idx){
+      if (idx == null) return false;
+      if (cells[idx].marked) return false;
+      cells[idx].marked = true;
+      return true;
+    }
+
+    // ===== Cascading resolver (numbers + full-column wild auto-respin) =====
+    async function resolveReelAfterLanding(col){
+      while (true){
+        const c = reelCard[col];
+        if (!c) return;
+
+        // AUTO-RESPIN wild if column already complete
+        if (c.kind === 'wild' && isColumnComplete(col)){
+          setReelSub(col, 'FULL COL — RESPIN');
+          const next = drawOneFromCol(decks, col);
+          reelCard[col] = next;
+          await spinReelTo(col, next, 360);
+          // loop to handle next outcome (could be number cascade, another wild, super, etc.)
+          continue;
+        }
+
+        // NUMBER cascade: if number exists on card, mark it and drop again
+        if (c.kind === 'number'){
+          const idx = numberToIndex.get(c.n);
+          if (idx === undefined) return; // not on card => stop
+
+          // mark and animate
+          const didMark = markCell(idx);
+          renderAll();
+          const cellEl = document.querySelector(`.cell[data-idx="${idx}"]`);
+          const reelEl = $(`reel${col}`);
+          if (cellEl){
+            // fly token from reel to tile
+            flyToken(reelEl, cellEl, String(c.n));
+            if (didMark){
+              cellEl.classList.remove('justMarked');
+              void cellEl.offsetWidth;
+              cellEl.classList.add('justMarked');
+            }
+          }
+
+          // drop new symbol for same reel
+          const next = drawOneFromCol(decks, col);
+          reelCard[col] = next;
+          await spinReelTo(col, next, 320);
+          // loop continues; will auto-respin full-column wilds too
+          continue;
+        }
+
+        // SUPER or WILD in incomplete column => needs player
+        return;
+      }
+    }
+
+    async function consumePickAndDrop(col){
+      // After placing WILD/SUPER for reel "col", that reel drops a new symbol and resolves cascades.
+      const next = drawOneFromCol(decks, col);
+      reelCard[col] = next;
+      await spinReelTo(col, next, 360);
+      await resolveReelAfterLanding(col);
+    }
+
+    // ===== Play control =====
+    function resetPlayState(){
+      started = true;
+      busy = false;
+
+      decks = buildColumnDecks();
+
+      paidLeft = BASE_PAID_SPINS;
+      freeLeft = 0;
+      spinsUsed = 0;
+
+      extraBought = false;
+      extraLeft = 0;
+
+      cells = [];
+      numberToIndex = new Map();
+      const nums = generateCardNumbers();
+      for (let i=0;i<25;i++){
+        cells.push({ number: nums[i], marked: false });
+        numberToIndex.set(nums[i], i);
+      }
+
+      reelCard = { B:null, I:null, N:null, G:null, O:null };
+      setActiveReel(null);
+
+      for (const col of COLS){
+        $(`rv${col}`).textContent = '—';
+        $(`rs${col}`).textContent = 'READY';
+        $(`reel${col}`).classList.remove('needsPick','activePick','spinning','landed');
+      }
+
+      renderAll();
+      setButtons();
+      setStatus('New play started. Hit “Next Spin”.', true);
+    }
+
+    function newPlay(){
+      const { cost } = cfg();
+      if (bank < cost){
+        setStatus(`Not enough bank to start (need ${cost}p).`, true);
+        return;
+      }
+      bank -= cost;
+      spent += cost;
+      resetPlayState();
+      // tiny celebration for starting
+      burstConfetti(window.innerWidth*0.15, 90, 40);
+    }
+
+    async function nextSpin(){
+      if (!started){
+        setStatus('Click “New Play” first.', true);
+        return;
+      }
+      if (busy) return;
+
+      if (anyReelNeedsPick()){
+        setStatus('Resolve WILD/SUPER first: click that reel, then click a blue tile.', true);
+        return;
+      }
+      if (isPlayOver()){
+        setStatus('No spins left. Buy Extra Spin (if available) or start a New Play.', true);
+        return;
+      }
+
+      // consume a spin (paid first, then free, then extra)
+      let spinType = 'free';
+      if (paidLeft > 0) { paidLeft--; spinType = 'paid'; }
+      else if (freeLeft > 0) { freeLeft--; spinType = 'free'; }
+      else { extraLeft--; spinType = 'extra'; }
+
+      spinsUsed++;
+      busy = true;
+      setButtons();
+      setStatus('', false);
+      setActiveReel(null);
+
+      // spin once per column + resolve cascades per reel
+      for (const col of COLS){
+        const first = drawOneFromCol(decks, col);
+        reelCard[col] = first;
+        await spinReelTo(col, first, 520);
+        await resolveReelAfterLanding(col);
+      }
+
+      // Free spin chance ONLY on PAID spins
+      if (spinType === 'paid' && Math.random() < FREE_SPIN_CHANCE_PER_PAID){
+        freeLeft++;
+        setStatus('🎉 FREE SPIN WON!', true);
+        burstConfetti(window.innerWidth*0.5, 120, 120);
+      }
+
+      renderAll();
+      renderReelClasses();
+
+      if (anyReelNeedsPick()){
+        setStatus('WILD/SUPER showing. Click a reel (W/S) then click a blue tile.', true);
+      } else if (isPlayOver()){
+        settlePlay();
+      } else {
+        setStatus('Spin complete. Go again!', true);
+      }
+
+      busy = false;
+      setButtons();
+    }
+
+    async function autoPlay(){
+      while (started && !busy && !anyReelNeedsPick() && !isPlayOver()){
+        await nextSpin();
+        if (anyReelNeedsPick()) break;
+      }
+      if (anyReelNeedsPick()){
+        setStatus('Auto paused: resolve WILD/SUPER (click reel then blue tile).', true);
+      }
+    }
+
+    function buyExtra(){
+      const { extraCost } = cfg();
+      if (!canBuyExtra()){
+        setStatus('Extra spin is only after paid+free are finished and no W/S is showing.', true);
+        return;
+      }
+      if (bank < extraCost){
+        setStatus(`Not enough bank to buy extra spin (need ${extraCost}p).`, true);
+        return;
+      }
+      bank -= extraCost;
+      spent += extraCost;
+      extraBought = true;
+      extraLeft = 1;
+      renderAll();
+      setButtons();
+      setStatus('Extra spin bought. Hit “Next Spin”.', true);
+    }
+
+    function settlePlay(){
+      const { count } = completedLines(cells);
+      const pay = payoutFor(count);
+      if (pay > 0){
+        bank += pay;
+        won += pay;
+        burstConfetti(window.innerWidth*0.5, window.innerHeight*0.35, 160);
+      }
+      setStatus(`Play complete: ${count} line(s) → payout ${pay}p.`, true);
+      renderAll();
+      setButtons();
+    }
+
+    function resetBank(){
+      bank = 1000; spent = 0; won = 0;
+      renderAll();
+      setButtons();
+      setStatus('', false);
+    }
+
+    // ===== Reel selection + placing W/S =====
+    function onReelClick(col){
+      if (!started || busy) return;
+
+      // If reel doesn't need pick, clicking clears selection
+      if (!reelNeedsPick(col)){
+        setActiveReel(null);
+        return;
+      }
+
+      setActiveReel(col);
+      const kind = reelCard[col]?.kind === 'wild' ? `WILD-${col}` : 'SUPER';
+      setStatus(`Selected reel ${col} (${kind}). Click a blue tile to place it.`, true);
+    }
+
+    function cellAllowed(idx){
+      if (!activeReel) return false;
+      const c = reelCard[activeReel];
+      if (!c || (c.kind !== 'wild' && c.kind !== 'super')) return false;
+      if (cells[idx].marked) return false;
+      if (c.kind === 'super') return true;
+      return colLetterForIndex(idx) === activeReel;
+    }
+
+    async function onCellClick(idx){
+      if (!started || busy) return;
+      if (!activeReel) return;
+      if (!cellAllowed(idx)) return;
+
+      busy = true;
+      setButtons();
+
+      // mark tile + animate + fly token W/S
+      const didMark = markCell(idx);
+      renderAll();
+
+      const cellEl = document.querySelector(`.cell[data-idx="${idx}"]`);
+      const reelEl = $(`reel${activeReel}`);
+      const label = reelCard[activeReel].kind === 'wild' ? 'W' : 'S';
+      if (cellEl){
+        flyToken(reelEl, cellEl, label);
+        if (didMark){
+          cellEl.classList.remove('justMarked');
+          void cellEl.offsetWidth;
+          cellEl.classList.add('justMarked');
+        }
+      }
+
+      // consume pick: drop new symbol into that reel, then resolve cascades & full-column wild auto-respin
+      await consumePickAndDrop(activeReel);
+
+      renderAll();
+      renderReelClasses();
+
+      // clear selection if no longer needs pick
+      if (!reelNeedsPick(activeReel)) setActiveReel(null);
+
+      busy = false;
+      setButtons();
+
+      if (!anyReelNeedsPick() && isPlayOver()){
+        settlePlay();
+      }
+    }
+
+    // ===== Rendering =====
+    function renderGrid(){
+      const grid = $('grid');
+      grid.innerHTML = '';
+
+      const { completed } = completedLines(cells);
+      const inLine = new Set();
+      for (const line of completed){
+        for (const idx of line) inLine.add(idx);
+      }
+
+      for (let i=0;i<25;i++){
+        const col = colLetterForIndex(i);
+
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.col = col;
+        cell.dataset.idx = String(i);
+
+        const num = document.createElement('div');
+        num.className = 'num';
+        num.textContent = String(cells[i].number);
+        cell.appendChild(num);
+
+        const sub = document.createElement('div');
+        sub.className = 'sub';
+        sub.textContent = col;
+        cell.appendChild(sub);
+
+        if (cells[i].marked) cell.classList.add('marked');
+        if (inLine.has(i)) cell.classList.add('inLine');
+
+        const allowed = cellAllowed(i);
+        if (allowed) cell.classList.add('allowed');
+        if (!allowed && activeReel) cell.classList.add('disabled');
+
+        cell.addEventListener('click', () => onCellClick(i));
+        grid.appendChild(cell);
+      }
+    }
+
+    function renderStats(){
+      $('bank').textContent = String(bank);
+      $('spent').textContent = String(spent);
+      $('won').textContent = String(won);
+
+      $('spinsUsed').textContent = String(spinsUsed);
+      $('paidLeft').textContent = String(paidLeft);
+      $('freeLeft').textContent = String(freeLeft);
+
+      $('left').textContent = started && decks ? String(cardsLeftTotal(decks)) : '—';
+
+      const { count } = completedLines(cells);
+      $('lines').textContent = String(count);
+      $('proj').textContent = String(payoutFor(count));
+    }
+
+    function renderAll(){
+      renderStats();
+      renderGrid();
+      renderReelClasses();
+      $('activeReel').textContent = activeReel ? activeReel : '—';
+    }
+
+    function setButtons(){
+      const canSpin = started && !busy && !anyReelNeedsPick() && !isPlayOver();
+      $('btnNextSpin').disabled = !canSpin;
+
+      const canAuto = started && !busy && !anyReelNeedsPick() && (paidLeft + freeLeft) > 0;
+      $('btnAuto').disabled = !canAuto;
+
+      $('btnExtra').disabled = !canBuyExtra();
+    }
+
+    // ===== Wiring =====
+    $('btnNewPlay').addEventListener('click', newPlay);
+    $('btnResetBank').addEventListener('click', resetBank);
+
+    $('btnNextSpin').addEventListener('click', nextSpin);
+    $('btnAuto').addEventListener('click', autoPlay);
+    $('btnExtra').addEventListener('click', buyExtra);
+
+    for (const col of COLS){
+      $(`reel${col}`).addEventListener('click', () => onReelClick(col));
+    }
+
+    ['cfgCost','cfgExtraCost','p3','p4','p5','p6','p7','p8'].forEach(id => {
+      $(id).addEventListener('input', () => { renderAll(); setButtons(); });
+    });
+
+    // ===== INIT PREVIEW (grid always shows) =====
+    (function init(){
+      cells = [];
+      numberToIndex = new Map();
+      const nums = generateCardNumbers();
+      for (let i=0;i<25;i++){
+        cells.push({ number: nums[i], marked: false });
+        numberToIndex.set(nums[i], i);
+      }
+      for (const col of COLS){
+        $(`rv${col}`).textContent = '—';
+        $(`rs${col}`).textContent = 'READY';
+      }
+      renderAll();
+      setButtons();
+      setStatus('Preview grid loaded. Click “New Play” to start, then “Next Spin”.', true);
+    })();
+  </script>
+</body>
+</html>
