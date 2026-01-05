@@ -5163,6 +5163,14 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             `;
 
             document.getElementById('start-challenge-btn').onclick = async () => {
+              // Hide task modal and save main video state
+              hideTaskModal();
+              
+              const savedVideoIndex = currentVideoIndex;
+              const savedTime = mainVideo.currentTime;
+              const wasPlaying = !mainVideo.paused;
+              const savedSrc = mainVideo.src;
+              
               // Pick 6 random videos
               const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
               const selectedIndices = shuffled.slice(0, 6);
@@ -5174,24 +5182,50 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const effects = ['slomo', 'double', 'reverse', 'short', 'filter'];
               const specialEffect = effects[Math.floor(Math.random() * effects.length)];
               
-              taskModalBody.innerHTML = `
-                <div id="detective-video-container" style="width: 100%; max-width: 500px; margin: 0 auto;">
-                  <video id="detective-player" style="width: 100%; height: auto;" muted playsinline></video>
-                </div>
-                <p style="margin-top: 1rem; font-size: 1.2rem;">Watching clip <span id="clip-number">1</span>/6...</p>
-              `;
+              // Create game overlay
+              const { overlay, content } = createGameOverlay({
+                title: 'Video Clip Detective 🔍',
+                showExit: true
+              });
               
-              const player = document.getElementById('detective-player');
+              const statusDiv = document.createElement('div');
+              statusDiv.style.cssText = `
+                font-size: 1.5rem;
+                font-weight: bold;
+                color: white;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+                padding: 1rem;
+                background: rgba(0,0,0,0.7);
+                border-radius: 8px;
+              `;
+              statusDiv.textContent = 'Watching clip 1/6...';
+              content.appendChild(statusDiv);
+              
+              // Register cleanup to restore video state
+              const restoreVideoState = () => {
+                mainVideo.pause();
+                mainVideo.className = '';
+                mainVideo.playbackRate = 1;
+                mainVideo.src = savedSrc;
+                mainVideo.currentTime = savedTime;
+                if (wasPlaying) {
+                  mainVideo.play().catch(() => {});
+                }
+              };
+              registerGameCleanup(restoreVideoState);
+              
+              // Play clips on mainVideo
+              mainVideo.muted = true;
               
               for (let i = 0; i < 6; i++) {
-                document.getElementById('clip-number').textContent = i + 1;
+                statusDiv.textContent = `Watching clip ${i + 1}/6...`;
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
+                const url = createTrackedObjectURL(file);
                 
-                player.src = url;
+                mainVideo.src = url;
                 await new Promise(resolve => {
-                  player.onloadedmetadata = () => resolve();
+                  mainVideo.onloadedmetadata = () => resolve();
                 });
                 
                 const isSpecial = i === specialIndex;
@@ -5199,64 +5233,109 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 
                 if (isSpecial) {
                   if (specialEffect === 'slomo') {
-                    player.playbackRate = 0.5;
+                    mainVideo.playbackRate = 0.5;
                   } else if (specialEffect === 'reverse') {
-                    player.classList.add('video-reversed');
+                    mainVideo.classList.add('video-reversed');
                   } else if (specialEffect === 'short') {
                     playDuration = 3000; // 3 seconds
                   } else if (specialEffect === 'filter') {
-                    player.classList.add('video-sepia');
+                    mainVideo.classList.add('video-sepia');
                   }
                 } else {
-                  player.playbackRate = 1;
-                  player.className = '';
+                  mainVideo.playbackRate = 1;
+                  mainVideo.className = '';
                 }
                 
-                player.currentTime = Math.random() * Math.max(0, player.duration - 5);
-                await player.play();
+                mainVideo.currentTime = Math.random() * Math.max(0, mainVideo.duration - 5);
+                await mainVideo.play();
                 
                 if (isSpecial && specialEffect === 'double') {
                   // Play twice
                   await new Promise(resolve => setTimeout(resolve, 2500));
-                  player.currentTime = Math.max(0, player.currentTime - 2.5);
+                  mainVideo.currentTime = Math.max(0, mainVideo.currentTime - 2.5);
                   await new Promise(resolve => setTimeout(resolve, 2500));
                 } else {
                   await new Promise(resolve => setTimeout(resolve, playDuration));
                 }
                 
-                player.pause();
-                player.className = '';
-                player.playbackRate = 1;
+                mainVideo.pause();
+                mainVideo.className = '';
+                mainVideo.playbackRate = 1;
               }
               
               // Show selection screen
-              taskModalTitle.textContent = "Which clip was different?";
-              taskModalBody.innerHTML = `
-                <p style="margin-bottom: 1rem;">The special effect was: <strong>${specialEffect}</strong></p>
-                <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem;">
-                  ${[0, 1, 2, 3, 4, 5].map(i => `
-                    <button class="modal-action-btn" data-clip="${i}" style="font-size: 1.5rem;">
-                      Clip ${i + 1}
-                    </button>
-                  `).join('')}
-                </div>
+              statusDiv.textContent = 'Which clip was different?';
+              
+              const selectionGrid = document.createElement('div');
+              selectionGrid.style.cssText = `
+                display: grid;
+                grid-template-columns: repeat(3, 1fr);
+                gap: 1rem;
+                margin-top: 1rem;
               `;
               
-              document.querySelectorAll('button[data-clip]').forEach(btn => {
-                btn.onclick = () => {
-                  const chosen = parseInt(btn.dataset.clip);
+              const effectLabel = document.createElement('p');
+              effectLabel.style.cssText = `
+                color: white;
+                font-size: 1.2rem;
+                text-align: center;
+                margin-bottom: 1rem;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+              `;
+              effectLabel.textContent = `The special effect was: ${specialEffect}`;
+              content.appendChild(effectLabel);
+              
+              for (let i = 0; i < 6; i++) {
+                const btn = document.createElement('button');
+                btn.style.cssText = `
+                  padding: 1.5rem;
+                  background: rgba(74, 74, 74, 0.9);
+                  color: white;
+                  border: none;
+                  border-radius: 0.5rem;
+                  font-size: 1.5rem;
+                  font-weight: bold;
+                  cursor: pointer;
+                  transition: background 0.2s;
+                  touch-action: manipulation;
+                `;
+                btn.textContent = `Clip ${i + 1}`;
+                btn.onpointerdown = () => {
+                  const chosen = i;
                   if (chosen === specialIndex) {
-                    taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Correct!</h2><p>You found the ${specialEffect} clip!</p></div>`;
+                    content.innerHTML = `
+                      <div style="text-align: center; padding: 3rem; background: rgba(0,0,0,0.8); border-radius: 12px;">
+                        <h2 style="font-size: 3rem; color: #2ecc71; margin-bottom: 1rem;">🎉 Correct!</h2>
+                        <p style="font-size: 1.5rem; color: white;">You found the ${specialEffect} clip!</p>
+                      </div>
+                    `;
                     setTimeout(() => {
                       updateMainScore(2000);
                       markTaskComplete();
+                      runGameCleanup();
                     }, 1500);
                   } else {
-                    taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong!</h2><p>It was clip ${specialIndex + 1}</p></div>`;
-                    setTimeout(() => closeTaskModal(), 2000);
+                    content.innerHTML = `
+                      <div style="text-align: center; padding: 3rem; background: rgba(0,0,0,0.8); border-radius: 12px;">
+                        <h2 style="font-size: 3rem; color: #e74c3c; margin-bottom: 1rem;">❌ Wrong!</h2>
+                        <p style="font-size: 1.5rem; color: white;">It was clip ${specialIndex + 1}</p>
+                      </div>
+                    `;
+                    setTimeout(() => {
+                      runGameCleanup();
+                    }, 2000);
                   }
                 };
-              });
+                btn.onmouseenter = () => {
+                  btn.style.background = 'rgba(100, 100, 100, 0.9)';
+                };
+                btn.onmouseleave = () => {
+                  btn.style.background = 'rgba(74, 74, 74, 0.9)';
+                };
+                selectionGrid.appendChild(btn);
+              }
+              
+              content.appendChild(selectionGrid);
             };
           }
 
@@ -5277,52 +5356,88 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             `;
 
             document.getElementById('start-challenge-btn').onclick = async () => {
-              // Pick 6 random videos
+              // Hide task modal and save main video state
+              hideTaskModal();
+              
+              const savedVideoIndex = currentVideoIndex;
+              const savedTime = mainVideo.currentTime;
+              const wasPlaying = !mainVideo.paused;
+              const savedSrc = mainVideo.src;
+              
+              // Pick 6 random videos from different sources
               const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
               const selectedIndices = shuffled.slice(0, 6);
               const correctOrder = [...selectedIndices];
               
-              // Play all 6 clips in sequence
-              taskModalBody.innerHTML = `
-                <div id="memory-video-container" style="width: 100%; max-width: 500px; margin: 0 auto;">
-                  <video id="memory-player" style="width: 100%; height: auto;" muted playsinline></video>
-                </div>
-                <p style="margin-top: 1rem; font-size: 1.2rem;">Clip <span id="clip-number">1</span>/6</p>
-                <p style="font-size: 0.9rem; color: #8b5cf6;">Remember the order!</p>
-              `;
+              // Create game overlay
+              const { overlay, content } = createGameOverlay({
+                title: 'Clip Order Memory 🎬',
+                showExit: true
+              });
               
-              const player = document.getElementById('memory-player');
-              const createdUrls = []; // Track URLs for cleanup
+              const statusDiv = document.createElement('div');
+              statusDiv.style.cssText = `
+                font-size: 1.5rem;
+                font-weight: bold;
+                color: white;
+                text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+                padding: 1rem;
+                background: rgba(0,0,0,0.7);
+                border-radius: 8px;
+                text-align: center;
+              `;
+              statusDiv.innerHTML = 'Clip <span id="clip-counter">1</span>/6<br><span style="font-size: 1rem; color: #8b5cf6;">Remember the order!</span>';
+              content.appendChild(statusDiv);
+              
+              // Register cleanup to restore video state
+              const restoreVideoState = () => {
+                mainVideo.pause();
+                mainVideo.className = '';
+                mainVideo.playbackRate = 1;
+                mainVideo.muted = false;
+                mainVideo.src = savedSrc;
+                mainVideo.currentTime = savedTime;
+                if (wasPlaying) {
+                  mainVideo.play().catch(() => {});
+                }
+              };
+              registerGameCleanup(restoreVideoState);
+              
+              // Play all 6 clips in sequence on mainVideo
+              mainVideo.muted = true;
+              mainVideo.playbackRate = 1;
               
               for (let i = 0; i < 6; i++) {
-                document.getElementById('clip-number').textContent = i + 1;
+                const clipCounter = document.getElementById('clip-counter');
+                if (clipCounter) {
+                  clipCounter.textContent = i + 1;
+                }
+                
                 const videoIndex = selectedIndices[i];
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
-                createdUrls.push(url);
+                const url = createTrackedObjectURL(file);
                 
-                player.src = url;
+                mainVideo.src = url;
                 await new Promise(resolve => {
-                  player.onloadedmetadata = () => resolve();
+                  mainVideo.onloadedmetadata = () => resolve();
                 });
                 
-                // Play 5-second clip
-                player.currentTime = Math.random() * Math.max(0, player.duration - 5);
-                await player.play();
+                // Play 5-second clip from random position
+                mainVideo.currentTime = Math.random() * Math.max(0, mainVideo.duration - 5);
+                await mainVideo.play();
                 await new Promise(resolve => setTimeout(resolve, 5000));
-                player.pause();
+                mainVideo.pause();
               }
               
-              // Now show selection screen with video thumbnails
-              taskModalTitle.textContent = "Select the Order";
-              
               // Create video thumbnails for selection
+              statusDiv.textContent = 'Creating thumbnails...';
               const clipThumbnails = await Promise.all(selectedIndices.map(async (videoIndex, i) => {
                 const file = videoFiles[videoIndex];
-                const url = URL.createObjectURL(file);
-                createdUrls.push(url);
+                const url = createTrackedObjectURL(file);
                 const video = document.createElement('video');
+                video.muted = true;
                 video.src = url;
+                
                 await new Promise(resolve => {
                   video.onloadedmetadata = () => {
                     video.currentTime = Math.random() * Math.max(0, video.duration - 1);
@@ -5350,81 +5465,200 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               
               // Shuffle clips for display
               const shuffledClips = [...clipThumbnails].sort(() => 0.5 - Math.random());
-              
               let userOrder = [];
               
               const renderSelectionScreen = () => {
-                taskModalBody.innerHTML = `
-                  <p style="margin-bottom: 1rem;">Click the clips in the order they were shown:</p>
-                  <div style="margin-bottom: 1rem;">
+                content.innerHTML = '';
+                
+                const instructionDiv = document.createElement('div');
+                instructionDiv.style.cssText = `
+                  font-size: 1.2rem;
+                  color: white;
+                  text-align: center;
+                  margin-bottom: 1rem;
+                  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+                  padding: 1rem;
+                  background: rgba(0,0,0,0.7);
+                  border-radius: 8px;
+                `;
+                instructionDiv.innerHTML = `
+                  <div style="margin-bottom: 0.5rem;">Click the clips in the order they were shown</div>
+                  <div style="font-size: 1rem; color: #fbbf24;">
                     <strong>Your Selection:</strong> ${userOrder.map((_, i) => i + 1).join(', ') || 'None yet'}
                   </div>
-                  <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin-bottom: 1rem;">
-                    ${shuffledClips.map((clip, i) => {
-                      const orderNum = userOrder.indexOf(clip.videoIndex);
-                      const isSelected = orderNum !== -1;
-                      return `
-                        <div class="clip-selection-tile" data-video-index="${clip.videoIndex}" style="
-                          position: relative;
-                          cursor: ${isSelected ? 'default' : 'pointer'};
-                          opacity: ${isSelected ? '0.5' : '1'};
-                          border: 2px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.3)'};
-                          border-radius: 8px;
-                          overflow: hidden;
-                        ">
-                          <img src="${clip.thumbnail}" style="width: 100%; display: block;" />
-                          ${isSelected ? `<div style="position: absolute; top: 5px; right: 5px; background: #10b981; color: white; padding: 0.25rem 0.5rem; border-radius: 4px; font-weight: bold;">${orderNum + 1}</div>` : ''}
-                        </div>
-                      `;
-                    }).join('')}
-                  </div>
-                  <div style="display: flex; gap: 1rem; justify-content: center;">
-                    <button id="reset-order-btn" class="modal-action-btn" ${userOrder.length === 0 ? 'disabled' : ''}>Reset</button>
-                    <button id="confirm-order-btn" class="modal-action-btn" ${userOrder.length !== 6 ? 'disabled' : ''}>Confirm</button>
-                  </div>
+                `;
+                content.appendChild(instructionDiv);
+                
+                const gridDiv = document.createElement('div');
+                gridDiv.style.cssText = `
+                  display: grid;
+                  grid-template-columns: repeat(3, 1fr);
+                  gap: 0.75rem;
+                  margin-bottom: 1rem;
+                  max-width: 600px;
                 `;
                 
-                // Add click handlers
-                document.querySelectorAll('.clip-selection-tile').forEach(tile => {
-                  const videoIndex = parseInt(tile.dataset.videoIndex);
-                  if (!userOrder.includes(videoIndex)) {
-                    tile.onclick = () => {
-                      userOrder.push(videoIndex);
+                shuffledClips.forEach((clip) => {
+                  const orderNum = userOrder.indexOf(clip.videoIndex);
+                  const isSelected = orderNum !== -1;
+                  
+                  const tile = document.createElement('div');
+                  tile.style.cssText = `
+                    position: relative;
+                    cursor: ${isSelected ? 'default' : 'pointer'};
+                    opacity: ${isSelected ? '0.6' : '1'};
+                    border: 3px solid ${isSelected ? '#10b981' : 'rgba(255,255,255,0.3)'};
+                    border-radius: 8px;
+                    overflow: hidden;
+                    transition: all 0.2s;
+                    touch-action: manipulation;
+                  `;
+                  
+                  const img = document.createElement('img');
+                  img.src = clip.thumbnail;
+                  img.style.cssText = 'width: 100%; display: block;';
+                  tile.appendChild(img);
+                  
+                  if (isSelected) {
+                    const badge = document.createElement('div');
+                    badge.style.cssText = `
+                      position: absolute;
+                      top: 5px;
+                      right: 5px;
+                      background: #10b981;
+                      color: white;
+                      padding: 0.5rem 0.75rem;
+                      border-radius: 6px;
+                      font-weight: bold;
+                      font-size: 1.25rem;
+                    `;
+                    badge.textContent = orderNum + 1;
+                    tile.appendChild(badge);
+                  }
+                  
+                  if (!isSelected) {
+                    tile.onpointerdown = (e) => {
+                      e.stopPropagation();
+                      userOrder.push(clip.videoIndex);
                       renderSelectionScreen();
                     };
+                    tile.onmouseenter = () => {
+                      tile.style.borderColor = '#3498db';
+                      tile.style.transform = 'scale(1.05)';
+                    };
+                    tile.onmouseleave = () => {
+                      tile.style.borderColor = 'rgba(255,255,255,0.3)';
+                      tile.style.transform = 'scale(1)';
+                    };
                   }
+                  
+                  gridDiv.appendChild(tile);
                 });
                 
-                const resetBtn = document.getElementById('reset-order-btn');
-                if (resetBtn && !resetBtn.disabled) {
-                  resetBtn.onclick = () => {
+                content.appendChild(gridDiv);
+                
+                // Buttons
+                const buttonDiv = document.createElement('div');
+                buttonDiv.style.cssText = `
+                  display: flex;
+                  gap: 1rem;
+                  justify-content: center;
+                `;
+                
+                const resetBtn = document.createElement('button');
+                resetBtn.textContent = 'Reset';
+                resetBtn.disabled = userOrder.length === 0;
+                resetBtn.style.cssText = `
+                  padding: 0.75rem 1.5rem;
+                  background: ${userOrder.length === 0 ? '#555' : '#f39c12'};
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  font-size: 1rem;
+                  font-weight: bold;
+                  cursor: ${userOrder.length === 0 ? 'not-allowed' : 'pointer'};
+                  transition: background 0.2s;
+                  min-width: 100px;
+                  touch-action: manipulation;
+                `;
+                if (!resetBtn.disabled) {
+                  resetBtn.onpointerdown = (e) => {
+                    e.stopPropagation();
                     userOrder = [];
                     renderSelectionScreen();
                   };
+                  resetBtn.onmouseenter = () => {
+                    resetBtn.style.background = '#e67e22';
+                  };
+                  resetBtn.onmouseleave = () => {
+                    resetBtn.style.background = '#f39c12';
+                  };
                 }
+                buttonDiv.appendChild(resetBtn);
                 
-                const confirmBtn = document.getElementById('confirm-order-btn');
-                if (confirmBtn && !confirmBtn.disabled) {
-                  confirmBtn.onclick = () => {
+                const confirmBtn = document.createElement('button');
+                confirmBtn.textContent = 'Confirm';
+                confirmBtn.disabled = userOrder.length !== 6;
+                confirmBtn.style.cssText = `
+                  padding: 0.75rem 1.5rem;
+                  background: ${userOrder.length !== 6 ? '#555' : '#2ecc71'};
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  font-size: 1rem;
+                  font-weight: bold;
+                  cursor: ${userOrder.length !== 6 ? 'not-allowed' : 'pointer'};
+                  transition: background 0.2s;
+                  min-width: 100px;
+                  touch-action: manipulation;
+                `;
+                if (!confirmBtn.disabled) {
+                  confirmBtn.onpointerdown = (e) => {
+                    e.stopPropagation();
                     // Check if order is correct
                     const isCorrect = userOrder.every((val, idx) => val === correctOrder[idx]);
                     
+                    content.innerHTML = '';
+                    const resultDiv = document.createElement('div');
+                    resultDiv.style.cssText = `
+                      text-align: center;
+                      padding: 3rem;
+                      background: rgba(0,0,0,0.8);
+                      border-radius: 12px;
+                    `;
+                    
                     if (isCorrect) {
-                      // Clean up URLs
-                      createdUrls.forEach(url => URL.revokeObjectURL(url));
-                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>You got the order exactly right!</p></div>`;
+                      resultDiv.innerHTML = `
+                        <h2 style="font-size: 3rem; color: #2ecc71; margin-bottom: 1rem;">🎉 Perfect!</h2>
+                        <p style="font-size: 1.5rem; color: white;">You got the order exactly right!</p>
+                      `;
+                      content.appendChild(resultDiv);
                       setTimeout(() => {
                         updateMainScore(3000);
                         markTaskComplete();
+                        runGameCleanup();
                       }, 1500);
                     } else {
-                      // Clean up URLs
-                      createdUrls.forEach(url => URL.revokeObjectURL(url));
-                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Incorrect!</h2><p>The order wasn't quite right.</p></div>`;
-                      setTimeout(() => closeTaskModal(), 2000);
+                      resultDiv.innerHTML = `
+                        <h2 style="font-size: 3rem; color: #e74c3c; margin-bottom: 1rem;">❌ Incorrect!</h2>
+                        <p style="font-size: 1.5rem; color: white;">The order wasn't quite right.</p>
+                      `;
+                      content.appendChild(resultDiv);
+                      setTimeout(() => {
+                        runGameCleanup();
+                      }, 2000);
                     }
                   };
+                  confirmBtn.onmouseenter = () => {
+                    confirmBtn.style.background = '#27ae60';
+                  };
+                  confirmBtn.onmouseleave = () => {
+                    confirmBtn.style.background = '#2ecc71';
+                  };
                 }
+                buttonDiv.appendChild(confirmBtn);
+                
+                content.appendChild(buttonDiv);
               };
               
               renderSelectionScreen();
