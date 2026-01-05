@@ -3991,27 +3991,58 @@
             const config = configs[Math.floor(Math.random() * configs.length)];
 
             taskModalBody.innerHTML = `<h3>Ready to Match?</h3><p>Find all ${config.size / 2} pairs before time runs out.</p><button id="start-challenge-btn" class="modal-action-btn">Start Matching</button>`;
-            document.getElementById('start-challenge-btn').onclick = () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            
+            wireStartButton(startBtn, () => {
+              // Create game overlay
+              const { overlayEl } = createGameOverlay({ id: 'match-pairs-overlay' });
+              
               // FIX: Cleaned up emoji list
               const baseEmojis = ['🍆', '🍑', '💦', '👄', '👅', '💪', '⛓️', '🔥', '😈', '🦄', '🐷', '💨', '🚀', '🫃🏽'];
               const gameEmojis = [...baseEmojis.slice(0, config.size / 2), ...baseEmojis.slice(0, config.size / 2)].sort(() => 0.5 - Math.random());
+              
+              // Create color map for deterministic back colors
+              const emojiColorMap = {};
+              const backColors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22'];
+              baseEmojis.forEach((emoji, i) => {
+                emojiColorMap[emoji] = backColors[i % backColors.length];
+              });
+              
               let flipped = [];
               let matchedCount = 0;
               let canClick = true;
               let timeLeft = config.time;
-              taskModalBody.innerHTML =
-                `<div class="flex justify-between items-center mb-4"><h3 id="pairs-timer" class="text-2xl font-bold">Time: ${timeLeft}</h3></div><div class="emoji-grid ${config.gridClass}">${gameEmojis.map((emoji, i) => `<div class="emoji-cell" data-index="${i}" style="font-size: ${config.emojiSize};"><div class="emoji-content">${emoji}</div></div>`).join('')}</div>`;
-              modalTimer = setInterval(() => {
+              
+              // Create HUD card for timer
+              const hudCard = document.createElement('div');
+              hudCard.className = 'game-hud-card';
+              hudCard.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 325;';
+              hudCard.innerHTML = `<h3 id="pairs-timer" class="text-2xl font-bold text-center">Time: ${timeLeft}</h3>`;
+              overlayEl.appendChild(hudCard);
+              
+              // Create game grid
+              const gameGrid = document.createElement('div');
+              gameGrid.className = 'emoji-grid ' + config.gridClass;
+              gameGrid.innerHTML = gameEmojis.map((emoji, i) => 
+                `<div class="emoji-cell" data-index="${i}" style="font-size: ${config.emojiSize}; background: ${emojiColorMap[emoji]};"><div class="emoji-content">${emoji}</div></div>`
+              ).join('');
+              overlayEl.appendChild(gameGrid);
+              
+              const timer = setInterval(() => {
                 timeLeft--;
                 const timerEl = document.getElementById('pairs-timer');
                 if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
                 if (timeLeft <= 0) {
-                  clearInterval(modalTimer);
+                  clearInterval(timer);
                   updateMainScore(-1000);
                   alert("Time's up!");
-                  closeTaskModal();
+                  runGameCleanup();
+                  overlayEl.remove();
                 }
               }, 1000);
+              
+              registerGameCleanup(() => clearInterval(timer));
+              
               document.querySelectorAll('.emoji-cell').forEach(cell => {
                 cell.onclick = () => {
                   if (!canClick || cell.classList.contains('flipped') || cell.classList.contains('matched') || flipped.length >= 2) return;
@@ -4028,9 +4059,10 @@
                       canClick = true;
                       updateMainScore(500);
                       if (matchedCount === gameEmojis.length) {
-                        clearInterval(modalTimer);
+                        clearInterval(timer);
                         updateMainScore(timeLeft * 100);
                         markTaskComplete();
+                        setTimeout(() => overlayEl.remove(), 500);
                       }
                     } else {
                       setTimeout(() => {
@@ -4043,7 +4075,7 @@
                   }
                 };
               });
-            };
+            });
           }
 
           function setupBlowbackTask() {
@@ -4060,11 +4092,13 @@
 
             taskModalBody.innerHTML =
               `<h3>Ready to Breathe?</h3><p class="my-4">Inhale for ${inhaleTime}s, Hold for ${holdTime}s, Exhale for ${exhaleTime}s. Repeat ${breathCount} times.</p><button id="start-challenge-btn" class="modal-action-btn">Start Breathing</button>`;
-            document.getElementById('start-challenge-btn').onclick = () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            
+            wireStartButton(startBtn, () => {
               isTaskCompleted = true; // Mark as completed since it runs in the background
               markTaskComplete();
               document.getElementById('startBreathingGuideButton').click();
-            };
+            });
           }
 
           async function setupMemoryGameTask() {
@@ -4431,53 +4465,75 @@
               return;
             }
 
-            taskModalBody.innerHTML = `<h3>Click the button ONLY when you see the 😈 symbol.</h3><p>Don't click too early!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
-
-            document.getElementById('start-challenge-btn').onclick = () => {
-              const randomVideoIndex = Math.floor(Math.random() * videoFiles.length);
-              const videoURL = URL.createObjectURL(videoFiles[randomVideoIndex]);
+            taskModalBody.innerHTML = `<h3>Tap anywhere on screen ONLY when you see the 😈 symbol.</h3><p>Don't tap too early!</p><button id="start-challenge-btn" class="modal-action-btn">Start</button>`;
+            const startBtn = document.getElementById('start-challenge-btn');
+            
+            wireStartButton(startBtn, () => {
+              // Create game overlay (transparent, video shows through)
+              const { overlayEl } = createGameOverlay({ id: 'reflex-test-overlay' });
+              
+              // Create emoji display (centered, large, hidden initially)
+              const emojiDisplay = document.createElement('div');
+              emojiDisplay.style.cssText = `
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                transform: translate(-50%, -50%);
+                font-size: 12rem;
+                opacity: 0;
+                transition: opacity 0.3s;
+                pointer-events: none;
+                z-index: 324;
+              `;
+              emojiDisplay.textContent = '😈';
+              parseEmojis(emojiDisplay);
+              overlayEl.appendChild(emojiDisplay);
+              
               let gamePhase = 'waiting'; // 'waiting', 'active', 'ended'
-              let symbolTimer = null;
-
-              taskModalBody.innerHTML = `
-                    <div class="reflex-test-container">
-                        <video class="reflex-test-video" src="${videoURL}" muted autoplay loop></video>
-                        <div class="reflex-test-symbol">😈</div>
-                    </div>
-                    <button id="reflex-click-btn" class="modal-action-btn mt-4">CLICK HERE!</button>
-                `;
-
-              const symbolEl = document.querySelector('.reflex-test-symbol');
-
-              const showSymbolTimeout = setTimeout(() => {
+              let showSymbolTimeout = null;
+              let hideSymbolTimeout = null;
+              
+              // Show symbol after random delay
+              showSymbolTimeout = setTimeout(() => {
                 gamePhase = 'active';
-                symbolEl.classList.add('visible');
-                symbolTimer = setTimeout(() => { // Symbol disappears
+                emojiDisplay.style.opacity = '1';
+                
+                // Hide symbol after 1.5s
+                hideSymbolTimeout = setTimeout(() => {
                   gamePhase = 'ended';
-                  symbolEl.classList.remove('visible');
-                  if (activeTaskElement && !isTaskCompleted) { // If player hasn't clicked by now
-                    alert('Too slow!');
-                    closeTaskModal();
-                  }
-                }, 1500); // Symbol is visible for 1.5s
+                  emojiDisplay.style.opacity = '0';
+                  alert('Too slow!');
+                  runGameCleanup();
+                  overlayEl.remove();
+                }, 1500);
               }, Math.random() * 5000 + 3000); // Random delay 3-8s
-
-              currentTimers.push(showSymbolTimeout, symbolTimer);
-
-              document.getElementById('reflex-click-btn').onclick = () => {
-                  if(gamePhase === 'ended') return;
-
-                  if (gamePhase === 'waiting') {
-                    alert('Too early!');
-                    clearTimeout(showSymbolTimeout);
-                    closeTaskModal();
-                  } else if (gamePhase === 'active') {
-                    updateMainScore(2000);
-                    markTaskComplete();
-                  }
-                  gamePhase = 'ended'; // Prevent multiple clicks
+              
+              registerGameCleanup(() => {
+                if (showSymbolTimeout) clearTimeout(showSymbolTimeout);
+                if (hideSymbolTimeout) clearTimeout(hideSymbolTimeout);
+              });
+              
+              // Tap anywhere handler
+              const tapHandler = () => {
+                if (gamePhase === 'ended') return;
+                
+                if (gamePhase === 'waiting') {
+                  alert('Too early!');
+                  runGameCleanup();
+                  overlayEl.remove();
+                } else if (gamePhase === 'active') {
+                  updateMainScore(2000);
+                  markTaskComplete();
+                  gamePhase = 'ended';
+                  setTimeout(() => overlayEl.remove(), 500);
+                }
               };
-            };
+              
+              overlayEl.addEventListener('pointerdown', tapHandler);
+              registerGameCleanup(() => {
+                overlayEl.removeEventListener('pointerdown', tapHandler);
+              });
+            });
           }
 
           async function setupPressureFrontTask() {
@@ -4557,45 +4613,31 @@
               parseEmojis(emojiCycler);
             });
             
-            document.getElementById('start-pf-btn').onclick = () => {
+            const startBtn = document.getElementById('start-pf-btn');
+            wireStartButton(startBtn, () => {
               if (videoFiles.length === 0) {
                 alert("Please upload videos first.");
                 return;
               }
               
-              const duration = parseInt(document.getElementById('pf-timer').value);
-              const interval = parseInt(document.getElementById('pf-interval').value);
+              const duration = parseInt(timerInput.value);
+              const interval = parseInt(intervalInput.value);
               const guessEmoji = emojiCycler.textContent.trim();
               const guessCount = parseInt(document.getElementById('pf-guess-count').value);
               
-              // Hide modal overlay to show video clearly
-              taskModalOverlay.style.pointerEvents = 'none';
-              taskModalBody.innerHTML = '';
-              
-              // Create overlay for tally in corner of video canvas
-              const gameOverlay = document.createElement('div');
-              gameOverlay.id = 'pf-game-overlay';
-              gameOverlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                z-index: 250;
-                pointer-events: none;
-              `;
+              // Create game overlay
+              const { overlayEl } = createGameOverlay({ id: 'pf-game-overlay' });
               
               // Tally container in top-right corner
               const tallyContainer = document.createElement('div');
               tallyContainer.style.cssText = `
-                position: absolute;
-                top: 20px;
+                position: fixed;
+                top: 80px;
                 right: 20px;
                 background: rgba(0,0,0,0.8);
                 padding: 1rem;
                 border-radius: 8px;
-                pointer-events: auto;
-                z-index: 10;
+                z-index: 325;
               `;
               
               // Add timer and guess info
@@ -4630,9 +4672,7 @@
               });
               
               tallyContainer.appendChild(tallyGrid);
-              gameOverlay.appendChild(tallyContainer);
-              document.body.appendChild(gameOverlay);
-              
+              overlayEl.appendChild(tallyContainer);
               parseEmojis(tallyContainer);
               
               // Start video rotation
@@ -4640,7 +4680,6 @@
               if (interval > 0) {
                 advanceVideo(1);
                 videoChangeTimer = setInterval(() => advanceVideo(1), interval * 1000);
-                currentTimers.push(videoChangeTimer);
               }
               
               // Countdown timer
@@ -4658,10 +4697,12 @@
                   const actualCount = tallyCounts[guessEmoji];
                   const difference = Math.abs(actualCount - guessCount);
                   
-                  // Remove overlay and show results in modal
-                  gameOverlay.remove();
-                  taskModalOverlay.style.pointerEvents = 'all';
+                  // Remove game overlay and show results
+                  overlayEl.remove();
                   
+                  // Show results in modal
+                  taskModalOverlay.style.display = '';
+                  taskModalOverlay.classList.add('visible', 'interactive');
                   taskModalBody.innerHTML = `
                     <h2>Results</h2>
                     <p style="font-size: 1.5rem;">Your guess: ${guessEmoji} × ${guessCount}</p>
@@ -4684,8 +4725,11 @@
                 }
               }, 1000);
               
-              currentTimers.push(countdownTimer);
-            };
+              registerGameCleanup(() => {
+                clearInterval(countdownTimer);
+                if (videoChangeTimer) clearInterval(videoChangeTimer);
+              });
+            });
           }
 
           async function setupMiniBingoTask() {
