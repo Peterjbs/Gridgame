@@ -3851,6 +3851,42 @@
             advanceChallengeTurn();
           }
 
+          /**
+           * Ends the current turn without marking the tile as won.
+           * Used for Bingo card creation to advance turn but leave tile pending.
+           */
+          function endTurnWithoutWin() {
+            const failSound = new Tone.Synth().toDestination();
+            failSound.triggerAttackRelease("C3", "8n");
+            advanceChallengeTurn();
+          }
+
+          /**
+           * Awards a pending tile to its original owner without changing the current turn.
+           * Used when a Bingo card is completed to award the tile to the player who created it.
+           * @param {HTMLElement} tileElement - The tile element to award
+           * @param {number} ownerIndex - The index of the player who should receive the tile
+           */
+          function awardPendingTile(tileElement, ownerIndex) {
+            if (tileElement) {
+              tileElement.dataset.owner = String(ownerIndex);
+              tileElement.classList.remove('pending');
+              tileElement.classList.add('completed');
+              const overlay = tileElement.querySelector('.status-overlay');
+              if (overlay) {
+                overlay.textContent = challengePlayers[ownerIndex].badge;
+              }
+              if (typeof challengeScores[ownerIndex] === 'number') {
+                challengeScores[ownerIndex] += 1;
+                renderChallengeHud();
+              }
+            }
+            scoreMultiplier = parseFloat((scoreMultiplier + 0.25).toFixed(2));
+            mainScoreMultiplier.textContent = scoreMultiplier.toFixed(2);
+            const completionSound = new Tone.Synth().toDestination();
+            completionSound.triggerAttackRelease("C5", "8n");
+          }
+
           taskModalCloseBtn.addEventListener('pointerdown', closeTaskModal);
           
           // Add keyboard accessibility for close button
@@ -4110,16 +4146,16 @@
                 if (timeLeft <= 0) {
                   clearInterval(timer);
                   updateMainScore(-1000);
-                  alert("Time's up!");
                   runGameCleanup();
                   overlayEl.remove();
+                  closeTaskModal();
                 }
               }, 1000);
               
               registerGameCleanup(() => clearInterval(timer));
               
               document.querySelectorAll('.emoji-cell').forEach(cell => {
-                cell.onclick = () => {
+                cell.addEventListener('pointerdown', () => {
                   if (!canClick || cell.classList.contains('flipped') || cell.classList.contains('matched') || flipped.length >= 2) return;
                   cell.classList.add('flipped');
                   flipped.push(cell);
@@ -4247,12 +4283,21 @@
           function setupBingoBuilderTask() {
             taskModalTitle.textContent = "Build a 3x2 Bingo Card";
             taskModalBody.innerHTML = `<h3>Ready to Build?</h3><p>Create your custom 3x2 bingo card.</p><button id="start-challenge-btn" class="modal-action-btn">Start Building</button>`;
-            document.getElementById('start-challenge-btn').onclick = () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, () => {
               let selectedPrompts = [];
               // Exactly 15 random prompts for selection
               const masterList = [...bingoPrompts].sort(() => 0.5 - Math.random()).slice(0, 15);
               taskModalBody.innerHTML =
-                `<p style="font-size: 1.1rem;">Select 6 prompts from the list below:</p><div id="bingo-builder-master-list" style="font-size: 1.05rem;">${masterList.map(p => `<div class="bingo-item" style="font-size: 1.05rem; padding: 0.75rem;">${p}</div>`).join('')}</div><h3 style="font-size: 1.2rem;">Your Card Preview (<span id="bingo-pick-count">0</span>/6)</h3><div id="my-bingo-card-preview" style="font-size: 1.05rem;">${Array(6).fill('<div class="cell" style="font-size: 1.05rem;"></div>').join('')}</div><button id="confirm-bingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>`;
+                `<p style="font-size: 1.1rem;">Select 6 prompts from the list below:</p>
+                <div id="bingo-builder-master-list" style="font-size: 1.05rem; max-height: 300px; overflow-y: auto; margin-bottom: 1rem;">
+                  ${masterList.map(p => `<div class="bingo-item" style="font-size: 1.05rem; padding: 0.75rem; margin: 0.25rem 0; cursor: pointer;">${p}</div>`).join('')}
+                </div>
+                <h3 style="font-size: 1.2rem;">Your Card Preview (<span id="bingo-pick-count">0</span>/6)</h3>
+                <div id="my-bingo-card-preview" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem; margin: 1rem 0;">
+                  ${Array(6).fill(0).map(() => `<div class="cell" style="font-size: 1rem; padding: 0.5rem; min-height: 60px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; display: flex; align-items: center; justify-content: center; text-align: center;"></div>`).join('')}
+                </div>
+                <button id="confirm-bingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>`;
               const updatePreview = () => {
                 const cells = document.querySelectorAll('#my-bingo-card-preview .cell');
                 cells.forEach((cell, i) => {
@@ -4275,37 +4320,58 @@
                 };
               });
               document.getElementById('confirm-bingo-card').onclick = () => {
-                createBingoCardWidget(selectedPrompts, activeTaskElement);
+                // Mark tile as pending and store owner
+                if (activeTaskElement) {
+                  const ownerIndex = currentChallengePlayerIndex;
+                  activeTaskElement.classList.add('pending');
+                  activeTaskElement.dataset.pendingOwner = String(ownerIndex);
+                  const overlay = activeTaskElement.querySelector('.status-overlay');
+                  if (overlay) {
+                    overlay.textContent = '⏳';
+                  }
+                }
+                
+                createBingoCardWidget(selectedPrompts, activeTaskElement, currentChallengePlayerIndex);
+                
+                // End turn without marking complete
+                isTaskCompleted = true; // Prevent fail on close
+                endTurnWithoutWin();
                 closeTaskModal();
               };
               updatePreview();
-            };
+            });
           }
 
-          function createBingoCardWidget(prompts, originalTaskElement) {
+          function createBingoCardWidget(prompts, originalTaskElement, ownerIndex) {
             const card = document.createElement('div');
             card.className = 'bingo-card-widget';
             const cardId = `bingo-card-${Date.now()}`;
             card.id = cardId;
-            card.style.top = `${Math.random() * 50 + 20}vh`;
-            card.style.left = `${Math.random() * 50 + 20}vw`;
+            // Spawn top-right
+            card.style.top = '100px';
+            card.style.right = '20px';
+            card.style.left = 'auto';
 
-            const currentPlayer = challengePlayers[currentChallengePlayerIndex];
+            const currentPlayer = challengePlayers[ownerIndex];
             const playerName = currentPlayer ? currentPlayer.name : 'Bingo Card';
-            card.innerHTML = `<div class="bingo-card-header"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+            card.innerHTML = `<div class="bingo-card-header" style="background-color: ${currentPlayer ? currentPlayer.color : '#666'}"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container" style="grid-template-columns: repeat(3, 1fr);"></div>`;
             const gridContainer = card.querySelector('.bingo-grid-container');
             prompts.forEach(prompt => {
               const cell = document.createElement('div');
               cell.className = 'cell';
               cell.textContent = prompt;
-              cell.addEventListener('click', () => {
+              cell.style.fontSize = '0.9rem';
+              cell.addEventListener('pointerdown', () => {
                 cell.classList.toggle('marked');
                 const allMarked = [...gridContainer.querySelectorAll('.cell')].every(c => c.classList.contains('marked'));
                 if (allMarked) {
                   card.remove();
-                  activeTaskElement = originalTaskElement; // Re-assign active element
+                  // Award the pending tile to the original owner
+                  if (originalTaskElement) {
+                    const storedOwner = parseInt(originalTaskElement.dataset.pendingOwner || ownerIndex);
+                    awardPendingTile(originalTaskElement, storedOwner);
+                  }
                   updateMainScore(2000);
-                  markTaskComplete();
                 }
               });
               gridContainer.appendChild(cell);
@@ -4332,7 +4398,8 @@
                   updateMainScore(1500);
                   markTaskComplete();
                 } else {
-                  alert("You have to write something!");
+                  // Don't allow empty submissions
+                  return;
                 }
               };
               document.getElementById('ai-challenge-response').focus();
@@ -4512,7 +4579,6 @@
                   if (timerEl) timerEl.textContent = `Time: ${timeLeft}`;
                   if (timeLeft <= 0) {
                     clearInterval(modalTimer);
-                    alert("Time's up!");
                     closeTaskModal();
                   }
                 }, 1000);
@@ -4524,7 +4590,6 @@
                     updateMainScore(2000);
                     markTaskComplete();
                   } else {
-                    alert(`Incorrect! The word was: ${word}`);
                     closeTaskModal();
                   }
                 };
@@ -4578,9 +4643,9 @@
                 hideSymbolTimeout = setTimeout(() => {
                   gamePhase = 'ended';
                   emojiDisplay.style.opacity = '0';
-                  alert('Too slow!');
                   runGameCleanup();
                   overlayEl.remove();
+                  closeTaskModal();
                 }, 1500);
               }, Math.random() * 5000 + 3000); // Random delay 3-8s
               
@@ -4594,9 +4659,9 @@
                 if (gamePhase === 'ended') return;
                 
                 if (gamePhase === 'waiting') {
-                  alert('Too early!');
                   runGameCleanup();
                   overlayEl.remove();
+                  closeTaskModal();
                 } else if (gamePhase === 'active') {
                   updateMainScore(2000);
                   markTaskComplete();
@@ -4690,19 +4755,20 @@
             });
             
             const startBtn = document.getElementById('start-pf-btn');
-            wireStartButton(startBtn, () => {
+            wireStartButton(startBtn, async () => {
               if (videoFiles.length === 0) {
-                alert("Please upload videos first.");
+                closeTaskModal();
                 return;
               }
               
-              const duration = parseInt(timerInput.value);
-              const interval = parseInt(intervalInput.value);
-              const guessEmoji = emojiCycler.textContent.trim();
-              const guessCount = parseInt(document.getElementById('pf-guess-count').value);
-              
-              // Create game overlay
-              const { overlayEl } = createGameOverlay({ id: 'pf-game-overlay' });
+              await withMainVideoOverride(async (mainVideo) => {
+                const duration = parseInt(timerInput.value);
+                const interval = parseInt(intervalInput.value);
+                const guessEmoji = emojiCycler.textContent.trim();
+                const guessCount = parseInt(document.getElementById('pf-guess-count').value);
+                
+                // Create game overlay
+                const { overlayEl } = createGameOverlay({ id: 'pf-game-overlay' });
               
               // Tally container in top-right corner
               const tallyContainer = document.createElement('div');
@@ -4806,6 +4872,7 @@
                 if (videoChangeTimer) clearInterval(videoChangeTimer);
               });
             });
+          });
           }
 
           async function setupMiniBingoTask() {
@@ -4818,7 +4885,8 @@
               <button id="start-minibingo-btn" class="modal-action-btn">Start Building</button>
             `;
             
-            document.getElementById('start-minibingo-btn').onclick = () => {
+            const startBtn = document.getElementById('start-minibingo-btn');
+            wireStartButton(startBtn, () => {
               let selectedPrompts = [];
               // Pick exactly 15 random prompts from the full list
               const miniPrompts = [...bingoPrompts].sort(() => 0.5 - Math.random()).slice(0, 15);
@@ -4861,20 +4929,34 @@
               });
               
               document.getElementById('confirm-minibingo-card').onclick = () => {
+                const ownerIndex = currentChallengePlayerIndex;
+                
+                // Mark tile as pending
+                if (activeTaskElement) {
+                  activeTaskElement.classList.add('pending');
+                  activeTaskElement.dataset.pendingOwner = String(ownerIndex);
+                  const overlay = activeTaskElement.querySelector('.status-overlay');
+                  if (overlay) {
+                    overlay.textContent = '⏳';
+                  }
+                }
+                
                 // Create the mini bingo card widget
                 const card = document.createElement('div');
                 card.className = 'bingo-card-widget';
-                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 8px; padding: 1rem; z-index: 1000; min-width: 250px;';
-                card.style.top = `${Math.random() * 30 + 30}vh`;
-                card.style.left = `${Math.random() * 40 + 30}vw`;
+                // Spawn top-right
+                card.style.cssText = 'position: fixed; background: rgba(31, 31, 31, 0.95); border: 2px solid #fff; border-radius: 8px; padding: 1rem; z-index: 1000; min-width: 250px; top: 100px; right: 20px;';
+                
+                const playerName = challengePlayers[ownerIndex] ? challengePlayers[ownerIndex].name : 'Mini Bingo';
+                const playerColor = challengePlayers[ownerIndex] ? challengePlayers[ownerIndex].color : '#666';
                 
                 card.innerHTML = `
-                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
-                    <span style="font-weight: bold;">Mini Bingo Card</span>
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; background-color: ${playerColor}; padding: 0.5rem; border-radius: 4px;">
+                    <span style="font-weight: bold;">${playerName}</span>
                     <button class="minibingo-close-btn" style="background: none; border: none; color: #fff; font-size: 1.5rem; cursor: pointer; padding: 0; width: 30px; height: 30px;">&times;</button>
                   </div>
                   <div class="minibingo-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem;">
-                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer; font-size: 0.8rem; text-align: center;">${prompt}</div>`).join('')}
+                    ${selectedPrompts.map(prompt => `<div class="minibingo-cell" style="padding: 0.75rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 4px; cursor: pointer; font-size: 0.9rem; text-align: center;">${prompt}</div>`).join('')}
                   </div>
                 `;
                 
@@ -4883,7 +4965,7 @@
                 let markedCount = 0;
                 const cells = card.querySelectorAll('.minibingo-cell');
                 cells.forEach(cell => {
-                  cell.addEventListener('click', () => {
+                  cell.addEventListener('pointerdown', () => {
                     if (!cell.classList.contains('marked')) {
                       cell.classList.add('marked');
                       cell.style.background = 'rgba(76, 175, 80, 0.5)';
@@ -4892,10 +4974,13 @@
                       
                       if (markedCount === 4) {
                         setTimeout(() => {
-                          alert('🎉 Mini Bingo! You marked all 4!');
                           card.remove();
+                          // Award the pending tile to the original owner
+                          if (activeTaskElement) {
+                            const storedOwner = parseInt(activeTaskElement.dataset.pendingOwner || ownerIndex);
+                            awardPendingTile(activeTaskElement, storedOwner);
+                          }
                           updateMainScore(1000);
-                          markTaskComplete();
                         }, 300);
                       }
                     }
@@ -4906,11 +4991,14 @@
                   card.remove();
                 };
                 
+                // End turn without marking complete
+                isTaskCompleted = true;
+                endTurnWithoutWin();
                 closeTaskModal();
               };
               
               updatePreview();
-            };
+            });
           }
 
           async function setupWeatherGambleTask() {
@@ -5255,7 +5343,8 @@
               <button id="start-challenge-btn" class="modal-action-btn">Start</button>
             `;
 
-            document.getElementById('start-challenge-btn').onclick = () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, () => {
               let round = 1;
               const maxRounds = 3;
               
@@ -5316,10 +5405,10 @@
                     tile.style.borderWidth = '3px';
                     tile.style.transform = 'scale(1)';
                     tile.style.boxShadow = 'none';
-                  }, 250);
+                  }, 500);
                   
                   showIndex++;
-                }, 500);
+                }, 1000);
                 
                 currentTimers.push(showInterval);
                 
@@ -5328,7 +5417,7 @@
                   const playerSequence = [];
                   
                   document.querySelectorAll('.avatar-tile').forEach(tile => {
-                    tile.onclick = () => {
+                    tile.addEventListener('pointerdown', () => {
                       const index = parseInt(tile.dataset.index);
                       playerSequence.push(index);
                       
@@ -5370,7 +5459,7 @@
               };
               
               playRound();
-            };
+            });
           }
 
           async function setupFilmTitleScramblerTask() {
@@ -5965,7 +6054,7 @@
                 }
               };
               
-              canvas.addEventListener('click', (e) => {
+              canvas.addEventListener('pointerdown', (e) => {
                 if (!gameOver) splatter(e.clientX, e.clientY);
               });
               
@@ -6113,7 +6202,8 @@
               <button id="start-challenge-btn" class="modal-action-btn">Start Puzzle</button>
             `;
             
-            document.getElementById('start-challenge-btn').onclick = async () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, async () => {
               // Pick 7-8 random videos
               const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
               const videoPool = shuffled.slice(0, 8);
@@ -6132,8 +6222,6 @@
                 quarters.push(quarterVideos);
               }
               
-              taskModalOverlay.style.pointerEvents = 'none';
-              
               // Create 2x2 grid overlay
               const gridOverlay = document.createElement('div');
               gridOverlay.id = 'quarter-grid';
@@ -6150,6 +6238,36 @@
                 gap: 2px;
                 background: #000;
               `;
+              
+              // Add Exit button
+              const exitBtn = document.createElement('button');
+              exitBtn.className = 'game-overlay-exit-btn';
+              exitBtn.textContent = '✕ Exit';
+              exitBtn.style.cssText = `
+                position: fixed;
+                top: 1rem;
+                right: 1rem;
+                z-index: 260;
+                background: rgba(239, 68, 68, 0.9);
+                color: white;
+                border: none;
+                padding: 0.75rem 1.5rem;
+                border-radius: 0.5rem;
+                font-size: 1rem;
+                font-weight: 600;
+                cursor: pointer;
+                transition: all 0.2s;
+              `;
+              exitBtn.addEventListener('pointerdown', () => {
+                gameOver = true;
+                if (timerInterval) clearInterval(timerInterval);
+                gridOverlay.remove();
+                timerDiv.remove();
+                hiddenVideo.remove();
+                exitBtn.remove();
+                closeTaskModal();
+              });
+              document.body.appendChild(exitBtn);
               
               // Create ONE hidden video element (iPad-safe approach)
               const hiddenVideo = document.createElement('video');
@@ -6302,8 +6420,10 @@
                     gridOverlay.remove();
                     timerDiv.remove();
                     hiddenVideo.remove();
-                    taskModalOverlay.style.pointerEvents = 'all';
+                    exitBtn.remove();
                     
+                    taskModalOverlay.style.display = '';
+                    taskModalOverlay.classList.add('visible', 'interactive');
                     taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Puzzle Complete!</h2><p>You locked all quarters!</p></div>`;
                     setTimeout(() => {
                       updateMainScore(3000);
@@ -6325,15 +6445,17 @@
                   gridOverlay.remove();
                   timerDiv.remove();
                   hiddenVideo.remove();
-                  taskModalOverlay.style.pointerEvents = 'all';
+                  exitBtn.remove();
                   
+                  taskModalOverlay.style.display = '';
+                  taskModalOverlay.classList.add('visible', 'interactive');
                   taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${lockedQuarters.size}/4 locked</p></div>`;
                   setTimeout(() => closeTaskModal(), 2000);
                 }
               }, 1000);
               
               currentTimers.push(timerInterval);
-            };
+            });
           }
 
           async function setupCreativeChallengeTask() {
