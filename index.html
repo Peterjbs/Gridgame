@@ -1360,12 +1360,42 @@
           <span style="min-width: 30px; font-weight: 600; color: #3498db;">P1:</span>
           <input type="text" id="player1-name" value="Player 1" 
                  style="flex: 1; min-width: 0; padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 0.375rem; color: #e2e8f0; font-size: 1rem;">
+          <select id="player1-type" style="padding: 0.5rem; background: rgba(52, 152, 219, 0.2); border: 1px solid #3498db; border-radius: 4px; color: white;">
+            <option value="Human">Human</option>
+            <option value="AI">AI</option>
+          </select>
         </div>
         <!-- Player 2 -->
         <div class="player-setup-row" style="display: flex; gap: 0.5rem; align-items: center;">
           <span style="min-width: 30px; font-weight: 600; color: #e74c3c;">P2:</span>
           <input type="text" id="player2-name" value="Player 2" 
                  style="flex: 1; min-width: 0; padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 0.375rem; color: #e2e8f0; font-size: 1rem;">
+          <select id="player2-type" style="padding: 0.5rem; background: rgba(231, 76, 60, 0.2); border: 1px solid #e74c3c; border-radius: 4px; color: white;">
+            <option value="Human">Human</option>
+            <option value="AI">AI</option>
+          </select>
+        </div>
+        <!-- Player 3 -->
+        <div class="player-setup-row" style="display: flex; gap: 0.5rem; align-items: center;">
+          <input type="checkbox" id="player3-active" style="cursor: pointer;">
+          <span style="min-width: 30px; font-weight: 600; color: #2ecc71;">P3:</span>
+          <input type="text" id="player3-name" value="Player 3" 
+                 style="flex: 1; min-width: 0; padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 0.375rem; color: #e2e8f0; font-size: 1rem;">
+          <select id="player3-type" style="padding: 0.5rem; background: rgba(46, 204, 113, 0.2); border: 1px solid #2ecc71; border-radius: 4px; color: white;">
+            <option value="Human">Human</option>
+            <option value="AI">AI</option>
+          </select>
+        </div>
+        <!-- Player 4 -->
+        <div class="player-setup-row" style="display: flex; gap: 0.5rem; align-items: center;">
+          <input type="checkbox" id="player4-active" style="cursor: pointer;">
+          <span style="min-width: 30px; font-weight: 600; color: #f39c12;">P4:</span>
+          <input type="text" id="player4-name" value="Player 4" 
+                 style="flex: 1; min-width: 0; padding: 0.5rem; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.3); border-radius: 0.375rem; color: #e2e8f0; font-size: 1rem;">
+          <select id="player4-type" style="padding: 0.5rem; background: rgba(243, 156, 18, 0.2); border: 1px solid #f39c12; border-radius: 4px; color: white;">
+            <option value="Human">Human</option>
+            <option value="AI">AI</option>
+          </select>
         </div>
       </div>
     </details>
@@ -1699,24 +1729,13 @@
           const AI_REQUIRED_CHALLENGES = new Set(['aiChallenge', 'audioAnagram']);
 
           const challengeTypes = [{
-              type: 'trivia1',
-              name: 'Trivia',
-              icon: '?'
-            },
-            {
               type: 'matchPairs',
               name: 'Match Pairs',
               icon: '?'
             },
-
             {
               type: 'reflexTest',
               name: 'Reflex Test',
-              icon: '?'
-            },
-            {
-              type: 'trivia2',
-              name: 'Select All',
               icon: '?'
             },
             {
@@ -1724,19 +1743,86 @@
               name: 'Blowback',
               icon: '?'
             },
-            // AI challenges disabled - audioAnagram removed
             {
-              type: 'trivia3',
-              name: 'Type It In',
-              icon: '?'
+              type: 'trivia',
+              name: 'Trivia Challenge',
+              icon: '❓'
             },
-
             {
               type: 'bingo',
               name: 'Bingo',
               icon: '?'
             },
-            // AI challenges disabled - aiChallenge removed
+            {
+              type: 'pressureFront',
+              name: 'Pressure Front',
+              icon: '🍆'
+            },
+            {
+              type: 'miniBingo',
+              name: 'Mini Bingo',
+              icon: '🎯'
+            },
+            {
+              type: 'weatherGamble',
+              name: 'Weather Gamble',
+              icon: '⛅'
+            },
+            {
+              type: 'videoClipDetective',
+              name: 'Video Clip Detective',
+              icon: '🔍'
+            },
+            {
+              type: 'clipOrderMemory',
+              name: 'Clip Order Memory',
+              icon: '🎬'
+            },
+            {
+              type: 'avatarSequence',
+              name: 'Avatar Sequence',
+              icon: '🧠'
+            },
+            {
+              type: 'filmTitleScrambler',
+              name: 'Film Title Scrambler',
+              icon: '🎬'
+            },
+            {
+              type: 'higherLowerViews',
+              name: 'Higher or Lower',
+              icon: '📊'
+            },
+            {
+              type: 'iconClickHunt',
+              name: 'Icon Click Hunt',
+              icon: '🎯'
+            },
+            {
+              type: 'triviaSpeedQuiz',
+              name: 'Trivia Speed Quiz',
+              icon: '⚡'
+            },
+            {
+              type: 'paintSplatter',
+              name: 'Paint Splatter',
+              icon: '🎨'
+            },
+            {
+              type: 'timestampMatch',
+              name: 'Timestamp Match',
+              icon: '⏱️'
+            },
+            {
+              type: 'videoQuarterPuzzle',
+              name: 'Video Quarter Puzzle',
+              icon: '🧩'
+            },
+            {
+              type: 'creativeChallenge',
+              name: 'Creative Challenge',
+              icon: '💡'
+            }
           ];
           
           // Function to distribute challenges evenly with minimal clumping
@@ -1792,12 +1878,25 @@
             return result;
           }
           
-          const challenges = distributeEvenly(challengeTypes, 21);
+          const challenges = distributeEvenly(challengeTypes, 45);
+          
+          // Add "pick the game" mechanics - convert some tiles to 3-choice options
+          // Every 4th tile starting from index 3 becomes a 3-choice tile
+          const threeChoiceIndices = [3, 7, 11, 15, 19, 23, 27, 31, 35, 39, 43];
+          threeChoiceIndices.forEach(index => {
+            // Pick 3 distinct random challenges
+            const availableTypes = [...challengeTypes];
+            const threeChoices = [];
+            for (let i = 0; i < 3; i++) {
+              const randomIndex = Math.floor(Math.random() * availableTypes.length);
+              threeChoices.push(availableTypes[randomIndex]);
+              availableTypes.splice(randomIndex, 1); // Remove to ensure distinct
+            }
+            challenges[index] = threeChoices;
+          });
 
           const challengeUIColors = {
-            trivia1: 'rgba(52, 152, 219, 0.5)',
-            trivia2: 'rgba(26, 188, 156, 0.5)',
-            trivia3: 'rgba(155, 89, 182, 0.5)',
+            trivia: 'rgba(52, 152, 219, 0.5)',
             matchPairs: 'rgba(241, 196, 15, 0.5)',
             blowback: 'rgba(149, 165, 166, 0.5)',
             memory: 'rgba(230, 126, 34, 0.5)',
@@ -1806,25 +1905,83 @@
             clipSequencer: 'rgba(211, 84, 0, 0.5)',
             audioAnagram: 'rgba(142, 68, 173, 0.5)',
             reflexTest: 'rgba(41, 128, 185, 0.5)',
+            pressureFront: 'rgba(103, 58, 183, 0.5)',
+            miniBingo: 'rgba(255, 87, 34, 0.5)',
+            weatherGamble: 'rgba(96, 125, 139, 0.5)',
+            videoClipDetective: 'rgba(255, 193, 7, 0.5)',
+            clipOrderMemory: 'rgba(156, 39, 176, 0.5)',
+            avatarSequence: 'rgba(76, 175, 80, 0.5)',
+            filmTitleScrambler: 'rgba(233, 30, 99, 0.5)',
+            higherLowerViews: 'rgba(63, 81, 181, 0.5)',
+            iconClickHunt: 'rgba(0, 150, 136, 0.5)',
+            triviaSpeedQuiz: 'rgba(255, 152, 0, 0.5)',
+            paintSplatter: 'rgba(121, 85, 72, 0.5)',
+            timestampMatch: 'rgba(96, 125, 139, 0.5)',
+            videoQuarterPuzzle: 'rgba(156, 39, 176, 0.5)',
+            creativeChallenge: 'rgba(103, 58, 183, 0.5)'
           };
 
           const challengePlayers = [{
               name: 'Player 1',
               color: '#3498db',
-              badge: 'P1'
+              badge: 'P1',
+              type: 'Human',
+              active: true
             },
             {
               name: 'Player 2',
               color: '#e74c3c',
-              badge: 'P2'
+              badge: 'P2',
+              type: 'Human',
+              active: true
+            },
+            {
+              name: 'Player 3',
+              color: '#2ecc71',
+              badge: 'P3',
+              type: 'Human',
+              active: false
+            },
+            {
+              name: 'Player 4',
+              color: '#f39c12',
+              badge: 'P4',
+              type: 'Human',
+              active: false
             }
           ];
           let challengeScores = challengePlayers.map(() => 0);
           let currentChallengePlayerIndex = 0;
+          
+          // Track last attempted game type for each tile (for failure retry logic)
+          let tileLastGameType = {};
+          
+          // Image shuffle bag system for 45 images
+          let imageBag = [];
+          const TOTAL_IMAGES = 45;
+          
+          function getNextImage() {
+            if (imageBag.length === 0) {
+              // Refill and shuffle the bag
+              imageBag = Array.from({ length: TOTAL_IMAGES }, (_, i) => i + 1);
+              // Fisher-Yates shuffle
+              for (let i = imageBag.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [imageBag[i], imageBag[j]] = [imageBag[j], imageBag[i]];
+              }
+            }
+            return imageBag.pop();
+          }
+          
+          // Initialize grid images array
+          const gridImages = Array.from({ length: 45 }, () => getNextImage());
 
           // Setup player name input listeners
           const player1NameInput = document.getElementById('player1-name');
           const player2NameInput = document.getElementById('player2-name');
+          const player3NameInput = document.getElementById('player3-name');
+          const player4NameInput = document.getElementById('player4-name');
+          
           if (player1NameInput) {
             player1NameInput.addEventListener('input', (e) => {
               challengePlayers[0].name = e.target.value || 'Player 1';
@@ -1834,6 +1991,62 @@
           if (player2NameInput) {
             player2NameInput.addEventListener('input', (e) => {
               challengePlayers[1].name = e.target.value || 'Player 2';
+              renderChallengeHud();
+            });
+          }
+          if (player3NameInput) {
+            player3NameInput.addEventListener('input', (e) => {
+              challengePlayers[2].name = e.target.value || 'Player 3';
+              renderChallengeHud();
+            });
+          }
+          if (player4NameInput) {
+            player4NameInput.addEventListener('input', (e) => {
+              challengePlayers[3].name = e.target.value || 'Player 4';
+              renderChallengeHud();
+            });
+          }
+          
+          // Setup player type selectors
+          const player1TypeSelect = document.getElementById('player1-type');
+          const player2TypeSelect = document.getElementById('player2-type');
+          const player3TypeSelect = document.getElementById('player3-type');
+          const player4TypeSelect = document.getElementById('player4-type');
+          
+          if (player1TypeSelect) {
+            player1TypeSelect.addEventListener('change', (e) => {
+              challengePlayers[0].type = e.target.value;
+            });
+          }
+          if (player2TypeSelect) {
+            player2TypeSelect.addEventListener('change', (e) => {
+              challengePlayers[1].type = e.target.value;
+            });
+          }
+          if (player3TypeSelect) {
+            player3TypeSelect.addEventListener('change', (e) => {
+              challengePlayers[2].type = e.target.value;
+            });
+          }
+          if (player4TypeSelect) {
+            player4TypeSelect.addEventListener('change', (e) => {
+              challengePlayers[3].type = e.target.value;
+            });
+          }
+          
+          // Setup player active checkboxes
+          const player3ActiveCheckbox = document.getElementById('player3-active');
+          const player4ActiveCheckbox = document.getElementById('player4-active');
+          
+          if (player3ActiveCheckbox) {
+            player3ActiveCheckbox.addEventListener('change', (e) => {
+              challengePlayers[2].active = e.target.checked;
+              renderChallengeHud();
+            });
+          }
+          if (player4ActiveCheckbox) {
+            player4ActiveCheckbox.addEventListener('change', (e) => {
+              challengePlayers[3].active = e.target.checked;
               renderChallengeHud();
             });
           }
@@ -1919,6 +2132,8 @@
             if (challengePlayerList) {
               const fragment = document.createDocumentFragment();
               challengePlayers.forEach((player, index) => {
+                if (!player.active) return; // Skip inactive players
+                
                 const card = document.createElement('div');
                 card.className = 'challenge-player-card';
                 if (index === currentChallengePlayerIndex) {
@@ -1936,12 +2151,31 @@
 
           function resetChallengeGameState() {
             challengeScores = challengePlayers.map(() => 0);
-            currentChallengePlayerIndex = 0;
+            // Set current player to first active player
+            const activePlayers = challengePlayers.filter(p => p.active);
+            if (activePlayers.length > 0) {
+              currentChallengePlayerIndex = challengePlayers.indexOf(activePlayers[0]);
+            } else {
+              currentChallengePlayerIndex = 0;
+            }
             renderChallengeHud();
           }
 
           function advanceChallengeTurn() {
-            currentChallengePlayerIndex = (currentChallengePlayerIndex + 1) % challengePlayers.length;
+            // Only cycle through active players
+            const activePlayers = challengePlayers.filter(p => p.active);
+            if (activePlayers.length === 0) return; // Safety check
+            
+            // Find current player in active list
+            let currentActiveIndex = activePlayers.findIndex((_, i) => {
+              const playerIndex = challengePlayers.indexOf(activePlayers[i]);
+              return playerIndex === currentChallengePlayerIndex;
+            });
+            
+            // Move to next active player
+            currentActiveIndex = (currentActiveIndex + 1) % activePlayers.length;
+            currentChallengePlayerIndex = challengePlayers.indexOf(activePlayers[currentActiveIndex]);
+            
             renderChallengeHud();
           }
 
@@ -3276,9 +3510,9 @@
               square.className = 'challenge-square';
               square.dataset.challengeIndex = index;
               square.dataset.owner = '';
-              // FIX: Use image instead of emoji icon
+              // Use image from shuffle bag
               square.innerHTML = `
-                    <div class="w-full h-full flex items-center justify-center" style="background-image: url('images/${index + 1}.png'); background-size: cover; background-position: center;"></div>
+                    <div class="w-full h-full flex items-center justify-center" style="background-image: url('images/${gridImages[index]}.png'); background-size: cover; background-position: center;"></div>
                     <div class="status-overlay"></div>
                 `;
               square.addEventListener('click', () => {
@@ -3291,7 +3525,7 @@
           }
 
           async function openTask(index) {
-            const challenge = challenges[index];
+            let challenge = challenges[index];
             activeTaskElement = document.querySelector(`.challenge-square[data-challenge-index='${index}']`);
             isTaskCompleted = false;
             stopScoreDecay();
@@ -3301,13 +3535,39 @@
             taskModalBody.innerHTML = `<div class="text-center p-8"><h3 class="text-2xl mb-2">Preparing Challenge...</h3><p class="text-gray-400">Please wait a moment.</p></div>`;
             taskModalOverlay.classList.add('visible');
 
+            // Check if this tile was previously failed and has a last game type
+            const lastGameType = tileLastGameType[index];
+
             if (Array.isArray(challenge)) {
+              // If tile failed previously, filter out the last game type
+              let availableChallenges = challenge;
+              if (lastGameType) {
+                availableChallenges = challenge.filter(c => c.type !== lastGameType);
+                // If all options were filtered, reset and use original
+                if (availableChallenges.length === 0) {
+                  availableChallenges = challenge;
+                }
+              }
+              
               taskModalTitle.textContent = "Choose Your Challenge!";
-              taskModalBody.innerHTML = `<div class="task-option-grid">${challenge.map(c => `<button class="task-option-btn" data-challenge-type="${c.type}">${c.icon} ${c.name}</button>`).join('')}</div>`;
+              taskModalBody.innerHTML = `<div class="task-option-grid">${availableChallenges.map(c => `<button class="task-option-btn" data-challenge-type="${c.type}">${c.icon} ${c.name}</button>`).join('')}</div>`;
               taskModalBody.querySelectorAll('.task-option-btn').forEach(btn => {
-                btn.onclick = () => startConcreteTask(btn.dataset.challengeType);
+                btn.onclick = () => {
+                  tileLastGameType[index] = btn.dataset.challengeType;
+                  startConcreteTask(btn.dataset.challengeType);
+                };
               });
             } else {
+              // Single challenge type - if failed previously, try to pick different one from challengeTypes
+              if (lastGameType && lastGameType === challenge.type) {
+                // Pick a different challenge type
+                const availableTypes = challengeTypes.filter(c => c.type !== lastGameType);
+                if (availableTypes.length > 0) {
+                  challenge = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+                }
+              }
+              
+              tileLastGameType[index] = challenge.type;
               startConcreteTask(challenge.type);
             }
           }
@@ -3322,11 +3582,8 @@
             
             taskModalContent.style.backgroundColor = challengeUIColors[type] || 'rgba(31, 31, 31, 0.5)';
             switch (type) {
-              case 'trivia1':
-                setupTrivia1Task(options.category);
-                break;
-              case 'trivia3':
-                setupTrivia3Task();
+              case 'trivia':
+                setupTriviaTask(options.category);
                 break;
               case 'matchPairs':
                 setupMatchPairsTask();
@@ -3334,19 +3591,59 @@
               case 'blowback':
                 setupBlowbackTask();
                 break;
-
               case 'bingo':
                 setupBingoBuilderTask();
+                break;
+              case 'pressureFront':
+                setupPressureFrontTask();
+                break;
+              case 'miniBingo':
+                setupMiniBingoTask();
+                break;
+              case 'weatherGamble':
+                setupWeatherGambleTask();
+                break;
+              case 'videoClipDetective':
+                setupVideoClipDetectiveTask();
+                break;
+              case 'clipOrderMemory':
+                setupClipOrderMemoryTask();
+                break;
+              case 'avatarSequence':
+                setupAvatarSequenceTask();
+                break;
+              case 'filmTitleScrambler':
+                setupFilmTitleScramblerTask();
+                break;
+              case 'higherLowerViews':
+                setupHigherLowerViewsTask();
+                break;
+              case 'iconClickHunt':
+                setupIconClickHuntTask();
+                break;
+              case 'triviaSpeedQuiz':
+                setupTriviaSpeedQuizTask();
+                break;
+              case 'paintSplatter':
+                setupPaintSplatterTask();
+                break;
+              case 'timestampMatch':
+                setupTimestampMatchTask();
+                break;
+              case 'videoQuarterPuzzle':
+                setupVideoQuarterPuzzleTask();
+                break;
+              case 'creativeChallenge':
+                setupCreativeChallengeTask();
+                break;
+              case 'reflexTest':
+                setupReflexTestTask();
                 break;
               case 'aiChallenge':
                 setupAiChallengeTask();
                 break;
-
               case 'audioAnagram':
                 setupAudioAnagramTask();
-                break;
-              case 'reflexTest':
-                setupReflexTestTask();
                 break;
             }
           }
