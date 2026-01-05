@@ -6106,14 +6106,14 @@
             
             taskModalBody.innerHTML = `
               <h3>Find the common video!</h3>
-              <p>4 quarters will play different 5-second clips</p>
+              <p>4 quarters will show different 5-second clips</p>
               <p>Only ONE video appears in ALL quarters</p>
               <p>Click each quarter to lock it when you see the common video</p>
               <p>60 second time limit!</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Puzzle</button>
             `;
             
-            document.getElementById('start-challenge-btn').onclick = () => {
+            document.getElementById('start-challenge-btn').onclick = async () => {
               // Pick 7-8 random videos
               const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
               const videoPool = shuffled.slice(0, 8);
@@ -6151,6 +6151,15 @@
                 background: #000;
               `;
               
+              // Create ONE hidden video element (iPad-safe approach)
+              const hiddenVideo = document.createElement('video');
+              hiddenVideo.style.display = 'none';
+              hiddenVideo.muted = true;
+              hiddenVideo.playsinline = true;
+              document.body.appendChild(hiddenVideo);
+              
+              // Create 4 canvas quarters
+              const canvases = [];
               for (let q = 0; q < 4; q++) {
                 const quarterDiv = document.createElement('div');
                 quarterDiv.style.cssText = `
@@ -6161,15 +6170,12 @@
                 `;
                 quarterDiv.dataset.quarter = q;
                 
-                const video = document.createElement('video');
-                video.style.cssText = `
+                const canvas = document.createElement('canvas');
+                canvas.style.cssText = `
                   width: 100%;
                   height: 100%;
                   object-fit: cover;
                 `;
-                video.muted = true;
-                video.loop = false;
-                video.playsinline = true;
                 
                 const statusLabel = document.createElement('div');
                 statusLabel.style.cssText = `
@@ -6181,12 +6187,15 @@
                   border-radius: 4px;
                   font-weight: bold;
                   z-index: 10;
+                  font-size: 0.9rem;
                 `;
                 statusLabel.textContent = `Q${q + 1}: Cycling`;
                 
-                quarterDiv.appendChild(video);
+                quarterDiv.appendChild(canvas);
                 quarterDiv.appendChild(statusLabel);
                 gridOverlay.appendChild(quarterDiv);
+                
+                canvases.push({ canvas, ctx: canvas.getContext('2d'), label: statusLabel });
               }
               
               document.body.appendChild(gridOverlay);
@@ -6212,31 +6221,66 @@
               let timeLeft = 60;
               let gameOver = false;
               const lockedQuarters = new Set();
+              const quarterIntervals = [];
               
-              // Cycle videos in each quarter
-              const cycleVideos = async () => {
-                while (!gameOver) {
-                  for (let q = 0; q < 4; q++) {
-                    if (lockedQuarters.has(q)) continue;
-                    
-                    const quarterDiv = document.querySelector(`[data-quarter="${q}"]`);
-                    const video = quarterDiv.querySelector('video');
-                    const videoIndex = quarters[q][Math.floor(Math.random() * quarters[q].length)];
-                    const file = videoFiles[videoIndex];
-                    
-                    video.src = URL.createObjectURL(file);
-                    await new Promise(resolve => {
-                      video.onloadedmetadata = () => {
-                        video.currentTime = Math.random() * Math.max(0, video.duration - 5);
-                        video.play();
-                        setTimeout(resolve, 5000);
-                      };
-                    });
-                  }
+              // Function to draw video frame to canvas
+              const drawFrameToCanvas = (canvas, ctx) => {
+                if (hiddenVideo.readyState >= 2) { // HAVE_CURRENT_DATA
+                  // Resize canvas to match quarter size
+                  const rect = canvas.getBoundingClientRect();
+                  canvas.width = rect.width;
+                  canvas.height = rect.height;
+                  ctx.drawImage(hiddenVideo, 0, 0, canvas.width, canvas.height);
                 }
               };
               
-              cycleVideos();
+              // Cycle videos in each quarter independently
+              for (let q = 0; q < 4; q++) {
+                const cycleQuarter = async () => {
+                  while (!gameOver) {
+                    if (lockedQuarters.has(q)) {
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                      continue;
+                    }
+                    
+                    // Pick random video from this quarter's pool
+                    const videoIndex = quarters[q][Math.floor(Math.random() * quarters[q].length)];
+                    const file = videoFiles[videoIndex];
+                    const url = URL.createObjectURL(file);
+                    
+                    try {
+                      hiddenVideo.src = url;
+                      await new Promise((resolve, reject) => {
+                        hiddenVideo.onloadedmetadata = () => resolve();
+                        hiddenVideo.onerror = () => reject();
+                        setTimeout(reject, 3000); // 3s timeout
+                      });
+                      
+                      // Seek to random timestamp
+                      const seekTime = Math.random() * Math.max(0, hiddenVideo.duration - 5);
+                      hiddenVideo.currentTime = seekTime;
+                      
+                      await hiddenVideo.play();
+                      
+                      // Draw frames for 5 seconds
+                      const startTime = Date.now();
+                      while (Date.now() - startTime < 5000 && !gameOver && !lockedQuarters.has(q)) {
+                        drawFrameToCanvas(canvases[q].canvas, canvases[q].ctx);
+                        await new Promise(resolve => setTimeout(resolve, 100)); // ~10 fps
+                      }
+                      
+                      hiddenVideo.pause();
+                      URL.revokeObjectURL(url);
+                    } catch (err) {
+                      console.error(`Quarter ${q} video error:`, err);
+                      URL.revokeObjectURL(url);
+                      await new Promise(resolve => setTimeout(resolve, 1000));
+                    }
+                  }
+                };
+                
+                cycleQuarter();
+              }
               
               // Click to lock quarter
               document.querySelectorAll('[data-quarter]').forEach(div => {
@@ -6246,18 +6290,20 @@
                   
                   lockedQuarters.add(q);
                   div.style.border = '5px solid #10b981';
-                  div.querySelector('div').textContent = `Q${q + 1}: LOCKED ✓`;
-                  div.querySelector('div').style.color = '#10b981';
+                  canvases[q].label.textContent = `Q${q + 1}: LOCKED ✓`;
+                  canvases[q].label.style.color = '#10b981';
                   
                   // Check if all locked
                   if (lockedQuarters.size === 4) {
                     gameOver = true;
                     clearInterval(timerInterval);
                     
-                    // Check if all locked on correct video (simplified - just give success)
+                    // Cleanup
                     gridOverlay.remove();
                     timerDiv.remove();
+                    hiddenVideo.remove();
                     taskModalOverlay.style.pointerEvents = 'all';
+                    
                     taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Puzzle Complete!</h2><p>You locked all quarters!</p></div>`;
                     setTimeout(() => {
                       updateMainScore(3000);
@@ -6274,9 +6320,13 @@
                 if (timeLeft <= 0 && !gameOver) {
                   gameOver = true;
                   clearInterval(timerInterval);
+                  
+                  // Cleanup
                   gridOverlay.remove();
                   timerDiv.remove();
+                  hiddenVideo.remove();
                   taskModalOverlay.style.pointerEvents = 'all';
+                  
                   taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${lockedQuarters.size}/4 locked</p></div>`;
                   setTimeout(() => closeTaskModal(), 2000);
                 }
