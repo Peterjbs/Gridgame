@@ -4185,7 +4185,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                   hash = emoji.charCodeAt(i) + ((hash << 5) - hash);
                 }
                 // Convert to HSL color (hue based on hash, saturation and lightness fixed for visibility)
-                const hue = hash % 360;
+                // Use bitwise AND to ensure positive value (equivalent to Math.abs for this use case but faster)
+                const hue = (hash % 360 + 360) % 360;
                 return `hsl(${hue}, 70%, 50%)`;
               };
               
