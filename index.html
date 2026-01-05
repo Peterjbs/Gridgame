@@ -5587,36 +5587,24 @@
             
             parseEmojis(taskModalBody);
 
-            document.getElementById('start-challenge-btn').onclick = () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, () => {
               let correctClicks = 0;
               let timeLeft = 60;
               let gameOver = false;
               
-              taskModalOverlay.style.pointerEvents = 'none';
-              
-              const gameOverlay = document.createElement('div');
-              gameOverlay.id = 'icon-hunt-overlay';
-              gameOverlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                z-index: 250;
-                pointer-events: none;
-              `;
+              const { overlayEl: gameOverlay } = createGameOverlay({ id: 'icon-hunt-overlay' });
               
               const infoPanel = document.createElement('div');
               infoPanel.style.cssText = `
                 position: absolute;
-                top: 20px;
+                top: 80px;
                 left: 50%;
                 transform: translateX(-50%);
                 background: rgba(0,0,0,0.8);
                 padding: 1rem 2rem;
                 border-radius: 8px;
-                z-index: 10;
-                pointer-events: none;
+                z-index: 325;
               `;
               infoPanel.innerHTML = `
                 <div style="display: flex; gap: 2rem; align-items: center;">
@@ -5625,7 +5613,6 @@
                 </div>
               `;
               gameOverlay.appendChild(infoPanel);
-              document.body.appendChild(gameOverlay);
               
               const spawnIcon = () => {
                 if (gameOver) return;
@@ -5659,12 +5646,8 @@
                       clearInterval(spawnInterval);
                       clearInterval(timerInterval);
                       gameOverlay.remove();
-                      taskModalOverlay.style.pointerEvents = 'all';
-                      taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Success!</h2><p>15 correct clicks!</p></div>`;
-                      setTimeout(() => {
-                        updateMainScore(3000);
-                        markTaskComplete();
-                      }, 1500);
+                      updateMainScore(3000);
+                      markTaskComplete();
                     }
                   } else {
                     correctClicks = Math.max(0, correctClicks - 1);
@@ -5687,7 +5670,6 @@
               };
               
               const spawnInterval = setInterval(() => spawnIcon(), 800);
-              currentTimers.push(spawnInterval);
               
               const timerInterval = setInterval(() => {
                 timeLeft--;
@@ -5698,14 +5680,14 @@
                   clearInterval(spawnInterval);
                   clearInterval(timerInterval);
                   gameOverlay.remove();
-                  taskModalOverlay.style.pointerEvents = 'all';
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${correctClicks}/15</p></div>`;
-                  setTimeout(() => closeTaskModal(), 2000);
                 }
               }, 1000);
               
-              currentTimers.push(timerInterval);
-            };
+              registerGameCleanup(() => {
+                clearInterval(spawnInterval);
+                clearInterval(timerInterval);
+              });
+            });
           }
 
           async function setupTriviaSpeedQuizTask() {
