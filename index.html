@@ -1531,6 +1531,9 @@
 </head>
 
 <body>
+  <!-- Toast notification container -->
+  <div id="toast-container"></div>
+  
   <div class="video-full-screen"><video id="mainVideo" muted playsinline></video></div>
   <div id="story-maker-bg">
     <div id="story-maker-progress"></div>
@@ -2113,6 +2116,33 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             // Hide the task modal overlay completely
             taskModalOverlay.style.display = 'none';
             taskModalOverlay.style.pointerEvents = 'none';
+          }
+
+          /**
+           * Shows a toast notification.
+           * @param {string} message - The message to display
+           * @param {string} type - Toast type: 'info', 'success', 'error', 'warning' (default: 'info')
+           * @param {number} duration - Duration in milliseconds (default: 3000)
+           */
+          function showToast(message, type = 'info', duration = 3000) {
+            const toastContainer = document.getElementById('toast-container');
+            if (!toastContainer) return;
+            
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.textContent = message;
+            
+            toastContainer.appendChild(toast);
+            
+            // Fade out and remove
+            setTimeout(() => {
+              toast.style.animation = 'toastSlideOut 0.3s ease-in';
+              setTimeout(() => {
+                if (toast.parentNode) {
+                  toast.parentNode.removeChild(toast);
+                }
+              }, 300);
+            }, duration);
           }
           
           // Function to distribute challenges evenly with minimal clumping
