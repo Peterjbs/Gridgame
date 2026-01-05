@@ -2276,6 +2276,48 @@
             renderChallengeHud();
           }
 
+          /**
+           * Ends the current turn without awarding the tile (for Bingo card creation)
+           * Used when an action completes but the tile should remain pending
+           */
+          function endTurnWithoutWin() {
+            advanceChallengeTurn();
+          }
+
+          /**
+           * Awards a pending tile to its original owner without changing turn order
+           * Used when a Bingo card is completed
+           * @param {HTMLElement} tile - The pending tile element
+           */
+          function awardPendingTile(tile) {
+            if (!tile || !tile.classList.contains('pending')) return;
+            
+            const ownerIndex = parseInt(tile.dataset.pendingOwner);
+            if (isNaN(ownerIndex)) return;
+            
+            // Award the tile
+            tile.dataset.owner = String(ownerIndex);
+            tile.classList.remove('pending');
+            tile.classList.add('completed');
+            
+            const overlay = tile.querySelector('.status-overlay');
+            if (overlay) {
+              overlay.textContent = challengePlayers[ownerIndex].badge;
+            }
+            
+            if (typeof challengeScores[ownerIndex] === 'number') {
+              challengeScores[ownerIndex] += 1;
+              renderChallengeHud();
+            }
+            
+            scoreMultiplier = parseFloat((scoreMultiplier + 0.25).toFixed(2));
+            mainScoreMultiplier.textContent = scoreMultiplier.toFixed(2);
+            const completionSound = new Tone.Synth().toDestination();
+            completionSound.triggerAttackRelease("C5", "8n");
+            
+            // Note: We do NOT call advanceChallengeTurn here
+          }
+
           if (geminiKeySaveBtn) {
             geminiKeySaveBtn.addEventListener('click', () => {
               persistGeminiKey(geminiKeyInput ? geminiKeyInput.value : '');
@@ -4110,16 +4152,16 @@
                 if (timeLeft <= 0) {
                   clearInterval(timer);
                   updateMainScore(-1000);
-                  alert("Time's up!");
-                  runGameCleanup();
                   overlayEl.remove();
+                  closeTaskModal();
                 }
               }, 1000);
               
               registerGameCleanup(() => clearInterval(timer));
               
               document.querySelectorAll('.emoji-cell').forEach(cell => {
-                cell.onclick = () => {
+                cell.addEventListener('pointerdown', (e) => {
+                  e.preventDefault();
                   if (!canClick || cell.classList.contains('flipped') || cell.classList.contains('matched') || flipped.length >= 2) return;
                   cell.classList.add('flipped');
                   flipped.push(cell);
@@ -4148,7 +4190,7 @@
                       }, 1000);
                     }
                   }
-                };
+                });
               });
             });
           }
@@ -4246,40 +4288,64 @@
 
           function setupBingoBuilderTask() {
             taskModalTitle.textContent = "Build a 3x2 Bingo Card";
-            taskModalBody.innerHTML = `<h3>Ready to Build?</h3><p>Create your custom 3x2 bingo card.</p><button id="start-challenge-btn" class="modal-action-btn">Start Building</button>`;
-            document.getElementById('start-challenge-btn').onclick = () => {
+            taskModalBody.innerHTML = `<h3>Ready to Build?</h3><p>Create your custom 3x2 bingo card (6 squares).</p><button id="start-challenge-btn" class="modal-action-btn">Start Building</button>`;
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, () => {
               let selectedPrompts = [];
               // Exactly 15 random prompts for selection
               const masterList = [...bingoPrompts].sort(() => 0.5 - Math.random()).slice(0, 15);
               taskModalBody.innerHTML =
-                `<p style="font-size: 1.1rem;">Select 6 prompts from the list below:</p><div id="bingo-builder-master-list" style="font-size: 1.05rem;">${masterList.map(p => `<div class="bingo-item" style="font-size: 1.05rem; padding: 0.75rem;">${p}</div>`).join('')}</div><h3 style="font-size: 1.2rem;">Your Card Preview (<span id="bingo-pick-count">0</span>/6)</h3><div id="my-bingo-card-preview" style="font-size: 1.05rem;">${Array(6).fill('<div class="cell" style="font-size: 1.05rem;"></div>').join('')}</div><button id="confirm-bingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>`;
-              const updatePreview = () => {
-                const cells = document.querySelectorAll('#my-bingo-card-preview .cell');
-                cells.forEach((cell, i) => {
-                  cell.textContent = selectedPrompts[i] || '';
-                });
+                `<p style="font-size: 1.2rem; font-weight: 600; margin-bottom: 1rem;">Select 6 prompts from the list below:</p>
+                <div id="bingo-builder-master-list" style="font-size: 1.1rem; max-height: 400px; overflow-y: auto; margin-bottom: 1rem;">${masterList.map(p => `<div class="bingo-item" style="font-size: 1.1rem; padding: 0.75rem; margin-bottom: 0.5rem; background: rgba(255,255,255,0.05); border-radius: 4px; cursor: pointer; transition: background 0.2s;">${p}</div>`).join('')}</div>
+                <p style="font-size: 1.1rem; margin-bottom: 0.5rem;">Selected: <span id="bingo-pick-count" style="font-weight: bold;">0</span>/6</p>
+                <button id="confirm-bingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>`;
+              
+              const updateUI = () => {
                 document.getElementById('bingo-pick-count').textContent = selectedPrompts.length;
                 document.getElementById('confirm-bingo-card').disabled = selectedPrompts.length !== 6;
               };
+              
               document.querySelectorAll('#bingo-builder-master-list .bingo-item').forEach(item => {
-                item.onclick = () => {
-                  const prompt = item.textContent;
+                item.addEventListener('pointerdown', (e) => {
+                  e.preventDefault();
+                  const prompt = item.textContent.trim();
                   if (item.classList.contains('selected')) {
                     item.classList.remove('selected');
+                    item.style.background = 'rgba(255,255,255,0.05)';
                     selectedPrompts = selectedPrompts.filter(p => p !== prompt);
                   } else if (selectedPrompts.length < 6) {
                     item.classList.add('selected');
+                    item.style.background = 'rgba(52, 152, 219, 0.3)';
                     selectedPrompts.push(prompt);
                   }
-                  updatePreview();
-                };
+                  updateUI();
+                });
               });
-              document.getElementById('confirm-bingo-card').onclick = () => {
+              
+              document.getElementById('confirm-bingo-card').addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                // Mark tile as pending and store the owner
+                if (activeTaskElement) {
+                  activeTaskElement.classList.add('pending');
+                  activeTaskElement.dataset.pendingOwner = String(currentChallengePlayerIndex);
+                }
+                
                 createBingoCardWidget(selectedPrompts, activeTaskElement);
-                closeTaskModal();
-              };
-              updatePreview();
-            };
+                
+                // End turn without marking as complete
+                endTurnWithoutWin();
+                
+                // Close modal after brief delay
+                setTimeout(() => {
+                  taskModalOverlay.style.display = 'none';
+                  taskModalOverlay.classList.remove('visible', 'interactive');
+                  taskModalBody.innerHTML = '';
+                  activeTaskElement = null;
+                }, 500);
+              });
+              
+              updateUI();
+            });
           }
 
           function createBingoCardWidget(prompts, originalTaskElement) {
@@ -4287,32 +4353,47 @@
             card.className = 'bingo-card-widget';
             const cardId = `bingo-card-${Date.now()}`;
             card.id = cardId;
-            card.style.top = `${Math.random() * 50 + 20}vh`;
-            card.style.left = `${Math.random() * 50 + 20}vw`;
+            // Spawn in top-right area
+            card.style.top = `${Math.random() * 20 + 80}px`;
+            card.style.right = `${Math.random() * 50 + 80}px`;
+            card.style.left = 'auto';
 
             const currentPlayer = challengePlayers[currentChallengePlayerIndex];
             const playerName = currentPlayer ? currentPlayer.name : 'Bingo Card';
-            card.innerHTML = `<div class="bingo-card-header"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container"></div>`;
+            card.innerHTML = `<div class="bingo-card-header"><span>${playerName}</span><button class="bingo-card-close-btn">&times;</button></div><div class="bingo-grid-container" style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.5rem;"></div>`;
             const gridContainer = card.querySelector('.bingo-grid-container');
             prompts.forEach(prompt => {
               const cell = document.createElement('div');
               cell.className = 'cell';
+              cell.style.cssText = 'padding: 1rem; background: rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; text-align: center; font-size: 0.95rem; min-height: 60px; display: flex; align-items: center; justify-content: center;';
               cell.textContent = prompt;
-              cell.addEventListener('click', () => {
+              cell.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
                 cell.classList.toggle('marked');
+                if (cell.classList.contains('marked')) {
+                  cell.style.background = 'rgba(46, 204, 113, 0.5)';
+                } else {
+                  cell.style.background = 'rgba(255,255,255,0.1)';
+                }
+                
                 const allMarked = [...gridContainer.querySelectorAll('.cell')].every(c => c.classList.contains('marked'));
                 if (allMarked) {
                   card.remove();
-                  activeTaskElement = originalTaskElement; // Re-assign active element
+                  // Award the pending tile to its original owner
+                  if (originalTaskElement) {
+                    awardPendingTile(originalTaskElement);
+                  }
                   updateMainScore(2000);
-                  markTaskComplete();
                 }
               });
               gridContainer.appendChild(cell);
             });
             bingoCardsOverlayContainer.appendChild(card);
             makeDraggable(card);
-            card.querySelector('.bingo-card-close-btn').onclick = () => card.remove();
+            card.querySelector('.bingo-card-close-btn').addEventListener('pointerdown', (e) => {
+              e.preventDefault();
+              card.remove();
+            });
           }
 
           async function setupAiChallengeTask() {
@@ -4578,9 +4659,8 @@
                 hideSymbolTimeout = setTimeout(() => {
                   gamePhase = 'ended';
                   emojiDisplay.style.opacity = '0';
-                  alert('Too slow!');
-                  runGameCleanup();
                   overlayEl.remove();
+                  closeTaskModal();
                 }, 1500);
               }, Math.random() * 5000 + 3000); // Random delay 3-8s
               
@@ -4590,13 +4670,13 @@
               });
               
               // Tap anywhere handler
-              const tapHandler = () => {
+              const tapHandler = (e) => {
+                e.preventDefault();
                 if (gamePhase === 'ended') return;
                 
                 if (gamePhase === 'waiting') {
-                  alert('Too early!');
-                  runGameCleanup();
                   overlayEl.remove();
+                  closeTaskModal();
                 } else if (gamePhase === 'active') {
                   updateMainScore(2000);
                   markTaskComplete();
@@ -4692,7 +4772,7 @@
             const startBtn = document.getElementById('start-pf-btn');
             wireStartButton(startBtn, () => {
               if (videoFiles.length === 0) {
-                alert("Please upload videos first.");
+                closeTaskModal();
                 return;
               }
               
@@ -4739,7 +4819,8 @@
                 tallyDiv.style.cssText = 'text-align: center; padding: 0.75rem; background: rgba(255,255,255,0.1); border-radius: 8px; cursor: pointer; user-select: none; flex: 1 1 45%;';
                 tallyDiv.innerHTML = `<div style="font-size: 1.5rem;">${emoji}</div><div class="tally-count" style="font-size: 1.2rem; font-weight: bold;">0</div>`;
                 
-                tallyDiv.addEventListener('click', () => {
+                tallyDiv.addEventListener('pointerdown', (e) => {
+                  e.preventDefault();
                   tallyCounts[emoji]++;
                   tallyDiv.querySelector('.tally-count').textContent = tallyCounts[emoji];
                 });
@@ -4763,7 +4844,9 @@
               const timerDisplay = document.getElementById('pf-timer-display');
               const countdownTimer = setInterval(() => {
                 timeLeft--;
-                timerDisplay.textContent = `Time: ${timeLeft}s`;
+                if (timerDisplay) {
+                  timerDisplay.textContent = `Time: ${timeLeft}s`;
+                }
                 
                 if (timeLeft <= 0) {
                   clearInterval(countdownTimer);
@@ -5255,7 +5338,8 @@
               <button id="start-challenge-btn" class="modal-action-btn">Start</button>
             `;
 
-            document.getElementById('start-challenge-btn').onclick = () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, () => {
               let round = 1;
               const maxRounds = 3;
               
@@ -5269,7 +5353,7 @@
                   sequence.push(Math.floor(Math.random() * gridSize));
                 }
                 
-                // Select 9 images from shuffle-bag (ensures all 34 are used over time)
+                // Select 9 images from shuffle-bag (ensures all 25 are used over time)
                 const tileImages = [];
                 for (let i = 0; i < gridSize; i++) {
                   const imageNum = getNextImage();
@@ -5294,7 +5378,7 @@
                   </div>
                 `;
                 
-                // Show sequence
+                // Show sequence at half speed (2x duration)
                 let showIndex = 0;
                 const showInterval = setInterval(() => {
                   if (showIndex >= sequence.length) {
@@ -5316,10 +5400,10 @@
                     tile.style.borderWidth = '3px';
                     tile.style.transform = 'scale(1)';
                     tile.style.boxShadow = 'none';
-                  }, 250);
+                  }, 500); // Double the highlight duration (was 250ms)
                   
                   showIndex++;
-                }, 500);
+                }, 1000); // Double the interval (was 500ms)
                 
                 currentTimers.push(showInterval);
                 
@@ -5328,7 +5412,8 @@
                   const playerSequence = [];
                   
                   document.querySelectorAll('.avatar-tile').forEach(tile => {
-                    tile.onclick = () => {
+                    tile.addEventListener('pointerdown', (e) => {
+                      e.preventDefault();
                       const index = parseInt(tile.dataset.index);
                       playerSequence.push(index);
                       
@@ -5364,13 +5449,13 @@
                           setTimeout(() => playRound(), 1500);
                         }
                       }
-                    };
+                    });
                   });
                 };
               };
               
               playRound();
-            };
+            });
           }
 
           async function setupFilmTitleScramblerTask() {
@@ -5665,7 +5750,8 @@
                   transition: transform 0.1s;
                 `;
                 
-                iconEl.onclick = () => {
+                iconEl.addEventListener('pointerdown', (e) => {
+                  e.preventDefault();
                   if (gameOver) return;
                   
                   if (isCorrect) {
@@ -5690,7 +5776,7 @@
                   }
                   
                   setTimeout(() => iconEl.remove(), 200);
-                };
+                });
                 
                 gameOverlay.appendChild(iconEl);
                 parseEmojis(iconEl);
@@ -5713,6 +5799,7 @@
                   clearInterval(spawnInterval);
                   clearInterval(timerInterval);
                   gameOverlay.remove();
+                  closeTaskModal();
                 }
               }, 1000);
               
@@ -5965,7 +6052,8 @@
                 }
               };
               
-              canvas.addEventListener('click', (e) => {
+              canvas.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
                 if (!gameOver) splatter(e.clientX, e.clientY);
               });
               
@@ -5977,6 +6065,7 @@
                   gameOver = true;
                   clearInterval(timerInterval);
                   overlayEl.remove();
+                  closeTaskModal();
                 }
               }, 1000);
               
@@ -5999,101 +6088,113 @@
               <button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>
             `;
             
-            document.getElementById('start-challenge-btn').onclick = async () => {
-              const videoIndex = Math.floor(Math.random() * videoFiles.length);
-              const file = videoFiles[videoIndex];
-              const url = URL.createObjectURL(file);
-              
-              // Create video element
-              const tempVideo = document.createElement('video');
-              tempVideo.src = url;
-              tempVideo.muted = true;
-              
-              await new Promise(resolve => {
-                tempVideo.onloadedmetadata = () => resolve();
-              });
-              
-              // Simplified: works with any video length (minimum 30 seconds)
-              if (tempVideo.duration < 30) {
-                taskModalBody.innerHTML = `<p class="text-red-500">Video must be at least 30 seconds long for this challenge.</p>`;
-                return;
-              }
-              
-              // Target time: avoid first and last 5 seconds
-              const targetTime = 5 + Math.random() * (tempVideo.duration - 10);
-              
-              taskModalBody.innerHTML = `
-                <div style="width: 100%; max-width: 500px; margin: 0 auto;">
-                  <video id="timestamp-video" style="width: 100%; height: auto;" muted playsinline></video>
-                </div>
-                <p id="timestamp-instruction" style="margin-top: 1rem; font-size: 1.2rem;">Watch this moment...</p>
-                <button id="timestamp-click-btn" class="modal-action-btn" disabled style="margin-top: 1rem;">Click when it matches!</button>
-              `;
-              
-              const player = document.getElementById('timestamp-video');
-              player.src = url;
-              
-              await new Promise(resolve => {
-                player.onloadedmetadata = () => resolve();
-              });
-              
-              // Show target timestamp for 3 seconds
-              player.currentTime = targetTime;
-              await player.play();
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              player.pause();
-              
-              document.getElementById('timestamp-instruction').textContent = 'Video is jumping around... Click when it matches!';
-              document.getElementById('timestamp-click-btn').disabled = false;
-              
-              let gameOver = false;
-              let currentJumpTime = 0;
-              
-              // Jump around every 2 seconds - jump at least 10 seconds away from target
-              const jumpInterval = setInterval(() => {
-                if (gameOver) {
-                  clearInterval(jumpInterval);
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, async () => {
+              await withMainVideoOverride(async (mainVideo) => {
+                // Create game overlay
+                const { overlayEl } = createGameOverlay({ id: 'timestamp-overlay' });
+                
+                const videoIndex = Math.floor(Math.random() * videoFiles.length);
+                const file = videoFiles[videoIndex];
+                const url = URL.createObjectURL(file);
+                
+                mainVideo.src = url;
+                mainVideo.muted = true;
+                
+                await new Promise(resolve => {
+                  mainVideo.onloadedmetadata = () => resolve();
+                });
+                
+                // Simplified: works with any video length (minimum 30 seconds)
+                if (mainVideo.duration < 30) {
+                  overlayEl.remove();
+                  taskModalBody.innerHTML = `<p class="text-red-500">Video must be at least 30 seconds long for this challenge.</p>`;
+                  taskModalOverlay.style.display = '';
+                  taskModalOverlay.classList.add('visible', 'interactive');
                   return;
                 }
                 
-                // Generate a jump time at least 10 seconds away from target
-                let newJumpTime;
-                const minDistance = Math.min(10, tempVideo.duration * 0.1); // 10s or 10% of duration
-                do {
-                  newJumpTime = Math.random() * tempVideo.duration;
-                } while (Math.abs(newJumpTime - targetTime) < minDistance);
+                // Target time: avoid first and last 5 seconds
+                const targetTime = 5 + Math.random() * (mainVideo.duration - 10);
                 
-                currentJumpTime = newJumpTime;
-                player.currentTime = currentJumpTime;
-                player.play();
-              }, 2000);
-              
-              currentTimers.push(jumpInterval);
-              
-              document.getElementById('timestamp-click-btn').onclick = () => {
-                if (gameOver) return;
-                gameOver = true;
-                clearInterval(jumpInterval);
-                player.pause();
+                // Create HUD card for instructions
+                const hudCard = document.createElement('div');
+                hudCard.className = 'game-hud-card';
+                hudCard.style.cssText = 'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 325; text-align: center;';
+                hudCard.innerHTML = `<p id="timestamp-instruction" style="font-size: 1.5rem; margin: 0;">Watch this moment...</p>`;
+                overlayEl.appendChild(hudCard);
                 
-                // Check if close to target (within 1 second for easier gameplay)
-                const diff = Math.abs(currentJumpTime - targetTime);
+                const clickBtn = document.createElement('button');
+                clickBtn.id = 'timestamp-click-btn';
+                clickBtn.className = 'modal-action-btn';
+                clickBtn.textContent = 'Click when it matches!';
+                clickBtn.disabled = true;
+                clickBtn.style.cssText = 'position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 325;';
+                overlayEl.appendChild(clickBtn);
                 
-                if (diff <= 1.0) {
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect Match!</h2><p>Within 1 second!</p></div>`;
-                  setTimeout(() => {
-                    updateMainScore(2000);
-                    markTaskComplete();
-                  }, 1500);
-                } else {
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Not quite!</h2><p>You were ${diff.toFixed(1)}s off</p></div>`;
-                  setTimeout(() => closeTaskModal(), 2000);
-                }
+                // Show target timestamp for 3 seconds
+                mainVideo.currentTime = targetTime;
+                await mainVideo.play();
+                await new Promise(resolve => setTimeout(resolve, 3000));
+                mainVideo.pause();
                 
-                // Clean up object URL
-                URL.revokeObjectURL(url);
-              };
-            };
+                document.getElementById('timestamp-instruction').textContent = 'Video is jumping around... Click when it matches!';
+                clickBtn.disabled = false;
+                
+                let gameOver = false;
+                let currentJumpTime = 0;
+                
+                // Jump around every 2 seconds - jump at least 10 seconds away from target
+                const jumpInterval = setInterval(() => {
+                  if (gameOver) {
+                    clearInterval(jumpInterval);
+                    return;
+                  }
+                  
+                  // Generate a jump time at least 10 seconds away from target
+                  let newJumpTime;
+                  const minDistance = Math.min(10, mainVideo.duration * 0.1); // 10s or 10% of duration
+                  do {
+                    newJumpTime = Math.random() * mainVideo.duration;
+                  } while (Math.abs(newJumpTime - targetTime) < minDistance);
+                  
+                  currentJumpTime = newJumpTime;
+                  mainVideo.currentTime = currentJumpTime;
+                  mainVideo.play();
+                }, 2000);
+                
+                registerGameCleanup(() => {
+                  clearInterval(jumpInterval);
+                  URL.revokeObjectURL(url);
+                });
+                
+                clickBtn.addEventListener('pointerdown', (e) => {
+                  e.preventDefault();
+                  if (gameOver) return;
+                  gameOver = true;
+                  clearInterval(jumpInterval);
+                  mainVideo.pause();
+                  
+                  // Check if close to target (within 1 second for easier gameplay)
+                  const diff = Math.abs(currentJumpTime - targetTime);
+                  
+                  if (diff <= 1.0) {
+                    hudCard.innerHTML = '<p style="font-size: 2rem; color: #10b981; margin: 0;">🎉 Perfect Match!</p>';
+                    setTimeout(() => {
+                      overlayEl.remove();
+                      updateMainScore(2000);
+                      markTaskComplete();
+                    }, 1500);
+                  } else {
+                    hudCard.innerHTML = `<p style="font-size: 2rem; color: #e74c3c; margin: 0;">❌ Not quite!</p><p style="font-size: 1.2rem; margin-top: 0.5rem;">You were ${diff.toFixed(1)}s off</p>`;
+                    setTimeout(() => overlayEl.remove(), 2000);
+                  }
+                  
+                  // Clean up object URL
+                  URL.revokeObjectURL(url);
+                });
+              });
+            });
           }
 
           async function setupVideoQuarterPuzzleTask() {
@@ -6113,7 +6214,8 @@
               <button id="start-challenge-btn" class="modal-action-btn">Start Puzzle</button>
             `;
             
-            document.getElementById('start-challenge-btn').onclick = async () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, async () => {
               // Pick 7-8 random videos
               const shuffled = [...videoFiles.keys()].sort(() => 0.5 - Math.random());
               const videoPool = shuffled.slice(0, 8);
@@ -6131,8 +6233,6 @@
                 quarterVideos.sort(() => 0.5 - Math.random());
                 quarters.push(quarterVideos);
               }
-              
-              taskModalOverlay.style.pointerEvents = 'none';
               
               // Create 2x2 grid overlay
               const gridOverlay = document.createElement('div');
@@ -6218,6 +6318,36 @@
               timerDiv.textContent = 'Time: 60s';
               document.body.appendChild(timerDiv);
               
+              // Add Exit button
+              const exitBtn = document.createElement('button');
+              exitBtn.className = 'game-overlay-exit-btn';
+              exitBtn.textContent = '✕ Exit';
+              exitBtn.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                z-index: 260;
+                padding: 0.5rem 1rem;
+                background: rgba(231, 76, 60, 0.9);
+                color: white;
+                border: none;
+                border-radius: 8px;
+                cursor: pointer;
+                font-size: 1rem;
+                font-weight: bold;
+              `;
+              exitBtn.addEventListener('pointerdown', (e) => {
+                e.preventDefault();
+                gameOver = true;
+                clearInterval(timerInterval);
+                gridOverlay.remove();
+                timerDiv.remove();
+                exitBtn.remove();
+                hiddenVideo.remove();
+                closeTaskModal();
+              });
+              document.body.appendChild(exitBtn);
+              
               let timeLeft = 60;
               let gameOver = false;
               const lockedQuarters = new Set();
@@ -6301,9 +6431,11 @@
                     // Cleanup
                     gridOverlay.remove();
                     timerDiv.remove();
+                    exitBtn.remove();
                     hiddenVideo.remove();
-                    taskModalOverlay.style.pointerEvents = 'all';
                     
+                    taskModalOverlay.style.display = '';
+                    taskModalOverlay.classList.add('visible', 'interactive');
                     taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Puzzle Complete!</h2><p>You locked all quarters!</p></div>`;
                     setTimeout(() => {
                       updateMainScore(3000);
@@ -6324,9 +6456,11 @@
                   // Cleanup
                   gridOverlay.remove();
                   timerDiv.remove();
+                  exitBtn.remove();
                   hiddenVideo.remove();
-                  taskModalOverlay.style.pointerEvents = 'all';
                   
+                  taskModalOverlay.style.display = '';
+                  taskModalOverlay.classList.add('visible', 'interactive');
                   taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${lockedQuarters.size}/4 locked</p></div>`;
                   setTimeout(() => closeTaskModal(), 2000);
                 }
