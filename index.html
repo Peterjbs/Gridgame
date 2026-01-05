@@ -2198,6 +2198,148 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           }
 
+          // --- PR1 Helper Functions for Minigames ---
+          let gameCleanupFunctions = [];
+          const trackedObjectURLs = new Set();
+
+          function createTrackedObjectURL(file) {
+            const url = URL.createObjectURL(file);
+            trackedObjectURLs.add(url);
+            return url;
+          }
+
+          function revokeTrackedObjectURL(url) {
+            if (trackedObjectURLs.has(url)) {
+              URL.revokeObjectURL(url);
+              trackedObjectURLs.delete(url);
+            }
+          }
+
+          function registerGameCleanup(fn) {
+            if (typeof fn === 'function') {
+              gameCleanupFunctions.push(fn);
+            }
+          }
+
+          function runGameCleanup() {
+            gameCleanupFunctions.forEach(fn => {
+              try {
+                fn();
+              } catch (e) {
+                console.error('Cleanup error:', e);
+              }
+            });
+            gameCleanupFunctions = [];
+            
+            // Revoke any remaining tracked URLs
+            trackedObjectURLs.forEach(url => URL.revokeObjectURL(url));
+            trackedObjectURLs.clear();
+          }
+
+          function hideTaskModal() {
+            taskModalOverlay.classList.remove('visible');
+            taskModalOverlay.style.pointerEvents = 'all';
+          }
+
+          function createGameOverlay({ title = '', showExit = true } = {}) {
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+              position: fixed;
+              inset: 0;
+              z-index: 200;
+              background: rgba(0, 0, 0, 0.3);
+              display: flex;
+              flex-direction: column;
+              justify-content: center;
+              align-items: center;
+              padding: 2rem;
+              pointer-events: auto;
+            `;
+            overlay.id = 'game-overlay';
+
+            if (title || showExit) {
+              const header = document.createElement('div');
+              header.style.cssText = `
+                position: fixed;
+                top: 1rem;
+                left: 50%;
+                transform: translateX(-50%);
+                display: flex;
+                align-items: center;
+                gap: 1rem;
+                z-index: 201;
+              `;
+
+              if (title) {
+                const titleEl = document.createElement('div');
+                titleEl.style.cssText = `
+                  font-size: 1.5rem;
+                  font-weight: bold;
+                  color: white;
+                  text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+                  padding: 0.75rem 1.5rem;
+                  background: rgba(0,0,0,0.7);
+                  border-radius: 8px;
+                `;
+                titleEl.textContent = title;
+                header.appendChild(titleEl);
+              }
+
+              if (showExit) {
+                const exitBtn = document.createElement('button');
+                exitBtn.style.cssText = `
+                  padding: 0.75rem 1.5rem;
+                  background: #e74c3c;
+                  color: white;
+                  border: none;
+                  border-radius: 8px;
+                  font-size: 1rem;
+                  font-weight: bold;
+                  cursor: pointer;
+                  transition: background 0.2s;
+                  min-width: 44px;
+                  min-height: 44px;
+                  touch-action: manipulation;
+                `;
+                exitBtn.textContent = 'Exit';
+                exitBtn.onpointerdown = (e) => {
+                  e.stopPropagation();
+                  runGameCleanup();
+                };
+                exitBtn.onmouseenter = () => {
+                  exitBtn.style.background = '#c0392b';
+                };
+                exitBtn.onmouseleave = () => {
+                  exitBtn.style.background = '#e74c3c';
+                };
+                header.appendChild(exitBtn);
+              }
+
+              overlay.appendChild(header);
+            }
+
+            const content = document.createElement('div');
+            content.id = 'game-overlay-content';
+            content.style.cssText = `
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 1rem;
+              max-width: 90vw;
+              max-height: 80vh;
+            `;
+            overlay.appendChild(content);
+
+            document.body.appendChild(overlay);
+            registerGameCleanup(() => {
+              if (overlay.parentNode) {
+                overlay.remove();
+              }
+            });
+
+            return { overlay, content };
+          }
+
           const GEMINI_STORAGE_KEY = 'gridgameGeminiKey';
           let geminiApiKey = '';
 
