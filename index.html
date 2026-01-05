@@ -1515,6 +1515,42 @@
         touch-action: manipulation;
       }
     }
+
+    /* Game Overlay Foundation Module */
+    .game-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 320;
+      pointer-events: auto;
+      background-color: rgba(0, 0, 0, 0.95);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: env(safe-area-inset-top, 0) env(safe-area-inset-right, 0) env(safe-area-inset-bottom, 0) env(safe-area-inset-left, 0);
+    }
+
+    .game-overlay-exit-btn {
+      position: fixed;
+      top: max(1rem, env(safe-area-inset-top, 1rem));
+      right: max(1rem, env(safe-area-inset-right, 1rem));
+      z-index: 330;
+      background: rgba(255, 255, 255, 0.1);
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      color: white;
+      font-size: 1.5rem;
+      cursor: pointer;
+      padding: 0.5rem 1rem;
+      border-radius: 0.5rem;
+      transition: all 0.2s;
+      min-width: 44px;
+      min-height: 44px;
+    }
+
+    .game-overlay-exit-btn:hover {
+      background: rgba(255, 255, 255, 0.2);
+      border-color: rgba(255, 255, 255, 0.5);
+    }
   </style>
 </head>
 
@@ -1883,6 +1919,90 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 }
               }, 300);
             }, duration);
+          }
+
+          // --- Game Overlay Foundation Module ---
+          // This module provides utilities for creating fullscreen game overlays with proper cleanup.
+          // Future PRs can use these utilities to reduce code duplication when creating minigames.
+          let gameCleanupTasks = [];
+
+          /**
+           * Creates a fullscreen game overlay with an exit button.
+           * @param {Object} config - Configuration object
+           * @param {string} config.id - Unique ID for the overlay element
+           * @param {string} config.title - Title text for the overlay (optional)
+           * @returns {Object} - { overlayEl, exitBtn, destroy }
+           */
+          function createGameOverlay({ id, title = '' }) {
+            // Create overlay element
+            const overlayEl = document.createElement('div');
+            overlayEl.id = id;
+            overlayEl.className = 'game-overlay';
+            
+            // Add title if provided
+            if (title) {
+              const titleEl = document.createElement('h2');
+              titleEl.textContent = title;
+              titleEl.style.cssText = 'font-size: 2rem; margin-bottom: 1rem; text-align: center;';
+              overlayEl.appendChild(titleEl);
+            }
+            
+            // Create exit button
+            const exitBtn = document.createElement('button');
+            exitBtn.className = 'game-overlay-exit-btn';
+            exitBtn.textContent = '✕ Exit';
+            exitBtn.setAttribute('aria-label', 'Exit game');
+            
+            // Exit handler: cleanup and remove overlay
+            exitBtn.onclick = () => {
+              runGameCleanup();
+              showToast('Exited game', 'info');
+              if (overlayEl.parentNode) {
+                overlayEl.parentNode.removeChild(overlayEl);
+              }
+            };
+            
+            // Append exit button and overlay to body
+            overlayEl.appendChild(exitBtn);
+            document.body.appendChild(overlayEl);
+            
+            // Return API
+            return {
+              overlayEl,
+              exitBtn,
+              destroy: () => {
+                runGameCleanup();
+                if (overlayEl.parentNode) {
+                  overlayEl.parentNode.removeChild(overlayEl);
+                }
+              }
+            };
+          }
+
+          /**
+           * Registers a cleanup task to be run when the game exits.
+           * Use this to clear intervals, timeouts, or other resources.
+           * @param {Function} fn - Cleanup function to register
+           */
+          function registerGameCleanup(fn) {
+            if (typeof fn === 'function') {
+              gameCleanupTasks.push(fn);
+            }
+          }
+
+          /**
+           * Runs all registered cleanup tasks and clears the queue.
+           * Safe to call even if no game is active.
+           */
+          function runGameCleanup() {
+            gameCleanupTasks.forEach(fn => {
+              try {
+                fn();
+              } catch (error) {
+                console.error('Error during game cleanup:', error);
+              }
+            });
+            gameCleanupTasks = [];
           }
 
           // --- THEME UPDATE: Cloud-themed categories ---
@@ -3388,6 +3508,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             isTaskCompleted = false;
             stopScoreDecay();
             taskModalOverlay.style.pointerEvents = 'all'; // Reset pointer events
+            taskModalOverlay.style.display = ''; // Reset display property
 
             taskModalBody.innerHTML = `<div class="text-center p-8"><h3 class="text-2xl mb-2">Preparing Challenge...</h3><p class="text-gray-400">Please wait a moment.</p></div>`;
             taskModalOverlay.classList.add('visible');
@@ -3501,6 +3622,17 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             }
           }
 
+          /**
+           * Hides the task modal without clearing active game timers.
+           * Use this when starting a minigame that should continue running in the overlay.
+           * The modal is hidden completely (display: none) so it doesn't interfere with the game.
+           */
+          function hideTaskModal() {
+            // Hide the task modal overlay completely
+            taskModalOverlay.style.display = 'none';
+            taskModalOverlay.style.pointerEvents = 'none';
+          }
+
           function closeTaskModal() {
             if (!isTaskCompleted && activeTaskElement) {
               markTaskFailed();
@@ -3555,20 +3687,17 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             // B0.2: Revoke all tracked ObjectURLs (prevents memory leaks)
             revokeAllTrackedObjectURLs();
             
-            // Clear all timers
-            currentTimers.forEach(timer => {
-              clearInterval(timer);
-              clearTimeout(timer);
-            });
-            currentTimers = [];
+            // NOTE: currentTimers array is preserved for active minigames.
+            // Only modal-specific timers are cleared here.
             
             // Clear modal content and hide
             taskModalBody.innerHTML = '';
             taskModalOverlay.classList.remove('visible');
             taskModalOverlay.style.pointerEvents = 'all';
+            taskModalOverlay.style.display = ''; // Reset display property
             taskModalTitle.textContent = '';
             
-            // Clear timer
+            // Clear only the modal timer (not currentTimers for active games)
             if (modalTimer) {
               clearInterval(modalTimer);
               modalTimer = null;
@@ -4592,7 +4721,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const guessCount = parseInt(document.getElementById('pf2-guess-count').value);
               
               // Hide modal overlay to show video clearly
-              taskModalOverlay.style.pointerEvents = 'none';
+              hideTaskModal();
               taskModalBody.innerHTML = '';
               
               // Create overlay for tally in corner of video canvas
@@ -5327,7 +5456,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               const guessCount = parseInt(document.getElementById('pf-guess-count').value);
               
               // Hide modal overlay to show video clearly
-              taskModalOverlay.style.pointerEvents = 'none';
+              hideTaskModal();
               taskModalBody.innerHTML = '';
               
               // Create overlay for tally in corner of video canvas
@@ -6436,7 +6565,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               let timeLeft = 60;
               let gameOver = false;
               
-              taskModalOverlay.style.pointerEvents = 'none';
+              hideTaskModal();
               
               const gameOverlay = document.createElement('div');
               gameOverlay.id = 'icon-hunt-overlay';
@@ -6677,7 +6806,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
             
             document.getElementById('start-challenge-btn').onclick = () => {
               // Create canvas overlay
-              taskModalOverlay.style.pointerEvents = 'none';
+              hideTaskModal();
               
               const canvas = document.createElement('canvas');
               canvas.id = 'paint-canvas';
@@ -7241,7 +7370,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 currentObjectURLs.push(url);
               });
               
-              taskModalOverlay.style.pointerEvents = 'none';
+              hideTaskModal();
               
               // Create 2x2 grid overlay
               const gridOverlay = document.createElement('div');
