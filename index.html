@@ -3982,10 +3982,13 @@
                   `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
                 overlayEl.appendChild(hudCard);
                 
-                hudCard.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = handleAnswer);
+                hudCard.querySelectorAll('.task-option-btn').forEach(btn => {
+                  btn.addEventListener('pointerdown', handleAnswer);
+                });
               }
 
               function handleAnswer(e) {
+                e.preventDefault();
                 const selectedIndex = parseInt(e.target.dataset.index);
                 const correctIndex = questions[currentQ].correctAnswerIndex;
                 if (selectedIndex === correctIndex) {
@@ -4045,7 +4048,8 @@
             let correctAnswers = 0;
             
             taskModalBody.innerHTML = `<h3>Ready!</h3><p>You'll be asked 3 questions.</p><button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>`;
-            document.getElementById('start-challenge-btn').onclick = () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, () => {
               let currentQ = 0;
 
               function renderQuestion() {
@@ -4054,9 +4058,12 @@
                   return;
                 }
                 const q = questions[currentQ];
+                taskModalOverlay.style.display = '';
+                taskModalOverlay.classList.add('visible', 'interactive');
                 taskModalBody.innerHTML =
                   `<p class="text-xl mb-4">(${currentQ + 1}/3) ${q.question}</p><input type="text" id="typed-answer-input" class="w-full task-input-field" placeholder="Type your answer here..."><button id="submit-trivia3" class="modal-action-btn mt-4">Submit</button>`;
-                document.getElementById('submit-trivia3').onclick = () => {
+                document.getElementById('submit-trivia3').addEventListener('pointerdown', (e) => {
+                  e.preventDefault();
                   const userInput = document.getElementById('typed-answer-input').value.trim().toLowerCase();
                   const correctAnswer = q.answer.toLowerCase();
                   // More strict matching: exact match or allow for minor variations in casing/spacing
@@ -4071,17 +4078,18 @@
                   } else {
                     updateMainScore(-500);
                     taskModalBody.innerHTML = `<p class="text-red-500 text-xl mb-4">Incorrect! The answer was: ${q.answer}</p><button id="continue-fail-btn" class="modal-action-btn">Continue</button>`;
-                    document.getElementById('continue-fail-btn').onclick = () => {
+                    document.getElementById('continue-fail-btn').addEventListener('pointerdown', (e) => {
+                      e.preventDefault();
                       showWinLossScreen(correctAnswers, questions.length, () => {
                         closeTaskModal();
                       });
-                    };
+                    });
                   }
-                };
+                });
                 document.getElementById('typed-answer-input').focus();
               }
               renderQuestion();
-            };
+            });
           }
 
           function setupMatchPairsTask() {
@@ -4246,7 +4254,10 @@
               });
             }
             taskModalBody.innerHTML = `<h3>Ready to Watch?</h3><p>You will be shown 10 short clips. Pay attention!</p><button id="start-challenge-btn" class="modal-action-btn">Start Clips</button>`;
-            document.getElementById('start-challenge-btn').onclick = async () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, async () => {
+              taskModalOverlay.style.display = '';
+              taskModalOverlay.classList.add('visible', 'interactive');
               taskModalBody.innerHTML = `<div id="memory-video-player-container"><video id="memory-player" muted playsinline></video></div>`;
               const memoryPlayer = document.getElementById('memory-player');
               const clipsToPlay = clipIndices.slice(0, 10);
@@ -4268,7 +4279,8 @@
                 thumbDiv.className = 'memory-clip-thumbnail';
                 thumbDiv.dataset.index = data.index;
                 thumbDiv.innerHTML = `<video src="${data.url}#t=${data.startTime+1}" preload="metadata"></video>`;
-                thumbDiv.onclick = () => {
+                thumbDiv.addEventListener('pointerdown', (e) => {
+                  e.preventDefault();
                   document.querySelectorAll('.memory-clip-thumbnail').forEach(t => t.classList.add('disabled'));
                   if (parseInt(thumbDiv.dataset.index) === hiddenClipIndex) {
                     thumbDiv.style.outline = "4px solid #27ae60";
@@ -4280,10 +4292,10 @@
                     updateMainScore(-1000);
                     setTimeout(closeTaskModal, 2000);
                   }
-                };
+                });
                 grid.appendChild(thumbDiv);
               }
-            };
+            });
           }
 
           function setupBingoBuilderTask() {
