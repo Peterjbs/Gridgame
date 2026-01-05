@@ -6541,6 +6541,8 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 background: #000;
               `;
               
+              const createdObjectURLs = [];
+              
               for (let q = 0; q < 4; q++) {
                 const quarterDiv = document.createElement('div');
                 quarterDiv.style.cssText = `
@@ -6599,29 +6601,101 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               timerDiv.textContent = 'Time: 60s';
               document.body.appendChild(timerDiv);
               
+              // Exit button
+              const exitBtn = document.createElement('button');
+              exitBtn.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 0.75rem 1.5rem;
+                background: #e74c3c;
+                color: white;
+                border: none;
+                border-radius: 8px;
+                font-size: 1rem;
+                font-weight: bold;
+                cursor: pointer;
+                z-index: 260;
+                pointer-events: auto;
+                touch-action: manipulation;
+                min-width: 44px;
+                min-height: 44px;
+              `;
+              exitBtn.textContent = 'Exit';
+              exitBtn.onpointerup = (e) => {
+                e.stopPropagation();
+                cleanupGame();
+              };
+              document.body.appendChild(exitBtn);
+              
               let timeLeft = 60;
               let gameOver = false;
               const lockedQuarters = new Set();
+              let loadFailures = 0;
+              const maxFailures = 10;
+              
+              const cleanupGame = () => {
+                gameOver = true;
+                if (timerInterval) clearInterval(timerInterval);
+                if (gridOverlay.parentNode) gridOverlay.remove();
+                if (timerDiv.parentNode) timerDiv.remove();
+                if (exitBtn.parentNode) exitBtn.remove();
+                createdObjectURLs.forEach(url => URL.revokeObjectURL(url));
+                taskModalOverlay.style.pointerEvents = 'all';
+              };
               
               // Cycle videos in each quarter
               const cycleVideos = async () => {
                 while (!gameOver) {
                   for (let q = 0; q < 4; q++) {
-                    if (lockedQuarters.has(q)) continue;
+                    if (lockedQuarters.has(q) || gameOver) continue;
                     
                     const quarterDiv = document.querySelector(`[data-quarter="${q}"]`);
+                    if (!quarterDiv) continue;
+                    
                     const video = quarterDiv.querySelector('video');
+                    const statusLabel = quarterDiv.querySelector('div');
                     const videoIndex = quarters[q][Math.floor(Math.random() * quarters[q].length)];
                     const file = videoFiles[videoIndex];
                     
-                    video.src = URL.createObjectURL(file);
-                    await new Promise(resolve => {
-                      video.onloadedmetadata = () => {
-                        video.currentTime = Math.random() * Math.max(0, video.duration - 5);
-                        video.play();
-                        setTimeout(resolve, 5000);
-                      };
-                    });
+                    try {
+                      const url = URL.createObjectURL(file);
+                      createdObjectURLs.push(url);
+                      video.src = url;
+                      
+                      await new Promise((resolve, reject) => {
+                        const timeout = setTimeout(() => {
+                          reject(new Error('Load timeout'));
+                        }, 5000);
+                        
+                        video.onloadedmetadata = () => {
+                          clearTimeout(timeout);
+                          video.currentTime = Math.random() * Math.max(0, video.duration - 5);
+                          video.play().catch(() => {});
+                          setTimeout(resolve, 5000);
+                        };
+                        
+                        video.onerror = () => {
+                          clearTimeout(timeout);
+                          reject(new Error('Video load error'));
+                        };
+                      });
+                      
+                      loadFailures = 0; // Reset on success
+                    } catch (error) {
+                      loadFailures++;
+                      if (loadFailures >= maxFailures) {
+                        gameOver = true;
+                        cleanupGame();
+                        taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⚠️ Too Many Load Failures</h2><p>Videos failed to load properly.</p></div>`;
+                        setTimeout(() => closeTaskModal(), 2000);
+                        return;
+                      }
+                      if (statusLabel) {
+                        statusLabel.textContent = `Q${q + 1}: Retry...`;
+                      }
+                      await new Promise(resolve => setTimeout(resolve, 500));
+                    }
                   }
                 }
               };
@@ -6630,24 +6704,24 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
               
               // Click to lock quarter
               document.querySelectorAll('[data-quarter]').forEach(div => {
-                div.onclick = () => {
+                div.onpointerup = (e) => {
+                  e.stopPropagation();
                   const q = parseInt(div.dataset.quarter);
                   if (lockedQuarters.has(q) || gameOver) return;
                   
                   lockedQuarters.add(q);
                   div.style.border = '5px solid #10b981';
-                  div.querySelector('div').textContent = `Q${q + 1}: LOCKED ✓`;
-                  div.querySelector('div').style.color = '#10b981';
+                  const statusLabel = div.querySelector('div');
+                  if (statusLabel) {
+                    statusLabel.textContent = `Q${q + 1}: LOCKED ✓`;
+                    statusLabel.style.color = '#10b981';
+                  }
                   
                   // Check if all locked
                   if (lockedQuarters.size === 4) {
                     gameOver = true;
                     clearInterval(timerInterval);
-                    
-                    // Check if all locked on correct video (simplified - just give success)
-                    gridOverlay.remove();
-                    timerDiv.remove();
-                    taskModalOverlay.style.pointerEvents = 'all';
+                    cleanupGame();
                     taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Puzzle Complete!</h2><p>You locked all quarters!</p></div>`;
                     setTimeout(() => {
                       updateMainScore(3000);
@@ -6664,9 +6738,7 @@ Fight Club|1400000" style="margin-bottom: 1rem; font-family: monospace;"></texta
                 if (timeLeft <= 0 && !gameOver) {
                   gameOver = true;
                   clearInterval(timerInterval);
-                  gridOverlay.remove();
-                  timerDiv.remove();
-                  taskModalOverlay.style.pointerEvents = 'all';
+                  cleanupGame();
                   taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>Only ${lockedQuarters.size}/4 locked</p></div>`;
                   setTimeout(() => closeTaskModal(), 2000);
                 }
