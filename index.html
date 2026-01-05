@@ -1176,10 +1176,10 @@
     #challenge-turn-indicator {
       border: 3px solid #3498db;
       border-radius: 0.75rem;
-      padding: 0.75rem 1rem;
+      padding: 1rem 1.5rem;
       text-align: center;
       font-weight: 700;
-      font-size: 1.5rem;
+      font-size: 1.75rem;
       color: #3498db;
       background: rgba(0, 0, 0, 0.6);
       box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
@@ -6088,7 +6088,8 @@
               <button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>
             `;
             
-            document.getElementById('start-challenge-btn').onclick = async () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, async () => {
               const videoIndex = Math.floor(Math.random() * videoFiles.length);
               const file = videoFiles[videoIndex];
               const url = URL.createObjectURL(file);
@@ -6159,7 +6160,8 @@
               
               currentTimers.push(jumpInterval);
               
-              document.getElementById('timestamp-click-btn').onclick = () => {
+              const clickBtn = document.getElementById('timestamp-click-btn');
+              clickBtn.addEventListener('pointerdown', () => {
                 if (gameOver) return;
                 gameOver = true;
                 clearInterval(jumpInterval);
@@ -6181,8 +6183,8 @@
                 
                 // Clean up object URL
                 URL.revokeObjectURL(url);
-              };
-            };
+              });
+            });
           }
 
           async function setupVideoQuarterPuzzleTask() {
