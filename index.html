@@ -3870,18 +3870,34 @@
             let totalQuestions = questions.length;
 
             taskModalBody.innerHTML = `<h3>Ready!</h3><p>Category: General Knowledge</p><button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>`;
-            document.getElementById('start-challenge-btn').onclick = () => {
+            const startBtn = document.getElementById('start-challenge-btn');
+            
+            wireStartButton(startBtn, () => {
+              // Create game overlay
+              const { overlayEl } = createGameOverlay({ id: 'trivia-overlay' });
+              
               let currentQ = 0;
 
               function renderQuestion() {
                 if (currentQ >= questions.length) {
-                  showWinLossScreen(correctAnswers, totalQuestions, () => markTaskComplete());
+                  showWinLossScreen(correctAnswers, totalQuestions, () => {
+                    markTaskComplete();
+                    setTimeout(() => overlayEl.remove(), 500);
+                  });
                   return;
                 }
                 const q = questions[currentQ];
-                taskModalBody.innerHTML =
+                
+                // Create HUD card for question
+                overlayEl.innerHTML = '';
+                const hudCard = document.createElement('div');
+                hudCard.className = 'game-hud-card';
+                hudCard.style.cssText = 'max-width: 600px;';
+                hudCard.innerHTML =
                   `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
-                document.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = handleAnswer);
+                overlayEl.appendChild(hudCard);
+                
+                hudCard.querySelectorAll('.task-option-btn').forEach(btn => btn.onclick = handleAnswer);
               }
 
               function handleAnswer(e) {
@@ -3893,7 +3909,8 @@
                 } else {
                   updateMainScore(-500);
                 }
-                document.querySelectorAll('.task-option-btn').forEach((btn, i) => {
+                const buttons = overlayEl.querySelectorAll('.task-option-btn');
+                buttons.forEach((btn, i) => {
                   btn.disabled = true;
                   if (i === correctIndex) btn.style.backgroundColor = '#27ae60';
                   else if (i === selectedIndex) btn.style.backgroundColor = '#c0392b';
@@ -3903,8 +3920,23 @@
                   renderQuestion();
                 }, 1500);
               }
+              
+              function showWinLossScreen(correct, total, onContinue) {
+                overlayEl.innerHTML = '';
+                const hudCard = document.createElement('div');
+                hudCard.className = 'game-hud-card';
+                hudCard.style.cssText = 'text-align: center;';
+                hudCard.innerHTML = `
+                  <h2 class="text-3xl mb-4">${correct >= 3 ? '🎉 You Win!' : '❌ Try Again'}</h2>
+                  <p class="text-xl mb-4">You got ${correct} out of ${total} correct!</p>
+                  <button id="trivia-continue-btn" class="modal-action-btn">Continue</button>
+                `;
+                overlayEl.appendChild(hudCard);
+                document.getElementById('trivia-continue-btn').onclick = onContinue;
+              }
+              
               renderQuestion();
-            };
+            });
           }
 
           async function setupTrivia3Task() {
@@ -5699,21 +5731,10 @@
               <button id="start-challenge-btn" class="modal-action-btn">Start Quiz</button>
             `;
             
-            document.getElementById('start-challenge-btn').onclick = () => {
-              // Hide modal and create overlay with big numbers
-              hideTaskModal();
-              
-              const overlay = document.createElement('div');
-              overlay.id = 'trivia-speed-overlay';
-              overlay.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100vw;
-                height: 100vh;
-                z-index: 250;
-                pointer-events: none;
-              `;
+            const startBtn = document.getElementById('start-challenge-btn');
+            wireStartButton(startBtn, () => {
+              // Create game overlay with exit button
+              const { overlayEl } = createGameOverlay({ id: 'trivia-speed-overlay' });
               
               // Left side: Correct count (BIG)
               const correctDisplay = document.createElement('div');
@@ -5758,13 +5779,11 @@
                 background: rgba(0, 0, 0, 0.85);
                 border-radius: 1rem;
                 padding: 2rem;
-                pointer-events: auto;
               `;
               
-              overlay.appendChild(correctDisplay);
-              overlay.appendChild(timerDisplay);
-              overlay.appendChild(questionArea);
-              document.body.appendChild(overlay);
+              overlayEl.appendChild(correctDisplay);
+              overlayEl.appendChild(timerDisplay);
+              overlayEl.appendChild(questionArea);
               
               const timerInterval = setInterval(() => {
                 timeLeft--;
@@ -5775,13 +5794,12 @@
                   clearInterval(timerInterval);
                   questionArea.innerHTML = `<div style="text-align: center; color: white;"><h2>⏰ Time's Up!</h2><p>${correctAnswers}/5 correct</p></div>`;
                   setTimeout(() => {
-                    document.body.removeChild(overlay);
-                    closeTaskModal();
+                    overlayEl.remove();
                   }, 2000);
                 }
               }, 1000);
               
-              currentTimers.push(timerInterval);
+              registerGameCleanup(() => clearInterval(timerInterval));
               
               const renderQuestion = () => {
                 if (quizOver) return;
@@ -5791,7 +5809,7 @@
                   clearInterval(timerInterval);
                   questionArea.innerHTML = `<div style="text-align: center; color: white;"><h2>🎉 Success!</h2><p>5 correct in ${60 - timeLeft}s</p></div>`;
                   setTimeout(() => {
-                    document.body.removeChild(overlay);
+                    overlayEl.remove();
                     updateMainScore(3000);
                     markTaskComplete();
                   }, 1500);
@@ -5804,8 +5822,7 @@
                   clearInterval(timerInterval);
                   questionArea.innerHTML = `<div style="text-align: center; color: white;"><h2>📝 Not enough!</h2><p>Only ${correctAnswers}/5 correct</p></div>`;
                   setTimeout(() => {
-                    document.body.removeChild(overlay);
-                    closeTaskModal();
+                    overlayEl.remove();
                   }, 2000);
                   return;
                 }
