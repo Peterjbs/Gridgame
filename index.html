@@ -4401,7 +4401,14 @@
               { duration: 100, change: 10 },
               { duration: 50, change: 10 }
             ];
-            const defaultPreset = presetOptions[0];
+            // RANDOMIZE default preset each time
+            const randomPresetIndex = Math.floor(Math.random() * presetOptions.length);
+            const defaultPreset = presetOptions[randomPresetIndex];
+            
+            // RANDOMIZE default emoji each time (only 🍆, 🍑, 🧍)
+            const guessEmojis = ['🍆', '🍑', '🧍'];
+            const randomEmojiIndex = Math.floor(Math.random() * guessEmojis.length);
+            const defaultEmoji = guessEmojis[randomEmojiIndex];
             
             taskModalBody.innerHTML = `
               <h3>Player ${currentChallengePlayerIndex + 1}'s Turn</h3>
@@ -4409,7 +4416,7 @@
               <div style="margin: 1rem 0;">
                 <label>Preset Options: 
                   <select id="pf-preset" style="padding: 0.5rem; pointer-events: auto; background: rgba(255,255,255,0.1); color: black; border-radius: 4px;">
-                    ${presetOptions.map((opt, i) => `<option value="${i}">Duration ${opt.duration}s, Change ${opt.change}s</option>`).join('')}
+                    ${presetOptions.map((opt, i) => `<option value="${i}" ${i === randomPresetIndex ? 'selected' : ''}>Duration ${opt.duration}s, Change ${opt.change}s</option>`).join('')}
                   </select>
                 </label>
               </div>
@@ -4421,7 +4428,7 @@
               </div>
               <div style="margin: 1rem 0;">
                 <label>Your guess emoji: </label>
-                <span class="pf-emoji-cycler text-2xl cursor-pointer" style="display: inline-block; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 5px;">🍆</span>
+                <span class="pf-emoji-cycler text-2xl cursor-pointer" style="display: inline-block; padding: 0.5rem; background: rgba(255,255,255,0.1); border-radius: 5px;">${defaultEmoji}</span>
               </div>
               <div style="margin: 1rem 0;">
                 <label>Your guess count: <input type="number" id="pf-guess-count" value="5" min="0" max="100" style="width: 80px; pointer-events: auto; color: black;"></label>
@@ -4429,7 +4436,6 @@
               <button id="start-pf-btn" class="modal-action-btn">Start Game</button>
             `;
             
-            const guessEmojis = ['🍆', '🍑', '👤', '🙂'];
             const emojiCycler = taskModalBody.querySelector('.pf-emoji-cycler');
             parseEmojis(emojiCycler);
             
@@ -5549,31 +5555,98 @@
             
             let correctAnswers = 0;
             let currentQ = 0;
-            let timeLeft = 45;
+            let timeLeft = 60; // Changed from 45 to 60 seconds
             let quizOver = false;
             
             taskModalBody.innerHTML = `
               <h3>Answer 5 questions correctly!</h3>
-              <p>Time limit: 45 seconds</p>
+              <p>Time limit: 60 seconds</p>
               <button id="start-challenge-btn" class="modal-action-btn">Start Quiz</button>
             `;
             
             document.getElementById('start-challenge-btn').onclick = () => {
+              // Hide modal and create overlay with big numbers
+              hideTaskModal();
+              
+              const overlay = document.createElement('div');
+              overlay.id = 'trivia-speed-overlay';
+              overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100vw;
+                height: 100vh;
+                z-index: 250;
+                pointer-events: none;
+              `;
+              
+              // Left side: Correct count (BIG)
+              const correctDisplay = document.createElement('div');
+              correctDisplay.id = 'trivia-correct-display';
+              correctDisplay.style.cssText = `
+                position: absolute;
+                left: 2rem;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 8rem;
+                font-weight: bold;
+                color: #10b981;
+                text-shadow: 3px 3px 10px rgba(0,0,0,0.8);
+              `;
+              correctDisplay.textContent = correctAnswers;
+              
+              // Right side: Timer (BIG)
+              const timerDisplay = document.createElement('div');
+              timerDisplay.id = 'trivia-timer-display';
+              timerDisplay.style.cssText = `
+                position: absolute;
+                right: 2rem;
+                top: 50%;
+                transform: translateY(-50%);
+                font-size: 8rem;
+                font-weight: bold;
+                color: #f59e0b;
+                text-shadow: 3px 3px 10px rgba(0,0,0,0.8);
+              `;
+              timerDisplay.textContent = timeLeft;
+              
+              // Question area at bottom (pointer events enabled)
+              const questionArea = document.createElement('div');
+              questionArea.id = 'trivia-question-area';
+              questionArea.style.cssText = `
+                position: absolute;
+                bottom: 2rem;
+                left: 50%;
+                transform: translateX(-50%);
+                width: 80%;
+                max-width: 800px;
+                background: rgba(0, 0, 0, 0.85);
+                border-radius: 1rem;
+                padding: 2rem;
+                pointer-events: auto;
+              `;
+              
+              overlay.appendChild(correctDisplay);
+              overlay.appendChild(timerDisplay);
+              overlay.appendChild(questionArea);
+              document.body.appendChild(overlay);
+              
               const timerInterval = setInterval(() => {
                 timeLeft--;
-                const timerEl = document.getElementById('quiz-timer');
-                if (timerEl) timerEl.innerHTML = `Time: ${timeLeft}s`;
+                timerDisplay.textContent = timeLeft;
                 
                 if (timeLeft <= 0 && !quizOver) {
                   quizOver = true;
                   clearInterval(timerInterval);
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>⏰ Time's Up!</h2><p>${correctAnswers}/5 correct</p><p>You needed 5 correct answers to win.</p></div>`;
-                  setTimeout(() => closeTaskModal(), 2000);
+                  questionArea.innerHTML = `<div style="text-align: center; color: white;"><h2>⏰ Time's Up!</h2><p>${correctAnswers}/5 correct</p></div>`;
+                  setTimeout(() => {
+                    document.body.removeChild(overlay);
+                    closeTaskModal();
+                  }, 2000);
                 }
               }, 1000);
               
               currentTimers.push(timerInterval);
-              modalTimer = timerInterval;
               
               const renderQuestion = () => {
                 if (quizOver) return;
@@ -5581,8 +5654,9 @@
                 if (correctAnswers >= 5) {
                   quizOver = true;
                   clearInterval(timerInterval);
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Success!</h2><p>5 correct in ${45 - timeLeft}s</p></div>`;
+                  questionArea.innerHTML = `<div style="text-align: center; color: white;"><h2>🎉 Success!</h2><p>5 correct in ${60 - timeLeft}s</p></div>`;
                   setTimeout(() => {
+                    document.body.removeChild(overlay);
                     updateMainScore(3000);
                     markTaskComplete();
                   }, 1500);
@@ -5593,22 +5667,23 @@
                   // Need more questions but didn't get 5 correct
                   quizOver = true;
                   clearInterval(timerInterval);
-                  taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>📝 Not enough!</h2><p>Only ${correctAnswers}/5 correct</p></div>`;
-                  setTimeout(() => closeTaskModal(), 2000);
+                  questionArea.innerHTML = `<div style="text-align: center; color: white;"><h2>📝 Not enough!</h2><p>Only ${correctAnswers}/5 correct</p></div>`;
+                  setTimeout(() => {
+                    document.body.removeChild(overlay);
+                    closeTaskModal();
+                  }, 2000);
                   return;
                 }
                 
                 const q = questions[currentQ];
-                taskModalBody.innerHTML = `
-                  <div id="quiz-timer" style="text-align: center; font-size: 1.5rem; margin-bottom: 1rem; font-weight: bold; color: #f59e0b;">Time: ${timeLeft}s</div>
-                  <div style="text-align: center; font-size: 1.2rem; margin-bottom: 0.5rem; font-weight: bold; color: #10b981;">Score: ${correctAnswers}/5</div>
-                  <p class="text-xl mb-4">${q.question}</p>
-                  <div class="task-option-grid">
-                    ${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}
+                questionArea.innerHTML = `
+                  <p style="text-align: center; font-size: 1.5rem; margin-bottom: 1rem; color: white;">${q.question}</p>
+                  <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 1rem;">
+                    ${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}" style="padding: 1rem; font-size: 1.1rem;">${opt}</button>`).join('')}
                   </div>
                 `;
                 
-                document.querySelectorAll('.task-option-btn').forEach(btn => {
+                questionArea.querySelectorAll('.task-option-btn').forEach(btn => {
                   btn.onclick = () => {
                     if (quizOver) return;
                     
@@ -5617,10 +5692,11 @@
                     
                     if (selectedIndex === correctIndex) {
                       correctAnswers++;
+                      correctDisplay.textContent = correctAnswers;
                       btn.style.background = '#27ae60';
                     } else {
                       btn.style.background = '#e74c3c';
-                      document.querySelectorAll('.task-option-btn')[correctIndex].style.background = '#27ae60';
+                      questionArea.querySelectorAll('.task-option-btn')[correctIndex].style.background = '#27ae60';
                     }
                     
                     setTimeout(() => {
