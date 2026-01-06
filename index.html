@@ -6179,110 +6179,134 @@
 
           async function setupTimestampMatchTask() {
             taskModalTitle.textContent = "Timestamp Match ⏱️";
-            
-            if (videoFiles.length < 1) {
+
+            if (!videoFiles || videoFiles.length < 1) {
               taskModalBody.innerHTML = `<p class="text-red-500">You need at least 1 video for this challenge.</p>`;
               return;
             }
-            
+
             taskModalBody.innerHTML = `
-              <h3>Remember the timestamp!</h3>
-              <p>The video will show a moment, then jump around.</p>
-              <p>Click when it returns to the SAME moment!</p>
-              <button id="start-challenge-btn" class="modal-action-btn">Start Challenge</button>
+              <h3>Remember the moment!</h3>
+              <p>You'll see a moment for 3 seconds.</p>
+              <p>Then the background video jumps around.</p>
+              <p><strong>Tap anywhere</strong> when it returns to the SAME moment.</p>
+              <button id="start-challenge-btn" class="modal-action-btn">Start</button>
             `;
-            
+
             const startBtn = document.getElementById('start-challenge-btn');
+
             wireStartButton(startBtn, async () => {
-              const videoIndex = Math.floor(Math.random() * videoFiles.length);
-              const file = videoFiles[videoIndex];
-              const url = URL.createObjectURL(file);
-              
-              // Create video element
-              const tempVideo = document.createElement('video');
-              tempVideo.src = url;
-              tempVideo.muted = true;
-              
-              await new Promise(resolve => {
-                tempVideo.onloadedmetadata = () => resolve();
-              });
-              
-              // Simplified: works with any video length (minimum 30 seconds)
-              if (tempVideo.duration < 30) {
-                taskModalBody.innerHTML = `<p class="text-red-500">Video must be at least 30 seconds long for this challenge.</p>`;
-                return;
-              }
-              
-              // Target time: avoid first and last 5 seconds
-              const targetTime = 5 + Math.random() * (tempVideo.duration - 10);
-              
-              taskModalBody.innerHTML = `
-                <div style="width: 100%; max-width: 500px; margin: 0 auto;">
-                  <video id="timestamp-video" style="width: 100%; height: auto;" muted playsinline></video>
-                </div>
-                <p id="timestamp-instruction" style="margin-top: 1rem; font-size: 1.2rem;">Watch this moment...</p>
-                <button id="timestamp-click-btn" class="modal-action-btn" disabled style="margin-top: 1rem;">Click when it matches!</button>
-              `;
-              
-              const player = document.getElementById('timestamp-video');
-              player.src = url;
-              
-              await new Promise(resolve => {
-                player.onloadedmetadata = () => resolve();
-              });
-              
-              // Show target timestamp for 3 seconds
-              player.currentTime = targetTime;
-              await player.play();
-              await new Promise(resolve => setTimeout(resolve, 3000));
-              player.pause();
-              
-              document.getElementById('timestamp-instruction').textContent = 'Video is jumping around... Click when it matches!';
-              document.getElementById('timestamp-click-btn').disabled = false;
-              
-              let gameOver = false;
-              let currentJumpTime = 0;
-              
-              // Jump around every 2 seconds - jump at least 10 seconds away from target
-              const jumpInterval = setInterval(() => {
-                if (gameOver) {
-                  clearInterval(jumpInterval);
+              // Ensure no stale cleanup from previous games
+              runGameCleanup();
+
+              await withMainVideoOverride(async (mainVideo) => {
+                // Overlay (transparent – still an overlay, but not an opaque panel)
+                const { overlayEl } = createGameOverlay({ id: 'timestamp-match-overlay', title: '' });
+                overlayEl.style.background = 'transparent';
+                overlayEl.style.backdropFilter = 'none';
+
+                // HUD
+                const hud = document.createElement('div');
+                hud.className = 'game-hud-card';
+                hud.style.cssText =
+                  'position: fixed; top: 80px; left: 50%; transform: translateX(-50%); z-index: 325; padding: 12px 16px;';
+                hud.innerHTML = `<div style="font-size:18px;font-weight:700;text-align:center;">Loading…</div>`;
+                overlayEl.appendChild(hud);
+
+                // Pick a random uploaded video and load into mainVideo
+                const file = videoFiles[Math.floor(Math.random() * videoFiles.length)];
+                const url = URL.createObjectURL(file);
+                registerGameCleanup(() => {
+                  try { URL.revokeObjectURL(url); } catch (_) {}
+                });
+
+                mainVideo.muted = true;
+                mainVideo.playsInline = true;
+                mainVideo.src = url;
+
+                await new Promise((resolve) => {
+                  const done = () => resolve();
+                  mainVideo.onloadedmetadata = done;
+                });
+
+                // Require enough duration to make the game meaningful
+                if (!Number.isFinite(mainVideo.duration) || mainVideo.duration < 30) {
+                  hud.innerHTML = `<div style="font-size:18px;font-weight:700;text-align:center;">Video too short (need ≥ 30s)</div>`;
+                  setTimeout(() => {
+                    runGameCleanup();
+                    overlayEl.remove();
+                  }, 1200);
                   return;
                 }
-                
-                // Target time: avoid first and last 5 seconds
-                const targetTime = 5 + Math.random() * (mainVideo.duration - 10);
-                
-                currentJumpTime = newJumpTime;
-                player.currentTime = currentJumpTime;
-                player.play();
-              }, 2000);
-              
-              currentTimers.push(jumpInterval);
-              
-              const clickBtn = document.getElementById('timestamp-click-btn');
-              clickBtn.addEventListener('pointerdown', () => {
-                if (gameOver) return;
-                gameOver = true;
-                clearInterval(jumpInterval);
-                player.pause();
-                
-                const clickBtn = document.createElement('button');
-                clickBtn.id = 'timestamp-click-btn';
-                clickBtn.className = 'modal-action-btn';
-                clickBtn.textContent = 'Click when it matches!';
-                clickBtn.disabled = true;
-                clickBtn.style.cssText = 'position: fixed; bottom: 100px; left: 50%; transform: translateX(-50%); z-index: 325;';
-                overlayEl.appendChild(clickBtn);
-                
-                // Show target timestamp for 3 seconds
+
+                // Choose a target timestamp away from the edges
+                const edge = 5;
+                const targetTime = edge + Math.random() * (mainVideo.duration - (edge * 2));
+
+                // Show target moment
+                hud.innerHTML = `<div style="font-size:18px;font-weight:800;text-align:center;">Watch this moment…</div>`;
                 mainVideo.currentTime = targetTime;
-                await mainVideo.play();
-                await new Promise(resolve => setTimeout(resolve, 3000));
+                await mainVideo.play().catch(() => {});
+                await new Promise((r) => setTimeout(r, 3000));
                 mainVideo.pause();
-                
-                // Clean up object URL
-                URL.revokeObjectURL(url);
+
+                // Start jumping
+                let active = true;
+                const threshold = 0.75;
+
+                const pickJumpTime = () => {
+                  const minDist = Math.min(10, Math.max(4, mainVideo.duration * 0.12));
+                  let t = targetTime;
+
+                  // keep picking until it's far enough from target
+                  for (let i = 0; i < 30 && Math.abs(t - targetTime) < minDist; i++) {
+                    t = edge + Math.random() * (mainVideo.duration - (edge * 2));
+                  }
+                  return t;
+                };
+
+                hud.innerHTML = `<div style="font-size:18px;font-weight:800;text-align:center;">Tap when it matches!</div>`;
+
+                const jumpInterval = setInterval(() => {
+                  if (!active) return;
+                  const t = pickJumpTime();
+                  mainVideo.currentTime = t;
+                  mainVideo.play().catch(() => {});
+                }, 1800);
+
+                registerGameCleanup(() => clearInterval(jumpInterval));
+
+                // End control
+                let ended = false;
+                const end = (win) => {
+                  if (ended) return;
+                  ended = true;
+                  active = false;
+                  clearInterval(jumpInterval);
+                  mainVideo.pause();
+
+                  if (win) {
+                    hud.innerHTML = `<div style="font-size:20px;font-weight:900;text-align:center;">✅ MATCH!</div>`;
+                    markTaskComplete();
+                  } else {
+                    hud.innerHTML = `<div style="font-size:20px;font-weight:900;text-align:center;">❌ MISS!</div>`;
+                  }
+
+                  setTimeout(() => {
+                    runGameCleanup();
+                    overlayEl.remove();
+                  }, 900);
+                };
+
+                // Make "tap anywhere" count (but ignore taps on Exit button)
+                const onTap = (e) => {
+                  if (e.target && e.target.closest && e.target.closest('.game-overlay-exit-btn')) return;
+                  const diff = Math.abs(mainVideo.currentTime - targetTime);
+                  end(diff <= threshold);
+                };
+
+                overlayEl.addEventListener('pointerdown', onTap);
+                registerGameCleanup(() => overlayEl.removeEventListener('pointerdown', onTap));
               });
             });
           }
