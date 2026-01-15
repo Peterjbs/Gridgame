@@ -5164,7 +5164,7 @@
                   taskModalTitle.textContent = `Round ${round}/${maxRounds} - Your turn!`;
                   const playerSequence = [];
                   
-                  // Store click handlers so we can remove them later
+                  // Store event handlers so we can remove them later
                   const clickHandlers = new Map();
                   
                   document.querySelectorAll('.avatar-tile').forEach(tile => {
@@ -5184,7 +5184,7 @@
                       // Check if correct so far
                       if (sequence[playerSequence.length - 1] !== index) {
                         // Wrong! Remove all listeners
-                        clickHandlers.forEach((h, t) => t.removeEventListener('click', h));
+                        clickHandlers.forEach((h, t) => t.removeEventListener('pointerdown', h));
                         taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong sequence!</h2></div>`;
                         setTimeout(() => closeTaskModal(), 2000);
                         return;
@@ -5193,7 +5193,7 @@
                       // Check if complete
                       if (playerSequence.length === sequence.length) {
                         // Correct! Remove all listeners
-                        clickHandlers.forEach((h, t) => t.removeEventListener('click', h));
+                        clickHandlers.forEach((h, t) => t.removeEventListener('pointerdown', h));
                         round++;
                         if (round > maxRounds) {
                           taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>All 3 rounds completed!</p></div>`;
@@ -5208,7 +5208,7 @@
                       }
                     };
                     clickHandlers.set(tile, handler);
-                    tile.addEventListener('click', handler);
+                    tile.addEventListener('pointerdown', handler);
                   });
                 };
               };
