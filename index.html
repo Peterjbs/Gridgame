@@ -6462,36 +6462,6 @@
               timerDiv.textContent = 'Time: 60s';
               document.body.appendChild(timerDiv);
               
-              // Add Exit button
-              const exitBtn = document.createElement('button');
-              exitBtn.className = 'game-overlay-exit-btn';
-              exitBtn.textContent = '✕ Exit';
-              exitBtn.style.cssText = `
-                position: fixed;
-                top: 20px;
-                right: 20px;
-                z-index: 260;
-                padding: 0.5rem 1rem;
-                background: rgba(231, 76, 60, 0.9);
-                color: white;
-                border: none;
-                border-radius: 8px;
-                cursor: pointer;
-                font-size: 1rem;
-                font-weight: bold;
-              `;
-              exitBtn.addEventListener('pointerdown', (e) => {
-                e.preventDefault();
-                gameOver = true;
-                clearInterval(timerInterval);
-                gridOverlay.remove();
-                timerDiv.remove();
-                exitBtn.remove();
-                hiddenVideo.remove();
-                closeTaskModal();
-              });
-              document.body.appendChild(exitBtn);
-              
               let timeLeft = 60;
               let gameOver = false;
               const lockedQuarters = new Set();
@@ -6577,7 +6547,6 @@
                     timerDiv.remove();
                     exitBtn.remove();
                     hiddenVideo.remove();
-                    exitBtn.remove();
                     
                     taskModalOverlay.style.display = '';
                     taskModalOverlay.classList.add('visible', 'interactive');
@@ -6603,7 +6572,6 @@
                   timerDiv.remove();
                   exitBtn.remove();
                   hiddenVideo.remove();
-                  exitBtn.remove();
                   
                   taskModalOverlay.style.display = '';
                   taskModalOverlay.classList.add('visible', 'interactive');
