@@ -885,7 +885,7 @@
     .emoji-grid {
       display: grid;
       gap: 5px;
-      max-width: 400px;
+      max-width: 600px;
       margin: auto;
     }
 
@@ -3765,7 +3765,7 @@
             taskModalBody.innerHTML = `<h3>Ready to Build?</h3><p>Create your custom 3x2 bingo card.</p><button id="start-challenge-btn" class="modal-action-btn">Start Building</button>`;
             document.getElementById('start-challenge-btn').onclick = () => {
               let selectedPrompts = [];
-              const masterList = bingoPrompts.sort(() => 0.5 - Math.random());
+              const masterList = [...bingoPrompts].sort(() => 0.5 - Math.random());
               taskModalBody.innerHTML =
                 `<p>Select 6 prompts from the list below:</p><div id="bingo-builder-master-list">${masterList.map(p => `<div class="bingo-item">${p}</div>`).join('')}</div><h3>Your Card Preview (<span id="bingo-pick-count">0</span>/6)</h3><div id="my-bingo-card-preview">${Array(6).fill('<div class="cell"></div>').join('')}</div><button id="confirm-bingo-card" class="modal-action-btn mt-4" disabled>Create Card</button>`;
               const updatePreview = () => {

@@ -876,7 +876,7 @@
     .emoji-grid {
       display: grid;
       gap: 5px;
-      max-width: 400px;
+      max-width: 600px;
       margin: auto;
     }
 
@@ -1881,11 +1881,6 @@
               icon: '🧠'
             },
             {
-              type: 'filmTitleScrambler',
-              name: 'Film Title Scrambler',
-              icon: '🎬'
-            },
-            {
               type: 'higherLowerViews',
               name: 'Higher or Lower',
               icon: '📊'
@@ -2008,7 +2003,6 @@
             videoClipDetective: 'rgba(255, 193, 7, 0.5)',
             clipOrderMemory: 'rgba(156, 39, 176, 0.5)',
             avatarSequence: 'rgba(76, 175, 80, 0.5)',
-            filmTitleScrambler: 'rgba(233, 30, 99, 0.5)',
             higherLowerViews: 'rgba(63, 81, 181, 0.5)',
             iconClickHunt: 'rgba(0, 150, 136, 0.5)',
             triviaSpeedQuiz: 'rgba(255, 152, 0, 0.5)',
@@ -3751,9 +3745,6 @@
               case 'avatarSequence':
                 setupAvatarSequenceTask();
                 break;
-              case 'filmTitleScrambler':
-                setupFilmTitleScramblerTask();
-                break;
               case 'higherLowerViews':
                 setupHigherLowerViewsTask();
                 break;
@@ -4015,7 +4006,7 @@
                 hudCard.className = 'game-hud-card';
                 hudCard.style.cssText = 'max-width: 600px;';
                 hudCard.innerHTML =
-                  `<p class="text-xl mb-4">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
+                  `<p class="text-xl mb-4" style="color: #ffffff;">(${currentQ + 1}/5) ${q.question}</p><div class="task-option-grid">${q.options.map((opt, i) => `<button class="task-option-btn" data-index="${i}">${opt}</button>`).join('')}</div>`;
                 overlayEl.appendChild(hudCard);
                 
                 hudCard.querySelectorAll('.task-option-btn').forEach(btn => {
@@ -4162,12 +4153,8 @@
               const baseEmojis = ['🍆', '🍑', '💦', '👄', '👅', '💪', '⛓️', '🔥', '😈', '🦄', '🐷', '💨', '🚀', '🫃🏽'];
               const gameEmojis = [...baseEmojis.slice(0, config.size / 2), ...baseEmojis.slice(0, config.size / 2)].sort(() => 0.5 - Math.random());
               
-              // Create color map for deterministic back colors
-              const emojiColorMap = {};
-              const backColors = ['#e74c3c', '#3498db', '#2ecc71', '#f39c12', '#9b59b6', '#1abc9c', '#e67e22'];
-              baseEmojis.forEach((emoji, i) => {
-                emojiColorMap[emoji] = backColors[i % backColors.length];
-              });
+              // Use uniform back color for all cards
+              const uniformBackColor = '#3498db';
               
               let flipped = [];
               let matchedCount = 0;
@@ -4185,7 +4172,7 @@
               const gameGrid = document.createElement('div');
               gameGrid.className = 'emoji-grid ' + config.gridClass;
               gameGrid.innerHTML = gameEmojis.map((emoji, i) => 
-                `<div class="emoji-cell" data-index="${i}" style="font-size: ${config.emojiSize}; background: ${emojiColorMap[emoji]};"><div class="emoji-content">${emoji}</div></div>`
+                `<div class="emoji-cell" data-index="${i}" style="font-size: ${config.emojiSize}; background: ${uniformBackColor};"><div class="emoji-content">${emoji}</div></div>`
               ).join('');
               overlayEl.appendChild(gameGrid);
               
@@ -5484,12 +5471,23 @@
                   </div>
                 `;
                 
+                // Disable tiles during sequence playback
+                const allTiles = document.querySelectorAll('.avatar-tile');
+                allTiles.forEach(tile => {
+                  tile.style.pointerEvents = 'none';
+                  tile.style.opacity = '0.7';
+                });
+                
                 // Show sequence at half speed (2x duration)
                 let showIndex = 0;
                 const showInterval = setInterval(() => {
                   if (showIndex >= sequence.length) {
                     clearInterval(showInterval);
-                    // Now let player repeat
+                    // Re-enable tiles and let player repeat
+                    allTiles.forEach(tile => {
+                      tile.style.pointerEvents = 'auto';
+                      tile.style.opacity = '1';
+                    });
                     startPlayerTurn();
                     return;
                   }
@@ -5517,8 +5515,11 @@
                   taskModalTitle.textContent = `Round ${round}/${maxRounds} - Your turn!`;
                   const playerSequence = [];
                   
+                  // Store click handlers so we can remove them later
+                  const clickHandlers = new Map();
+                  
                   document.querySelectorAll('.avatar-tile').forEach(tile => {
-                    tile.addEventListener('pointerdown', () => {
+                    const handler = () => {
                       const index = parseInt(tile.dataset.index);
                       playerSequence.push(index);
                       
@@ -5533,7 +5534,8 @@
                       
                       // Check if correct so far
                       if (sequence[playerSequence.length - 1] !== index) {
-                        // Wrong!
+                        // Wrong! Remove all listeners
+                        clickHandlers.forEach((h, t) => t.removeEventListener('pointerdown', h));
                         taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>❌ Wrong sequence!</h2></div>`;
                         setTimeout(() => closeTaskModal(), 2000);
                         return;
@@ -5541,7 +5543,8 @@
                       
                       // Check if complete
                       if (playerSequence.length === sequence.length) {
-                        // Correct!
+                        // Correct! Remove all listeners
+                        clickHandlers.forEach((h, t) => t.removeEventListener('pointerdown', h));
                         round++;
                         if (round > maxRounds) {
                           taskModalBody.innerHTML = `<div style="text-align: center; padding: 2rem;"><h2>🎉 Perfect!</h2><p>All 3 rounds completed!</p></div>`;
@@ -5554,7 +5557,9 @@
                           setTimeout(() => playRound(), 1500);
                         }
                       }
-                    });
+                    };
+                    clickHandlers.set(tile, handler);
+                    tile.addEventListener('pointerdown', handler);
                   });
                 };
               };
@@ -6138,8 +6143,11 @@
                   const dripHeight = Math.random() * 50;
                   ctx.fillRect(dripX, y + radius, 3, dripHeight);
                 }
-                
-                // Calculate coverage
+              };
+              
+              // Throttled coverage calculation (only every 10 splatters)
+              let splatterCount = 0;
+              const updateCoverage = () => {
                 const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
                 let paintedPixels = 0;
                 for (let i = 3; i < imageData.data.length; i += 4) {
@@ -6157,8 +6165,33 @@
                 }
               };
               
+              // Machine-gun style continuous painting on hold/drag
+              let isPainting = false;
+              
               canvas.addEventListener('pointerdown', (e) => {
-                if (!gameOver) splatter(e.clientX, e.clientY);
+                if (!gameOver) {
+                  isPainting = true;
+                  splatter(e.clientX, e.clientY);
+                  splatterCount++;
+                  if (splatterCount % 10 === 0) updateCoverage();
+                }
+              });
+              
+              canvas.addEventListener('pointermove', (e) => {
+                if (!gameOver && isPainting) {
+                  splatter(e.clientX, e.clientY);
+                  splatterCount++;
+                  if (splatterCount % 10 === 0) updateCoverage();
+                }
+              });
+              
+              canvas.addEventListener('pointerup', () => {
+                isPainting = false;
+                updateCoverage(); // Final coverage check when mouse released
+              });
+              
+              canvas.addEventListener('pointerleave', () => {
+                isPainting = false;
               });
               
               const timerInterval = setInterval(() => {
