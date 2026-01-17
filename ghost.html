@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ghostly Letters</title>
+    <style>
+        body {
+            background-color: black;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        #display-container {
+            position: relative;
+            font-size: 15rem;
+            color: rgba(255, 255, 255, 0.8);
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5), 0 0 40px rgba(255, 255, 255, 0.2);
+        }
+
+        .ghost-letter {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            animation: ghostFade 2s ease-in-out forwards;
+        }
+
+        @keyframes ghostFade {
+            0% { opacity: 0; filter: blur(10px); transform: translate(-50%, -40%); }
+            20% { opacity: 0.7; filter: blur(2px); transform: translate(-50%, -50%); }
+            80% { opacity: 0.7; filter: blur(2px); transform: translate(-50%, -50%); }
+            100% { opacity: 0; filter: blur(15px); transform: translate(-50%, -60%); }
+        }
+
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            background: rgba(30, 30, 30, 0.8);
+            padding: 10px;
+            border-radius: 5px;
+            color: white;
+            z-index: 10;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        button {
+            cursor: pointer;
+            background: #444;
+            color: white;
+            border: 1px solid #666;
+            padding: 5px 10px;
+        }
+
+        input {
+            background: #222;
+            color: white;
+            border: 1px solid #444;
+            padding: 5px;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="display-container"></div>
+
+    <div id="controls">
+        <button id="toggle-btn">Toggle Settings</button>
+        <div id="input-area" class="hidden">
+            <br>
+            <input type="text" id="letter-sequence" value="GHOST" placeholder="Type letters here...">
+            <button id="update-btn">Update</button>
+        </div>
+    </div>
+
+    <script>
+        const container = document.getElementById('display-container');
+        const input = document.getElementById('letter-sequence');
+        const updateBtn = document.getElementById('update-btn');
+        const toggleBtn = document.getElementById('toggle-btn');
+        const inputArea = document.getElementById('input-area');
+
+        let sequence = "GHOST";
+        let currentIndex = 0;
+
+        function showNextLetter() {
+            if (sequence.length === 0) return;
+
+            const char = sequence[currentIndex];
+            const span = document.createElement('span');
+            span.className = 'ghost-letter';
+            span.textContent = char;
+            
+            container.appendChild(span);
+
+            // Remove element after animation finishes
+            setTimeout(() => {
+                span.remove();
+            }, 2000);
+
+            currentIndex = (currentIndex + 1) % sequence.length;
+        }
+
+        // Start the loop
+        let intervalId = setInterval(showNextLetter, 2000);
+        showNextLetter(); // Initial call
+
+        updateBtn.addEventListener('click', () => {
+            sequence = input.value.replace(/\s/g, ''); // Remove spaces
+            currentIndex = 0;
+            container.innerHTML = ''; // Clear current display
+            clearInterval(intervalId);
+            intervalId = setInterval(showNextLetter, 2000);
+            showNextLetter();
+        });
+
+        toggleBtn.addEventListener('click', () => {
+            inputArea.classList.toggle('hidden');
+        });
+    </script>
+</body>
+</html>
